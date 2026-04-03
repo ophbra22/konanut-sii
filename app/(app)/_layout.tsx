@@ -19,6 +19,8 @@ export default function AppLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="admin/users-approval" />
+      <Stack.Screen name="admin/users-management" />
       <Stack.Screen name="settlement-rankings" />
     </Stack>
   );

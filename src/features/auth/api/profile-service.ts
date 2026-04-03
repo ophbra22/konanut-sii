@@ -1,14 +1,77 @@
 import { supabase } from '@/src/lib/supabase';
-import { createDataAccessError } from '@/src/lib/error-utils';
-import type { AuthProfile, UserProfile } from '@/src/types/database';
+import { createDataAccessError, getErrorMessage } from '@/src/lib/error-utils';
+import type {
+  AuthProfile,
+  LinkedSettlement,
+  UserProfile,
+} from '@/src/types/database';
+
+const fullProfileSelect =
+  'id, full_name, email, phone, requested_role, requested_area, role, is_active, created_at';
+const legacyProfileSelect = 'id, full_name, email, phone, role, is_active, created_at';
+const settlementLinksSelect = `
+  user_id,
+  settlement:settlements (
+    id,
+    name,
+    area,
+    regional_council
+  )
+`;
+
+function shouldFallbackToLegacyProfileSelect(error: unknown) {
+  const message = getErrorMessage(error, '');
+
+  return (
+    message.includes('requested_role') ||
+    message.includes('requested_area') ||
+    message.includes('column') ||
+    message.includes('schema cache')
+  );
+}
+
+function normalizeLegacyProfile<T extends {
+  created_at: string;
+  email: string | null;
+  full_name: string;
+  id: string;
+  is_active: boolean;
+  phone: string | null;
+  role: UserProfile['role'];
+}>(profile: T): UserProfile {
+  return {
+    ...profile,
+    requested_area: null,
+    requested_role: null,
+  };
+}
 
 function getAuthErrorMessage(message: string) {
   if (message.includes('Invalid login credentials')) {
     return 'פרטי ההתחברות אינם נכונים';
   }
 
+  if (message.includes('User already registered')) {
+    return 'קיים כבר חשבון עם כתובת הדוא"ל הזו';
+  }
+
   if (message.includes('Email not confirmed')) {
     return 'יש לאשר את כתובת הדוא"ל לפני הכניסה';
+  }
+
+  if (
+    message.includes('Password should be at least') ||
+    message.includes('Password is too short')
+  ) {
+    return 'יש לבחור סיסמה באורך 6 תווים לפחות';
+  }
+
+  if (message.includes('Unable to validate email address')) {
+    return 'יש להזין כתובת דוא"ל תקינה';
+  }
+
+  if (message.includes('Signup is disabled')) {
+    return 'ההרשמה למערכת אינה זמינה כרגע';
   }
 
   if (message.includes('network')) {
@@ -19,7 +82,7 @@ function getAuthErrorMessage(message: string) {
 }
 
 export function translateAuthError(error: unknown) {
-  const fallback = 'לא ניתן להשלים את פעולת ההתחברות כרגע';
+  const fallback = 'לא ניתן להשלים את פעולת האימות כרגע';
 
   if (error instanceof Error) {
     return getAuthErrorMessage(error.message || fallback);
@@ -28,21 +91,51 @@ export function translateAuthError(error: unknown) {
   return fallback;
 }
 
+type SettlementLinkRow = {
+  settlement: LinkedSettlement | null;
+  user_id: string;
+};
+
+function mapSettlementLinks(links: SettlementLinkRow[] | null | undefined) {
+  const linkedSettlements = (links ?? [])
+    .map((item) => item.settlement)
+    .filter((settlement): settlement is LinkedSettlement => Boolean(settlement));
+
+  return {
+    linkedSettlementIds: linkedSettlements.map((settlement) => settlement.id),
+    linkedSettlements,
+  };
+}
+
 export async function fetchUserProfile(userId: string): Promise<AuthProfile | null> {
-  const [{ data: profile, error: profileError }, { data: links, error: linksError }] =
+  const [{ data: rawProfile, error: profileError }, { data: links, error: linksError }] =
     await Promise.all([
       supabase
         .from('users_profile')
-        .select('id, full_name, email, phone, role, is_active, created_at')
+        .select(fullProfileSelect)
         .eq('id', userId)
         .maybeSingle(),
       supabase
         .from('user_settlements')
-        .select('settlement_id')
+        .select(settlementLinksSelect)
         .eq('user_id', userId),
     ]);
 
-  if (profileError) {
+  let profile = rawProfile as UserProfile | null;
+
+  if (profileError && shouldFallbackToLegacyProfileSelect(profileError)) {
+    const { data: legacyProfile, error: legacyError } = await supabase
+      .from('users_profile')
+      .select(legacyProfileSelect)
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (legacyError) {
+      throw createDataAccessError(legacyError, 'לא ניתן לטעון את פרופיל המשתמש');
+    }
+
+    profile = legacyProfile ? normalizeLegacyProfile(legacyProfile) : null;
+  } else if (profileError) {
     throw createDataAccessError(profileError, 'לא ניתן לטעון את פרופיל המשתמש');
   }
 
@@ -54,18 +147,34 @@ export async function fetchUserProfile(userId: string): Promise<AuthProfile | nu
     return null;
   }
 
+  const settlementLinks = mapSettlementLinks((links ?? []) as SettlementLinkRow[]);
+
   return {
     ...profile,
-    linkedSettlementIds: (links ?? []).map((item) => item.settlement_id),
+    ...settlementLinks,
   };
 }
 
 export async function listActiveProfiles(): Promise<UserProfile[]> {
   const { data, error } = await supabase
     .from('users_profile')
-    .select('id, full_name, email, phone, role, is_active, created_at')
+    .select(fullProfileSelect)
     .eq('is_active', true)
     .order('full_name', { ascending: true });
+
+  if (error && shouldFallbackToLegacyProfileSelect(error)) {
+    const { data: legacyData, error: legacyError } = await supabase
+      .from('users_profile')
+      .select(legacyProfileSelect)
+      .eq('is_active', true)
+      .order('full_name', { ascending: true });
+
+    if (legacyError) {
+      throw createDataAccessError(legacyError, 'לא ניתן לטעון את רשימת המשתמשים');
+    }
+
+    return (legacyData ?? []).map((item) => normalizeLegacyProfile(item));
+  }
 
   if (error) {
     throw createDataAccessError(error, 'לא ניתן לטעון את רשימת המשתמשים');

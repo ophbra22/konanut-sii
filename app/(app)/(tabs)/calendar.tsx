@@ -520,32 +520,30 @@ const styles = StyleSheet.create({
     textAlign: 'left',
   },
   calendarShell: {
+    ...theme.elevation.card,
     backgroundColor: 'rgba(13, 19, 24, 0.96)',
     borderColor: theme.colors.borderStrong,
-    borderRadius: 28,
+    borderRadius: theme.radius.xl,
     borderWidth: 1,
-    gap: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.12,
-    shadowRadius: 18,
+    gap: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
   },
   circleButton: {
     alignItems: 'center',
     backgroundColor: theme.colors.surface,
     borderColor: theme.colors.borderStrong,
-    borderRadius: 14,
+    borderRadius: theme.radius.md,
     borderWidth: 1,
     height: 34,
     justifyContent: 'center',
+    ...theme.elevation.card,
     width: 34,
   },
   content: {
-    gap: 12,
+    gap: theme.spacing.section,
     paddingBottom: theme.spacing.xl,
-    paddingTop: 12,
+    paddingTop: theme.spacing.xs,
   },
   dayFocus: {
     alignItems: 'center',
@@ -585,14 +583,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   eyebrow: {
+    ...theme.typography.eyebrow,
     color: theme.colors.textMuted,
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 0.7,
     textAlign: 'right',
   },
   eventsList: {
-    gap: 10,
+    gap: theme.spacing.sm,
   },
   filterChips: {
     flexDirection: 'row-reverse',
@@ -603,13 +599,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterTitle: {
+    ...theme.typography.caption,
     color: theme.colors.textPrimary,
-    fontSize: 13,
-    fontWeight: '800',
     textAlign: 'right',
   },
   hero: {
-    gap: 10,
+    gap: theme.spacing.sm,
     paddingBottom: 2,
   },
   heroHeader: {
@@ -639,10 +634,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   monthTitle: {
+    ...theme.typography.screenTitle,
     color: theme.colors.textPrimary,
     flex: 1,
-    fontSize: 26,
-    fontWeight: '900',
     textAlign: 'center',
   },
   plusButton: {
@@ -677,9 +671,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   secondaryActionText: {
+    ...theme.typography.badge,
     color: theme.colors.textSecondary,
-    fontSize: 12,
-    fontWeight: '800',
   },
   segmentedSwitch: {
     backgroundColor: theme.colors.surfaceElevated,
@@ -710,7 +703,7 @@ const styles = StyleSheet.create({
   selectionActions: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: 8,
+    gap: theme.spacing.xs,
   },
   selectionMeta: {
     flex: 1,
@@ -725,21 +718,18 @@ const styles = StyleSheet.create({
     paddingTop: 10,
   },
   selectionSubTitle: {
+    ...theme.typography.badge,
     color: theme.colors.textMuted,
-    fontSize: 11,
-    fontWeight: '700',
     textAlign: 'right',
   },
   selectionTitle: {
+    ...theme.typography.cardTitle,
     color: theme.colors.textPrimary,
-    fontSize: 17,
-    fontWeight: '900',
     textAlign: 'right',
   },
   title: {
+    ...theme.typography.screenTitle,
     color: theme.colors.textPrimary,
-    fontSize: 32,
-    fontWeight: '900',
     textAlign: 'right',
   },
   titleBlock: {

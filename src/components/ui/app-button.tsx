@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { theme } from '@/src/theme';
 
 export type AppButtonVariant = 'danger' | 'ghost' | 'primary' | 'secondary';
+export type AppButtonSize = 'md' | 'sm';
 type RouterHref = Parameters<ReturnType<typeof useRouter>['push']>[0];
 
 export type AppButtonHref =
@@ -24,6 +25,7 @@ type AppButtonProps = {
   label: string;
   loading?: boolean;
   onPress?: () => void;
+  size?: AppButtonSize;
   style?: StyleProp<ViewStyle>;
   variant?: AppButtonVariant;
 };
@@ -35,6 +37,7 @@ export function AppButton({
   disabled = false,
   fullWidth = true,
   onPress,
+  size = 'md',
   style,
   variant = 'primary',
 }: AppButtonProps) {
@@ -53,6 +56,7 @@ export function AppButton({
       }}
       style={({ pressed }) => [
         styles.base,
+        sizeStyles[size],
         fullWidth ? styles.fullWidth : styles.autoWidth,
         variantStyles[variant],
         isDisabled && styles.disabled,
@@ -70,10 +74,8 @@ export function AppButton({
 const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: theme.radius.lg,
     justifyContent: 'center',
-    minHeight: 46,
-    paddingHorizontal: 16,
   },
   autoWidth: {
     width: 'auto',
@@ -85,7 +87,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   label: {
-    fontSize: 14,
+    ...theme.typography.caption,
     fontWeight: '800',
   },
   pressed: {
@@ -94,14 +96,26 @@ const styles = StyleSheet.create({
   },
 });
 
+const sizeStyles = StyleSheet.create({
+  md: {
+    minHeight: 42,
+    paddingHorizontal: 14,
+  },
+  sm: {
+    minHeight: 38,
+    paddingHorizontal: 12,
+  },
+});
+
 const variantStyles = StyleSheet.create({
   danger: {
     backgroundColor: theme.colors.danger,
     borderColor: theme.colors.danger,
     borderWidth: 1,
+    ...theme.elevation.card,
   },
   ghost: {
-    backgroundColor: 'transparent',
+    backgroundColor: 'rgba(13, 19, 24, 0.6)',
     borderColor: theme.colors.border,
     borderWidth: 1,
   },
@@ -109,6 +123,7 @@ const variantStyles = StyleSheet.create({
     backgroundColor: theme.colors.info,
     borderColor: theme.colors.info,
     borderWidth: 1,
+    ...theme.elevation.focus,
   },
   secondary: {
     backgroundColor: theme.colors.surface,
@@ -122,7 +137,7 @@ const labelStyles = StyleSheet.create({
     color: theme.colors.background,
   },
   ghost: {
-    color: theme.colors.textPrimary,
+    color: theme.colors.textSecondary,
   },
   primary: {
     color: theme.colors.background,

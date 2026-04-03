@@ -1,12 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'expo-router';
+import { ArrowRight, Lock, Mail, Shield } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { AppCard } from '@/src/components/ui/app-card';
-import { AppButton } from '@/src/components/ui/app-button';
-import { AppScreen } from '@/src/components/ui/app-screen';
 import { AppTextField } from '@/src/components/ui/app-text-field';
-import { PageHeader } from '@/src/components/ui/page-header';
+import { AuthScreenShell } from '@/src/features/auth/components/auth-screen-shell';
+import { AuthSubmitButton } from '@/src/features/auth/components/auth-submit-button';
 import {
   loginSchema,
   type LoginFormValues,
@@ -14,7 +14,10 @@ import {
 import { useAuthStore } from '@/src/stores/auth-store';
 import { theme } from '@/src/theme';
 
+const LOGIN_BANNER = require('../../../../assets/images/login-mgdb-darom.jpeg');
+
 export function LoginForm() {
+  const router = useRouter();
   const authError = useAuthStore((state) => state.errorMessage);
   const clearError = useAuthStore((state) => state.clearError);
   const signIn = useAuthStore((state) => state.signIn);
@@ -31,8 +34,10 @@ export function LoginForm() {
     },
     resolver: zodResolver(loginSchema),
   });
-   
+
   const isBusy = isSubmitting || status === 'loading';
+  const inlineAuthError =
+    !errors.email?.message && !errors.password?.message ? authError ?? undefined : undefined;
 
   const onSubmit = handleSubmit(async (values) => {
     clearError();
@@ -42,104 +47,197 @@ export function LoginForm() {
     });
   });
 
+  const footer = (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => {
+        clearError();
+        router.push('/register' as never);
+      }}
+      style={({ pressed }) => [styles.linkRow, pressed ? styles.linkPressed : null]}
+    >
+      <ArrowRight color={theme.colors.info} size={15} strokeWidth={2.2} />
+      <Text style={styles.linkText}>אין לך חשבון? הרשמה</Text>
+    </Pressable>
+  );
+
+  const hero = (
+    <View style={styles.heroCard}>
+      <Image resizeMode="cover" source={LOGIN_BANNER} style={styles.heroImage} />
+      <View pointerEvents="none" style={styles.heroImageGlow} />
+      <View pointerEvents="none" style={styles.heroOverlay} />
+      <View style={styles.heroCaption}>
+        <Text style={styles.heroKicker}>זרוע יישובים מג"ב דרום</Text>
+        <Text style={styles.heroCaptionTitle}>מערכת אימונים וגישה מבצעית</Text>
+        <Text style={styles.heroCaptionText}>סביבת התחברות מאובטחת לכוחות וגורמי ניהול</Text>
+      </View>
+    </View>
+  );
+
   return (
-    <AppScreen>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.wrapper}
-      >
-        <PageHeader
-          eyebrow="כוננות שיא"
-          title="כניסה למערכת"
-          subtitle="בסיס התחברות ראשוני ליישום מבצעי בעברית מלאה, עם RTL ותשתית מוכנה להרחבה."
-        />
-
-        <AppCard
-          title="עקרון דומיין"
-          description="במערכת הזו היישוב הוא יחידת הכוננות הראשית. לכל יישוב יש יחידת כוננות אחת, ולכן לא נוצרת ישות squad נפרדת."
-          variant="accent"
-        />
-
-        <AppCard title="פרטי התחברות" description="המסך מחובר ל־Supabase Auth ומוכן להרחבת הרשאות ופרופילי משתמשים.">
-          <View style={styles.form}>
-            <Controller
-              control={control}
-              name="email"
-              render={({ field: { onBlur, onChange, value } }) => (
-                <AppTextField
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoComplete="email"
-                  keyboardType="email-address"
-                  label='דוא"ל'
-                  onBlur={onBlur}
-                  onChangeText={(text) => {
-                    clearError();
-                    onChange(text);
-                  }}
-                  placeholder='הזינו דוא"ל'
-                  textAlign="left"
-                  textContentType="username"
-                  value={value}
-                  writingDirection="ltr"
-                  errorMessage={errors.email?.message}
-                />
-              )}
-            />
-
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onBlur, onChange, value } }) => (
-                  <AppTextField
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      autoComplete="off"
-                      label="סיסמה"
-                      onBlur={onBlur}
-                      onChangeText={(text) => {
-                          clearError();
-                          onChange(text);
-                      }}
-                      placeholder="הזינו סיסמה"
-                      secureTextEntry
-                      textAlign="left"
-                      textContentType="none"
-                      value={value}
-                      writingDirection="ltr"
-                      errorMessage={errors.password?.message}
-                  />
-              )}
-            />
-
-            {authError ? <Text style={styles.error}>{authError}</Text> : null}
-
-            <AppButton
-              disabled={isBusy}
-              label={isBusy ? 'מתחבר...' : 'כניסה'}
-              loading={isBusy}
-              onPress={() => {
-                  void onSubmit();
+    <AuthScreenShell
+      badgeLabel="מערכת מאובטחת"
+      cardDescription="גישה לחשבון הארגוני המאושר במערכת."
+      cardTitle="פרטי הזדהות"
+      compact
+      footer={footer}
+      hero={hero}
+      subtitle="הזינו את פרטי הגישה למערכת."
+      title="כניסה למערכת אימונים"
+    >
+      <View style={styles.form}>
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <AppTextField
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
+              errorMessage={errors.email?.message}
+              icon={<Mail />}
+              keyboardType="email-address"
+              label='דוא"ל'
+              onBlur={onBlur}
+              onChangeText={(text) => {
+                clearError();
+                onChange(text);
               }}
+              placeholder="name@example.com"
+              returnKeyType="next"
+              textAlign="left"
+              textContentType="username"
+              value={value}
+              writingDirection="ltr"
             />
+          )}
+        />
+
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onBlur, onChange, value } }) => (
+            <AppTextField
+              autoCapitalize="none"
+              autoComplete="current-password"
+              autoCorrect={false}
+              errorMessage={errors.password?.message ?? inlineAuthError}
+              icon={<Lock />}
+              label="סיסמה"
+              onBlur={onBlur}
+              onChangeText={(text) => {
+                clearError();
+                onChange(text);
+              }}
+              onSubmitEditing={() => {
+                void onSubmit();
+              }}
+              placeholder="הזינו סיסמה"
+              returnKeyType="done"
+              secureTextEntry
+              textAlign="left"
+              textContentType="password"
+              value={value}
+              writingDirection="ltr"
+            />
+          )}
+        />
+
+        <View style={styles.actions}>
+          <AuthSubmitButton
+            disabled={isBusy}
+            label="התחברות"
+            loading={isBusy}
+            onPress={() => {
+              void onSubmit();
+            }}
+          />
+
+          <View style={styles.securityRow}>
+            <Shield color={theme.colors.textMuted} size={14} strokeWidth={2.1} />
+            <Text style={styles.securityText}>גישה מאובטחת • מערכת פנימית</Text>
           </View>
-        </AppCard>
-      </KeyboardAvoidingView>
-    </AppScreen>
+        </View>
+      </View>
+    </AuthScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  error: {
-    color: theme.colors.danger,
-    fontSize: 13,
-    lineHeight: 20,
-    textAlign: 'right',
+  actions: {
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.xs,
   },
   form: {
-    gap: theme.spacing.md,
-  },
-  wrapper: {
     gap: theme.spacing.lg,
+  },
+  heroCaption: {
+    bottom: theme.spacing.lg,
+    gap: 3,
+    left: theme.spacing.lg,
+    position: 'absolute',
+    right: theme.spacing.lg,
+  },
+  heroCaptionText: {
+    ...theme.typography.caption,
+    color: 'rgba(244, 247, 239, 0.8)',
+    textAlign: 'right',
+  },
+  heroCaptionTitle: {
+    ...theme.typography.cardTitle,
+    color: theme.colors.textPrimary,
+    textAlign: 'right',
+  },
+  heroCard: {
+    ...theme.elevation.hero,
+    backgroundColor: theme.colors.surfaceStrong,
+    borderColor: 'rgba(143, 175, 84, 0.18)',
+    borderRadius: 26,
+    borderWidth: 1,
+    minHeight: 124,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  heroImage: {
+    height: 126,
+    width: '100%',
+  },
+  heroImageGlow: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(108, 143, 255, 0.08)',
+  },
+  heroKicker: {
+    ...theme.typography.meta,
+    color: theme.colors.accentStrong,
+    textAlign: 'right',
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(7, 11, 13, 0.24)',
+  },
+  linkPressed: {
+    opacity: 0.82,
+  },
+  linkRow: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    flexDirection: 'row-reverse',
+    gap: theme.spacing.xs,
+  },
+  linkText: {
+    ...theme.typography.caption,
+    color: theme.colors.info,
+    textAlign: 'center',
+  },
+  securityRow: {
+    alignItems: 'center',
+    alignSelf: 'center',
+    flexDirection: 'row-reverse',
+    gap: theme.spacing.xs,
+  },
+  securityText: {
+    ...theme.typography.caption,
+    color: theme.colors.textMuted,
+    textAlign: 'center',
   },
 });

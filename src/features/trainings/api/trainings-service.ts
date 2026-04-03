@@ -206,7 +206,7 @@ export async function getTrainingDetails(
   }
 
   if (!data) {
-    throw new Error('האימון המבוקש לא נמצא');
+    throw new Error('האימון המבוקש אינו זמין או שאין הרשאה לצפייה בו');
   }
 
   return buildTrainingDetails(data as unknown as TrainingDetailsQueryRow);

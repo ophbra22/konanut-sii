@@ -132,10 +132,17 @@ export function NextTrainingHeroCard({
         </View>
 
         <View style={styles.countdownBand}>
-          <Text style={styles.countdownText}>{countdownText}</Text>
+          <Text numberOfLines={1} style={styles.countdownText}>
+            {countdownText}
+          </Text>
         </View>
 
-        <AppButton href={`/trainings/${training.id}`} label="מעבר לאימון" />
+        <AppButton
+          href={`/trainings/${training.id}`}
+          label="מעבר לאימון"
+          size="sm"
+          style={styles.ctaButton}
+        />
       </View>
     </AppCard>
   );
@@ -145,35 +152,37 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surfaceStrong,
     borderColor: theme.colors.info,
-    minHeight: 228,
+    minHeight: 188,
     overflow: 'hidden',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
     position: 'relative',
-    shadowColor: theme.colors.info,
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.14,
-    shadowRadius: 22,
+    ...theme.elevation.hero,
   },
   content: {
-    gap: 12,
+    gap: theme.spacing.xs,
     position: 'relative',
     zIndex: 1,
+  },
+  ctaButton: {
+    marginTop: theme.spacing.xxs,
   },
   countdownBand: {
     alignItems: 'center',
     alignSelf: 'stretch',
     backgroundColor: 'rgba(108, 143, 255, 0.14)',
     borderColor: 'rgba(108, 143, 255, 0.30)',
-    borderRadius: 18,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
     flexDirection: 'row-reverse',
-    minHeight: 44,
-    paddingHorizontal: 14,
+    justifyContent: 'center',
+    minHeight: 34,
+    paddingHorizontal: 12,
   },
   countdownText: {
     color: theme.colors.info,
-    fontSize: 15,
+    flex: 1,
+    fontSize: 12,
     fontWeight: '900',
     textAlign: 'right',
   },
@@ -188,9 +197,8 @@ const styles = StyleSheet.create({
     width: 112,
   },
   eyebrow: {
+    ...theme.typography.meta,
     color: theme.colors.textMuted,
-    fontSize: 11,
-    fontWeight: '700',
     textAlign: 'right',
   },
   glowPrimary: {
@@ -219,32 +227,30 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   metaText: {
+    ...theme.typography.meta,
     color: theme.colors.textSecondary,
-    fontSize: 11,
-    fontWeight: '700',
     textAlign: 'right',
   },
   subline: {
+    ...theme.typography.meta,
     color: theme.colors.textDim,
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 17,
     textAlign: 'right',
   },
   timeRow: {
     flexDirection: 'row-reverse',
-    gap: 12,
+    gap: theme.spacing.sm,
   },
   title: {
     color: theme.colors.textPrimary,
-    fontSize: 31,
+    fontSize: 25,
     fontWeight: '900',
-    lineHeight: 35,
+    lineHeight: 29,
     textAlign: 'right',
   },
   topRow: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
+    gap: theme.spacing.sm,
     justifyContent: 'space-between',
   },
 });

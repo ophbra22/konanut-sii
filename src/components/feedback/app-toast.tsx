@@ -23,18 +23,18 @@ export function AppToast() {
 
 const styles = StyleSheet.create({
   message: {
+    ...theme.typography.caption,
     color: theme.colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '700',
     textAlign: 'right',
   },
   toast: {
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.lg,
+    ...theme.elevation.card,
+    borderColor: theme.colors.borderStrong,
+    borderRadius: theme.radius.xl,
     borderWidth: 1,
     maxWidth: 420,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
     width: '100%',
   },
   wrapper: {

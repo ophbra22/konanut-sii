@@ -18,7 +18,7 @@ export function AppScreen({
   const content = scroll ? (
     <ScrollView
       contentContainerStyle={[styles.content, contentContainerStyle]}
-      keyboardShouldPersistTaps="handled"
+      keyboardShouldPersistTaps="always"
       showsVerticalScrollIndicator={false}
     >
       {children}
@@ -44,18 +44,18 @@ const styles = StyleSheet.create({
   bottomGlow: {
     backgroundColor: theme.colors.glowMuted,
     borderRadius: 220,
-    bottom: -170,
-    height: 250,
-    left: -80,
-    opacity: 0.24,
+    bottom: -168,
+    height: 236,
+    left: -84,
+    opacity: 0.2,
     position: 'absolute',
-    width: 250,
+    width: 236,
   },
   content: {
-    gap: 16,
-    paddingBottom: 40,
-    paddingHorizontal: 18,
-    paddingTop: 16,
+    gap: theme.spacing.section,
+    paddingBottom: 28,
+    paddingHorizontal: theme.spacing.page,
+    paddingTop: 12,
   },
   fill: {
     flex: 1,
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     opacity: 0.35,
     position: 'absolute',
     right: 0,
-    top: 92,
+    top: 84,
   },
   gridVertical: {
     backgroundColor: theme.colors.gridLine,
@@ -89,11 +89,11 @@ const styles = StyleSheet.create({
   topGlow: {
     backgroundColor: theme.colors.glowStrong,
     borderRadius: 240,
-    height: 300,
-    opacity: 0.3,
+    height: 284,
+    opacity: 0.24,
     position: 'absolute',
     right: -120,
     top: -140,
-    width: 300,
+    width: 284,
   },
 });

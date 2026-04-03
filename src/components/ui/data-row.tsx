@@ -18,22 +18,20 @@ export function DataRow({ label, value }: DataRowProps) {
 
 const styles = StyleSheet.create({
   label: {
+    ...theme.typography.meta,
     color: theme.colors.textMuted,
-    fontSize: 11,
-    fontWeight: '700',
     textAlign: 'right',
   },
   row: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
-    gap: 10,
+    gap: theme.spacing.sm,
     justifyContent: 'space-between',
   },
   value: {
+    ...theme.typography.caption,
     color: theme.colors.textPrimary,
     flex: 1,
-    fontSize: 13,
-    lineHeight: 18,
     textAlign: 'left',
   },
 });

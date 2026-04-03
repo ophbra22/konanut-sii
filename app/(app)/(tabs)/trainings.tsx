@@ -146,7 +146,8 @@ export default function TrainingsScreen() {
                   return (
                     <AppChip
                       key={option.key}
-                      label={`${option.label} ${count}`}
+                      count={count}
+                      label={option.label}
                       onPress={() => {
                         setStatusFilter(option.key);
                       }}
@@ -227,7 +228,8 @@ export default function TrainingsScreen() {
                   return (
                     <AppChip
                       key={option.key}
-                      label={`${option.label} ${count}`}
+                      count={count}
+                      label={option.label}
                       onPress={() => {
                         setStatusFilter(option.key);
                         setIsFilterSheetOpen(false);
@@ -281,11 +283,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    gap: 10,
-    paddingBottom: 32,
+    gap: theme.spacing.section,
+    paddingBottom: theme.spacing.xl,
   },
   list: {
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   modalAction: {
     flex: 1,
@@ -310,6 +312,6 @@ const styles = StyleSheet.create({
   },
   screenContent: {
     flex: 1,
-    paddingTop: 6,
+    paddingTop: theme.spacing.xxs,
   },
 });

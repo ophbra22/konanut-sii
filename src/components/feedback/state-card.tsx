@@ -1,5 +1,4 @@
-import { AppButton } from '@/src/components/ui/app-button';
-import { AppCard } from '@/src/components/ui/app-card';
+import { EmptyState } from '@/src/components/ui/empty-state';
 
 type StateCardVariant = 'accent' | 'default' | 'warning';
 
@@ -19,10 +18,12 @@ export function StateCard({
   variant = 'default',
 }: StateCardProps) {
   return (
-    <AppCard description={description} title={title} variant={variant}>
-      {actionLabel && onAction ? (
-        <AppButton label={actionLabel} onPress={onAction} variant="secondary" />
-      ) : null}
-    </AppCard>
+    <EmptyState
+      actionLabel={actionLabel}
+      description={description}
+      onAction={onAction}
+      title={title}
+      tone={variant}
+    />
   );
 }

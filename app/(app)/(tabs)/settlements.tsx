@@ -14,6 +14,7 @@ import { SettlementListCard } from '@/src/features/settlements/components/settle
 import { useSettlementsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
 import { matchesSearchQuery } from '@/src/lib/search-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
+import { theme } from '@/src/theme';
 
 export default function SettlementsScreen() {
   const router = useRouter();
@@ -124,14 +125,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    gap: 10,
-    paddingBottom: 32,
+    gap: theme.spacing.section,
+    paddingBottom: theme.spacing.xl,
   },
   list: {
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   screenContent: {
     flex: 1,
-    paddingTop: 6,
+    paddingTop: theme.spacing.xxs,
   },
 });

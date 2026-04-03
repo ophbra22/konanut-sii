@@ -169,8 +169,9 @@ export default function SettlementRankingsScreen() {
 
                 return (
                   <AppChip
+                    count={count}
                     key={option.key}
-                    label={`${option.label} ${count}`}
+                    label={option.label}
                     onPress={() => {
                       setLevelFilter(option.key);
                     }}
@@ -240,14 +241,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    gap: 10,
-    paddingBottom: 32,
+    gap: theme.spacing.section,
+    paddingBottom: theme.spacing.xl,
   },
   list: {
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   screenContent: {
     flex: 1,
-    paddingTop: 6,
+    paddingTop: theme.spacing.xxs,
   },
 });

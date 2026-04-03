@@ -200,23 +200,22 @@ export function AppDateField({
 
 const styles = StyleSheet.create({
   error: {
+    ...theme.typography.caption,
     color: theme.colors.danger,
-    fontSize: 13,
-    lineHeight: 20,
     textAlign: 'right',
   },
   field: {
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceStrong,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surfaceMuted,
+    borderColor: theme.colors.borderStrong,
+    borderRadius: theme.radius.xl,
     borderWidth: 1,
     flexDirection: 'row-reverse',
     gap: theme.spacing.sm,
     justifyContent: 'space-between',
-    minHeight: 54,
+    minHeight: 46,
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
   },
   fieldDisabled: {
     opacity: 0.55,
@@ -225,18 +224,17 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.danger,
   },
   fieldPressed: {
-    transform: [{ scale: 0.995 }],
+    opacity: 0.96,
+    transform: [{ scale: 0.992 }],
   },
   hint: {
+    ...theme.typography.caption,
     color: theme.colors.textMuted,
-    fontSize: 13,
-    lineHeight: 20,
     textAlign: 'right',
   },
   label: {
+    ...theme.typography.caption,
     color: theme.colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '600',
     textAlign: 'right',
   },
   modalAction: {
@@ -248,7 +246,7 @@ const styles = StyleSheet.create({
   },
   modalCard: {
     backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.borderStrong,
     borderRadius: theme.radius.xl,
     borderWidth: 1,
     gap: theme.spacing.md,
@@ -263,22 +261,21 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
   },
   modalTitle: {
+    ...theme.typography.cardTitle,
     color: theme.colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '700',
     textAlign: 'right',
   },
   placeholder: {
     color: theme.colors.textMuted,
   },
   value: {
+    ...theme.typography.body,
     color: theme.colors.textPrimary,
     flex: 1,
-    fontSize: 16,
     textAlign: 'left',
     writingDirection: 'ltr',
   },
   wrapper: {
-    gap: theme.spacing.sm,
+    gap: theme.spacing.xs,
   },
 });

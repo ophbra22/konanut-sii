@@ -329,7 +329,9 @@ export type Database = {
           id: string;
           is_active: boolean;
           phone: string | null;
-          role: 'super_admin' | 'instructor' | 'viewer';
+          requested_area: string | null;
+          requested_role: 'super_admin' | 'instructor' | 'mashkabat' | 'viewer' | null;
+          role: 'super_admin' | 'instructor' | 'mashkabat' | 'viewer';
         };
         Insert: {
           created_at?: string;
@@ -338,7 +340,9 @@ export type Database = {
           id: string;
           is_active?: boolean;
           phone?: string | null;
-          role: 'super_admin' | 'instructor' | 'viewer';
+          requested_area?: string | null;
+          requested_role?: 'super_admin' | 'instructor' | 'mashkabat' | 'viewer' | null;
+          role: 'super_admin' | 'instructor' | 'mashkabat' | 'viewer';
         };
         Update: {
           created_at?: string;
@@ -347,7 +351,9 @@ export type Database = {
           id?: string;
           is_active?: boolean;
           phone?: string | null;
-          role?: 'super_admin' | 'instructor' | 'viewer';
+          requested_area?: string | null;
+          requested_role?: 'super_admin' | 'instructor' | 'mashkabat' | 'viewer' | null;
+          role?: 'super_admin' | 'instructor' | 'mashkabat' | 'viewer';
         };
         Relationships: [];
       };
@@ -402,6 +408,10 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: boolean;
       };
+      is_mashkabat: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
+      };
       is_super_admin: {
         Args: Record<PropertyKey, never>;
         Returns: boolean;
@@ -441,6 +451,12 @@ export type TrainingType = Training['training_type'];
 export type AlertSeverity = Alert['severity'];
 export type AlertStatus = Alert['status'];
 
+export type LinkedSettlement = Pick<
+  Settlement,
+  'area' | 'id' | 'name' | 'regional_council'
+>;
+
 export type AuthProfile = UserProfile & {
   linkedSettlementIds: string[];
+  linkedSettlements: LinkedSettlement[];
 };

@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppBadge } from '@/src/components/ui/app-badge';
-import { OpsListCard } from '@/src/components/ui/ops-list-card';
+import { ListCard } from '@/src/components/ui/list-card';
 import type { SettlementRankingListItem } from '@/src/features/rankings/api/rankings-service';
 import { theme } from '@/src/theme';
 
@@ -30,54 +30,60 @@ export function SettlementRankingCard({
   ranking,
 }: SettlementRankingCardProps) {
   const router = useRouter();
+  const subtitle = [ranking.regionalCouncil?.trim(), ranking.area?.trim()]
+    .filter(Boolean)
+    .join(' • ');
 
   return (
-    <OpsListCard
-      onPress={() => {
-        router.push(`/settlements/${ranking.settlementId}` as never);
-      }}
-      style={styles.card}
-    >
-      <View style={styles.topRow}>
-        <Text numberOfLines={1} style={styles.title}>
-          {ranking.settlementName}
-        </Text>
-
+    <ListCard
+      badge={
         <AppBadge
           label={`${ranking.finalScore}`}
           size="sm"
           tone={getScoreTone(ranking.finalScore)}
         />
-      </View>
-
-      <View style={styles.bottomRow}>
-        <View style={styles.indicators}>
-          <View style={styles.indicator}>
-            <Text style={styles.indicatorLabel}>מטווח</Text>
-            <Text
-              style={[
-                styles.indicatorValue,
-                ranking.shootingCompleted ? styles.positive : styles.negative,
-              ]}
-            >
-              {ranking.shootingCompleted ? '✔' : '✖'}
+      }
+      footer={
+        <View style={styles.bottomRow}>
+          {subtitle ? (
+            <Text numberOfLines={1} style={styles.meta}>
+              {subtitle}
             </Text>
-          </View>
+          ) : null}
 
-          <View style={styles.indicator}>
-            <Text style={styles.indicatorLabel}>הגנת יישוב</Text>
-            <Text
-              style={[
-                styles.indicatorValue,
-                ranking.defenseCompleted ? styles.positive : styles.negative,
-              ]}
-            >
-              {ranking.defenseCompleted ? '✔' : '✖'}
-            </Text>
+          <View style={styles.indicators}>
+            <View style={styles.indicator}>
+              <Text style={styles.indicatorLabel}>מטווח</Text>
+              <Text
+                style={[
+                  styles.indicatorValue,
+                  ranking.shootingCompleted ? styles.positive : styles.negative,
+                ]}
+              >
+                {ranking.shootingCompleted ? '✔' : '✖'}
+              </Text>
+            </View>
+
+            <View style={styles.indicator}>
+              <Text style={styles.indicatorLabel}>הגנת יישוב</Text>
+              <Text
+                style={[
+                  styles.indicatorValue,
+                  ranking.defenseCompleted ? styles.positive : styles.negative,
+                ]}
+              >
+                {ranking.defenseCompleted ? '✔' : '✖'}
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-    </OpsListCard>
+      }
+      onPress={() => {
+        router.push(`/settlements/${ranking.settlementId}` as never);
+      }}
+      style={styles.card}
+      title={ranking.settlementName}
+    />
   );
 }
 
@@ -85,10 +91,10 @@ const styles = StyleSheet.create({
   bottomRow: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
   },
   card: {
-    gap: 6,
+    minHeight: 64,
   },
   indicator: {
     alignItems: 'center',
@@ -96,13 +102,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   indicatorLabel: {
+    ...theme.typography.badge,
     color: theme.colors.textSecondary,
-    fontSize: 10,
-    fontWeight: '700',
     textAlign: 'right',
   },
   indicatorValue: {
-    fontSize: 10,
+    ...theme.typography.badge,
     fontWeight: '900',
     textAlign: 'center',
   },
@@ -112,23 +117,16 @@ const styles = StyleSheet.create({
     gap: 10,
     justifyContent: 'flex-end',
   },
+  meta: {
+    ...theme.typography.badge,
+    color: theme.colors.textMuted,
+    flex: 1,
+    textAlign: 'right',
+  },
   negative: {
     color: theme.colors.danger,
   },
   positive: {
     color: theme.colors.accentStrong,
-  },
-  title: {
-    color: theme.colors.textPrimary,
-    flex: 1,
-    fontSize: 17,
-    fontWeight: '800',
-    textAlign: 'right',
-  },
-  topRow: {
-    alignItems: 'center',
-    flexDirection: 'row-reverse',
-    gap: 8,
-    justifyContent: 'space-between',
   },
 });

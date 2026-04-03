@@ -8,6 +8,10 @@ export function isInstructor(role: UserRole | null) {
   return role === 'instructor';
 }
 
+export function isMashkabat(role: UserRole | null) {
+  return role === 'mashkabat';
+}
+
 export function isViewer(role: UserRole | null) {
   return role === 'viewer';
 }
@@ -28,6 +32,10 @@ export function canManageSettlements(role: UserRole | null) {
   return isSuperAdmin(role);
 }
 
+export function canManageUserApprovals(role: UserRole | null) {
+  return isSuperAdmin(role);
+}
+
 export function canManageTrainings(role: UserRole | null) {
   return isSuperAdmin(role);
 }
@@ -42,6 +50,8 @@ export function getRoleLabel(role: UserRole | null) {
       return 'מנהל מערכת';
     case 'instructor':
       return 'מדריך';
+    case 'mashkabat':
+      return 'משקב״ט';
     case 'viewer':
       return 'צפייה מבוקרת';
     default:

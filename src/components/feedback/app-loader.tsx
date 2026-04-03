@@ -26,14 +26,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   label: {
+    ...theme.typography.body,
     color: theme.colors.textSecondary,
-    fontSize: 14,
-    lineHeight: 20,
     textAlign: 'center',
   },
   loader: {
     alignItems: 'center',
-    gap: 12,
+    gap: theme.spacing.sm,
     maxWidth: 260,
     minWidth: 220,
   },

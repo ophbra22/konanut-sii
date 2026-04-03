@@ -1,5 +1,8 @@
 export const queryKeys = {
   auth: {
+    activeProfiles: ['auth', 'active-profiles'] as const,
+    managedUsers: ['auth', 'managed-users'] as const,
+    pendingUsers: ['auth', 'pending-users'] as const,
     profile: ['auth', 'profile'] as const,
   },
   calendar: {

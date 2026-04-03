@@ -6,8 +6,9 @@ import {
 } from '@/src/features/settlements/api/settlements-service';
 import { queryKeys } from '@/src/lib/query-keys';
 
-export function useSettlementsQuery() {
+export function useSettlementsQuery(enabled = true) {
   return useQuery({
+    enabled,
     queryFn: listSettlements,
     queryKey: queryKeys.settlements.all,
   });

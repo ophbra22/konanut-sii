@@ -135,23 +135,22 @@ export default function AlertsScreen() {
 
 const styles = StyleSheet.create({
   alertCard: {
-    paddingHorizontal: 12,
-    paddingVertical: 11,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
   },
   cardHeader: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
-    gap: 8,
+    gap: theme.spacing.xs,
     justifyContent: 'space-between',
   },
   description: {
+    ...theme.typography.caption,
     color: theme.colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 16,
     textAlign: 'right',
   },
   list: {
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   metaDivider: {
     color: theme.colors.textMuted,
@@ -164,21 +163,19 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   metaText: {
+    ...theme.typography.badge,
     color: theme.colors.textMuted,
-    fontSize: 10,
-    fontWeight: '700',
     textAlign: 'right',
   },
   metricsGrid: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: theme.spacing.sm,
   },
   title: {
+    ...theme.typography.cardTitle,
     color: theme.colors.textPrimary,
     flex: 1,
-    fontSize: 15,
-    fontWeight: '800',
     textAlign: 'right',
   },
 });

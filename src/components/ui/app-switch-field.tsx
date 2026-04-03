@@ -40,15 +40,13 @@ export function AppSwitchField({
 
 const styles = StyleSheet.create({
   description: {
+    ...theme.typography.caption,
     color: theme.colors.textMuted,
-    fontSize: 13,
-    lineHeight: 20,
     textAlign: 'right',
   },
   label: {
+    ...theme.typography.caption,
     color: theme.colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '700',
     textAlign: 'right',
   },
   textBlock: {
@@ -57,14 +55,14 @@ const styles = StyleSheet.create({
   },
   wrapper: {
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceStrong,
-    borderColor: theme.colors.border,
-    borderRadius: theme.radius.lg,
+    backgroundColor: theme.colors.surfaceMuted,
+    borderColor: theme.colors.borderStrong,
+    borderRadius: theme.radius.xl,
     borderWidth: 1,
     flexDirection: 'row-reverse',
     gap: theme.spacing.md,
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
   },
 });

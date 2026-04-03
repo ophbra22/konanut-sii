@@ -18,6 +18,13 @@ type Credentials = {
   password: string;
 };
 
+type SignUpPayload = Credentials & {
+  fullName: string;
+  phone?: string;
+  requestedRole: UserRole;
+  settlementArea?: string;
+};
+
 type AuthActionResult = {
   message?: string;
   success: boolean;
@@ -34,6 +41,7 @@ type AuthState = {
   role: UserRole | null;
   session: Session | null;
   signIn: (credentials: Credentials) => Promise<AuthActionResult>;
+  signUp: (payload: SignUpPayload) => Promise<AuthActionResult>;
   signOut: () => Promise<AuthActionResult>;
   status: AuthStatus;
   user: User | null;
@@ -41,6 +49,7 @@ type AuthState = {
 
 let authSubscription: { unsubscribe: () => void } | null = null;
 let initializePromise: Promise<void> | null = null;
+let pendingRegistrationEmail: string | null = null;
 
 export const useAuthStore = create<AuthState>((set, get) => {
   const applyUnauthenticatedState = (errorMessage: string | null = null) => {
@@ -59,6 +68,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
   };
 
   const applyAuthenticatedState = async (session: Session) => {
+    const normalizedPendingRegistrationEmail = pendingRegistrationEmail?.toLowerCase() ?? null;
+    const normalizedSessionEmail = session.user.email?.toLowerCase() ?? null;
+
     set((state) => ({
       ...state,
       errorMessage: null,
@@ -76,11 +88,20 @@ export const useAuthStore = create<AuthState>((set, get) => {
     }
 
     if (!profile.is_active) {
+      const shouldSilenceInactiveError =
+        normalizedPendingRegistrationEmail !== null &&
+        normalizedSessionEmail === normalizedPendingRegistrationEmail;
+
       await supabase.auth.signOut();
-      applyUnauthenticatedState('החשבון הזה אינו פעיל כרגע. יש לפנות למנהל המערכת');
+      applyUnauthenticatedState(
+        shouldSilenceInactiveError
+          ? null
+          : 'החשבון הזה אינו פעיל כרגע. יש לפנות למנהל המערכת'
+      );
       return;
     }
 
+    pendingRegistrationEmail = null;
     queryClient.setQueryData(queryKeys.auth.profile, profile);
 
     set({
@@ -98,6 +119,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
   const syncSession = async (session: Session | null) => {
     try {
       if (!session) {
+        pendingRegistrationEmail = null;
         applyUnauthenticatedState();
         return;
       }
@@ -139,7 +161,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
         if (!authSubscription) {
           authSubscription = supabase.auth.onAuthStateChange((_event, session) => {
-            void syncSession(session);
+            void syncSession(session).catch(() => {
+              // syncSession already applies the unauthenticated/error state.
+            });
           }).data.subscription;
         }
       })()
@@ -176,6 +200,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
     role: null,
     session: null,
     signIn: async ({ email, password }) => {
+      pendingRegistrationEmail = null;
+
       set((state) => ({
         ...state,
         errorMessage: null,
@@ -219,7 +245,74 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
       return { success: true };
     },
+    signUp: async ({
+      email,
+      fullName,
+      password,
+      phone,
+      requestedRole,
+      settlementArea,
+    }) => {
+      pendingRegistrationEmail = email.toLowerCase();
+
+      set((state) => ({
+        ...state,
+        errorMessage: null,
+        status: 'loading',
+      }));
+
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            phone: phone ?? null,
+            requested_role: requestedRole,
+            settlement_area: settlementArea ?? null,
+          },
+        },
+      });
+
+      if (error) {
+        pendingRegistrationEmail = null;
+
+        const message = translateAuthError(error);
+
+        applyUnauthenticatedState(message);
+
+        return {
+          message,
+          success: false,
+        };
+      }
+
+      try {
+        if (data.session) {
+          await supabase.auth.signOut();
+        } else {
+          pendingRegistrationEmail = null;
+        }
+
+        applyUnauthenticatedState();
+      } catch (signOutError) {
+        pendingRegistrationEmail = null;
+
+        const message = getErrorMessage(signOutError, 'לא ניתן להשלים את בקשת ההרשמה');
+
+        applyUnauthenticatedState(message);
+
+        return {
+          message,
+          success: false,
+        };
+      }
+
+      return { success: true };
+    },
     signOut: async () => {
+      pendingRegistrationEmail = null;
+
       const { error } = await supabase.auth.signOut();
 
       if (error) {

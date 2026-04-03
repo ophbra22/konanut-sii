@@ -33,17 +33,6 @@ function getAlertColor(severity: 'high' | 'low' | 'medium') {
   }
 }
 
-function getAlertSeverityLabel(severity: 'high' | 'low' | 'medium') {
-  switch (severity) {
-    case 'high':
-      return 'דחוף';
-    case 'medium':
-      return 'במעקב';
-    default:
-      return 'מידע';
-  }
-}
-
 function getAlertStatusLabel(status: 'open' | 'resolved') {
   return status === 'resolved' ? 'טופל' : 'ללא טיפול';
 }
@@ -81,21 +70,27 @@ function getGreetingLabel() {
 export default function DashboardScreen() {
   const router = useRouter();
   const role = useAuthStore((state) => state.role);
+  const profile = useAuthStore((state) => state.profile);
   const { data, error, isLoading, refetch } = useDashboardQuery();
   const nextTraining = data?.upcomingTrainings[0] ?? null;
   const alerts = data?.alertsSummary.slice(0, 3) ?? [];
-  const heroGreeting = `${getGreetingLabel()}, ${getRoleLabel(role)}`;
+  const greetingName =
+    profile?.full_name?.trim() || profile?.email?.trim() || getRoleLabel(role);
+  const heroGreeting = `${getGreetingLabel()}, ${greetingName}`;
   const todayLabel = formatDisplayDate(dayjs().format('YYYY-MM-DD'));
 
   return (
     <AppScreen contentContainerStyle={styles.screenContent}>
       <AppRevealView delay={20}>
         <View style={styles.hero}>
+          <Text style={styles.heroEyebrow}>מרכז שליטה מבצעי</Text>
           <Text style={styles.heroTitle}>זרוע יישובים מג״ב דרום</Text>
-          <Text numberOfLines={1} style={styles.heroGreeting}>
-            {heroGreeting}
-          </Text>
-          <Text style={styles.heroDate}>{todayLabel}</Text>
+          <View style={styles.heroMetaRow}>
+            <Text style={styles.heroDate}>{todayLabel}</Text>
+            <Text numberOfLines={1} style={styles.heroGreeting}>
+              {heroGreeting}
+            </Text>
+          </View>
           <Text style={styles.heroSubtitle}>תמונת מצב אימונים בזמן אמת</Text>
         </View>
       </AppRevealView>
@@ -107,6 +102,7 @@ export default function DashboardScreen() {
             isEmpty={!isLoading && !error && (data?.weeklyTrainingsCount ?? 0) === 0}
             isLoading={isLoading}
             label="אימונים השבוע"
+            style={styles.metricCard}
             tone="accent"
             value={String(data?.weeklyTrainingsCount ?? 0)}
           />
@@ -115,6 +111,7 @@ export default function DashboardScreen() {
             isEmpty={!isLoading && !error && (data?.monthlyTrainingsCount ?? 0) === 0}
             isLoading={isLoading}
             label="אימונים החודש"
+            style={styles.metricCard}
             tone="accent"
             value={String(data?.monthlyTrainingsCount ?? 0)}
           />
@@ -123,6 +120,7 @@ export default function DashboardScreen() {
             isEmpty={!isLoading && !error && (data?.activeSettlementsCount ?? 0) === 0}
             isLoading={isLoading}
             label="יישובים פעילים"
+            style={styles.metricCard}
             value={String(data?.activeSettlementsCount ?? 0)}
           />
           <DashboardMetricCard
@@ -131,6 +129,7 @@ export default function DashboardScreen() {
             isEmpty={!isLoading && !error && (data?.settlementsMissingFeedbackCount ?? 0) === 0}
             isLoading={isLoading}
             label="חוסרי משוב"
+            style={styles.metricCard}
             tone="warning"
             value={String(data?.settlementsMissingFeedbackCount ?? 0)}
           />
@@ -264,12 +263,12 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   alertContent: {
     flex: 1,
-    gap: 2,
+    gap: 1,
   },
   alertsCta: {
     alignSelf: 'flex-start',
-    marginTop: 4,
-    paddingVertical: 4,
+    marginTop: 2,
+    paddingVertical: 2,
   },
   alertsCtaPressed: {
     opacity: 0.82,
@@ -282,16 +281,16 @@ const styles = StyleSheet.create({
   },
   alertDot: {
     borderRadius: 999,
-    height: 9,
-    marginTop: 3,
-    width: 9,
+    height: 8,
+    marginTop: 4,
+    width: 8,
   },
   alertRow: {
     alignItems: 'flex-start',
     flexDirection: 'row-reverse',
-    gap: 9,
-    minHeight: 46,
-    paddingVertical: 7,
+    gap: 8,
+    minHeight: 40,
+    paddingVertical: 6,
   },
   alertRowBorder: {
     borderBottomColor: theme.colors.border,
@@ -301,55 +300,49 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     fontSize: 10,
     fontWeight: '700',
-    lineHeight: 14,
+    lineHeight: 13,
     textAlign: 'right',
   },
   alertTitle: {
     color: theme.colors.textPrimary,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
-    lineHeight: 16,
+    lineHeight: 15,
     textAlign: 'right',
   },
   alertsCard: {
     gap: 0,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 6,
   },
   alertsPlaceholder: {
+    ...theme.typography.caption,
     color: theme.colors.textMuted,
-    fontSize: 12,
-    lineHeight: 17,
     paddingVertical: 10,
     textAlign: 'right',
   },
   emptyDescription: {
+    ...theme.typography.caption,
     color: theme.colors.textMuted,
-    fontSize: 12,
-    lineHeight: 17,
     textAlign: 'right',
   },
   emptyTitle: {
+    ...theme.typography.cardTitle,
     color: theme.colors.textPrimary,
-    fontSize: 15,
-    fontWeight: '800',
     textAlign: 'right',
   },
   featuredCard: {
     backgroundColor: theme.colors.surfaceStrong,
     borderColor: theme.colors.info,
-    gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    shadowColor: theme.colors.info,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.14,
-    shadowRadius: 18,
+    gap: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    ...theme.elevation.hero,
   },
   featuredEmptyCard: {
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    gap: theme.spacing.xs,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
   },
   featuredEyebrow: {
     color: theme.colors.textMuted,
@@ -358,10 +351,10 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   featuredSkeleton: {
-    gap: 10,
+    gap: 8,
   },
   featuredSkeletonButton: {
-    height: 42,
+    height: 38,
     width: '100%',
   },
   featuredSkeletonLine: {
@@ -370,73 +363,89 @@ const styles = StyleSheet.create({
     height: 12,
   },
   featuredSkeletonMeta: {
-    height: 18,
+    height: 14,
     width: '82%',
   },
   featuredSkeletonTitle: {
-    height: 34,
+    height: 28,
     width: '64%',
   },
   featuredSkeletonTop: {
     width: '24%',
   },
   hero: {
-    gap: 2,
+    gap: 3,
+    paddingBottom: 2,
+  },
+  heroEyebrow: {
+    ...theme.typography.eyebrow,
+    color: theme.colors.textMuted,
+    textAlign: 'right',
   },
   heroDate: {
+    ...theme.typography.meta,
     color: theme.colors.textMuted,
-    fontSize: 11,
-    fontWeight: '700',
-    textAlign: 'right',
+    textAlign: 'left',
   },
   heroGreeting: {
+    ...theme.typography.caption,
     color: theme.colors.textSecondary,
-    fontSize: 14,
+    flex: 1,
     fontWeight: '800',
-    lineHeight: 18,
+    minWidth: 0,
     textAlign: 'right',
   },
+  heroMetaRow: {
+    alignItems: 'center',
+    flexDirection: 'row-reverse',
+    gap: theme.spacing.xs,
+    justifyContent: 'space-between',
+  },
   heroSubtitle: {
+    ...theme.typography.meta,
     color: theme.colors.textDim,
-    fontSize: 12,
-    lineHeight: 16,
     textAlign: 'right',
   },
   heroTitle: {
     color: theme.colors.textPrimary,
-    fontSize: 29,
+    fontSize: 27,
     fontWeight: '900',
-    lineHeight: 33,
+    lineHeight: 31,
+    letterSpacing: -0.4,
     textAlign: 'right',
+  },
+  metricCard: {
+    minWidth: 0,
+    width: '48.6%',
   },
   metricsGrid: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
     gap: 8,
+    justifyContent: 'space-between',
   },
   screenContent: {
-    gap: 12,
+    gap: 10,
   },
   systemCard: {
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    gap: 3,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 9,
   },
   systemText: {
+    ...theme.typography.meta,
     color: theme.colors.textDim,
-    fontSize: 11,
-    lineHeight: 15,
     textAlign: 'right',
   },
   systemTitle: {
+    ...theme.typography.caption,
     color: theme.colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '800',
     textAlign: 'right',
   },
   systemTopRow: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
+    gap: theme.spacing.xs,
     justifyContent: 'space-between',
   },
 });

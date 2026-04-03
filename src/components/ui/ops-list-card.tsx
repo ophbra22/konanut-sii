@@ -32,21 +32,19 @@ export function OpsListCard({
 
 const styles = StyleSheet.create({
   card: {
+    ...theme.elevation.card,
     backgroundColor: theme.colors.surfaceElevated,
     borderColor: theme.colors.borderStrong,
-    borderRadius: 20,
+    borderRadius: theme.radius.xl,
     borderWidth: 1,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
   },
   content: {
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    gap: 5,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 9,
   },
   pressed: {
-    transform: [{ scale: 0.99 }],
+    opacity: 0.95,
+    transform: [{ scale: 0.988 }],
   },
 });

@@ -26,21 +26,19 @@ export function SectionBlock({
 
 const styles = StyleSheet.create({
   description: {
+    ...theme.typography.caption,
     color: theme.colors.textMuted,
-    fontSize: 12,
-    lineHeight: 18,
     textAlign: 'right',
   },
   header: {
-    gap: 2,
+    gap: theme.spacing.xxs,
   },
   title: {
+    ...theme.typography.sectionTitle,
     color: theme.colors.textPrimary,
-    fontSize: 16,
-    fontWeight: '800',
     textAlign: 'right',
   },
   wrapper: {
-    gap: 10,
+    gap: theme.spacing.sm,
   },
 });

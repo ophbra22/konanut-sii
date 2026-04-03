@@ -583,12 +583,12 @@ export default function TrainingDetailsScreen() {
 const styles = StyleSheet.create({
   actionButtonBase: {
     alignItems: 'center',
-    borderRadius: 14,
+    borderRadius: theme.radius.lg,
     borderWidth: 1,
     flex: 1,
     flexDirection: 'row-reverse',
     gap: 5,
-    height: 38,
+    height: 36,
     justifyContent: 'center',
     paddingHorizontal: 8,
   },
@@ -596,7 +596,7 @@ const styles = StyleSheet.create({
     opacity: 0.42,
   },
   actionButtonLabel: {
-    fontSize: 12,
+    ...theme.typography.badge,
     fontWeight: '800',
     textAlign: 'center',
   },
@@ -613,10 +613,7 @@ const styles = StyleSheet.create({
   actionButtonPrimary: {
     backgroundColor: theme.colors.info,
     borderColor: theme.colors.info,
-    shadowColor: theme.colors.info,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
+    ...theme.elevation.focus,
   },
   actionButtonSecondary: {
     backgroundColor: theme.colors.surface,
@@ -626,13 +623,12 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   checklistLabel: {
+    ...theme.typography.caption,
     color: theme.colors.textPrimary,
-    fontSize: 13,
-    fontWeight: '800',
     textAlign: 'right',
   },
   checklistState: {
-    fontSize: 12,
+    ...theme.typography.badge,
     fontWeight: '700',
     textAlign: 'left',
   },
@@ -643,14 +639,13 @@ const styles = StyleSheet.create({
     color: theme.colors.danger,
   },
   compactChip: {
-    borderRadius: 999,
+    borderRadius: theme.radius.pill,
     borderWidth: 1,
     paddingHorizontal: 9,
     paddingVertical: 4,
   },
   compactChipLabel: {
-    fontSize: 10,
-    fontWeight: '700',
+    ...theme.typography.badge,
     textAlign: 'center',
   },
   compactChipLabelNeutral: {
@@ -692,7 +687,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   feedbackList: {
-    gap: 6,
+    gap: theme.spacing.xs,
   },
   feedbackSummaryCard: {
     gap: 8,
@@ -754,10 +749,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   metadataSummary: {
+    ...theme.typography.badge,
     color: theme.colors.textSecondary,
-    fontSize: 11,
-    fontWeight: '700',
-    lineHeight: 16,
     textAlign: 'right',
   },
   missingFeedbackBlock: {
@@ -782,7 +775,7 @@ const styles = StyleSheet.create({
   },
   quickActionsRow: {
     flexDirection: 'row-reverse',
-    gap: 6,
+    gap: theme.spacing.xs,
   },
   scoreCard: {
     alignItems: 'center',
@@ -809,7 +802,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   screenContent: {
-    gap: 10,
+    gap: theme.spacing.section,
   },
   settlementBadges: {
     flexDirection: 'row-reverse',
