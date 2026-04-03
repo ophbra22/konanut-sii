@@ -1,48 +1,25 @@
-import type { ComponentType } from 'react';
 import dayjs from 'dayjs';
-import { CalendarDays, Clock3, MapPinned } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { StateCard } from '@/src/components/feedback/state-card';
 import { AppBadge } from '@/src/components/ui/app-badge';
-import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppRevealView } from '@/src/components/ui/app-reveal-view';
 import { AppScreen } from '@/src/components/ui/app-screen';
 import { SectionBlock } from '@/src/components/ui/section-block';
 import { getRoleLabel } from '@/src/features/auth/lib/permissions';
-import {
-  DashboardMetricCard,
-} from '@/src/features/dashboard/components/dashboard-metric-card';
+import { DashboardMetricCard } from '@/src/features/dashboard/components/dashboard-metric-card';
+import { NextTrainingHeroCard } from '@/src/features/dashboard/components/next-training-hero-card';
 import {
   type DashboardOverview,
-  type DashboardUpcomingTraining,
 } from '@/src/features/dashboard/api/dashboard-service';
 import { useDashboardQuery } from '@/src/features/dashboard/hooks/use-dashboard-query';
-import { getTrainingStatusTone } from '@/src/features/trainings/lib/training-presenters';
 import {
   formatDisplayDate,
-  formatDisplayTime,
   getHalfYearLabel,
 } from '@/src/lib/date-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { theme } from '@/src/theme';
-
-type DashboardMetaItemProps = {
-  icon: ComponentType<{ color: string; size: number }>;
-  value: string;
-};
-
-function DashboardMetaItem({ icon: Icon, value }: DashboardMetaItemProps) {
-  return (
-    <View style={styles.featuredMetaItem}>
-      <Icon color={theme.colors.textMuted} size={13} />
-      <Text numberOfLines={1} style={styles.featuredMetaText}>
-        {value}
-      </Text>
-    </View>
-  );
-}
 
 function getAlertColor(severity: 'high' | 'low' | 'medium') {
   switch (severity) {
@@ -64,33 +41,6 @@ function getAlertSeverityLabel(severity: 'high' | 'low' | 'medium') {
     default:
       return 'מידע';
   }
-}
-
-function getCountdownLabel(training: DashboardUpcomingTraining) {
-  const scheduledAt = training.training_time
-    ? dayjs(`${training.training_date}T${training.training_time}`)
-    : dayjs(training.training_date);
-  const now = dayjs();
-  const dayDiff = scheduledAt.startOf('day').diff(now.startOf('day'), 'day');
-  const minuteDiff = scheduledAt.diff(now, 'minute');
-
-  if (dayDiff <= 0) {
-    if (minuteDiff > 60) {
-      return `בעוד ${Math.ceil(minuteDiff / 60)} שעות`;
-    }
-
-    if (minuteDiff > 0) {
-      return `בעוד ${minuteDiff} דק׳`;
-    }
-
-    return 'היום';
-  }
-
-  if (dayDiff === 1) {
-    return 'מחר';
-  }
-
-  return `בעוד ${dayDiff} ימים`;
 }
 
 function getSystemSupportLine(data: DashboardOverview | undefined) {
@@ -193,52 +143,7 @@ export default function DashboardScreen() {
             variant="warning"
           />
         ) : nextTraining ? (
-          <AppCard style={styles.featuredCard}>
-            <View style={styles.featuredHeaderRow}>
-              <View style={styles.featuredBadges}>
-                <AppBadge label={getCountdownLabel(nextTraining)} size="sm" tone="info" />
-                <AppBadge
-                  label={nextTraining.status}
-                  size="sm"
-                  tone={getTrainingStatusTone(nextTraining.status)}
-                />
-              </View>
-              <Text style={styles.featuredEyebrow}>האימון הבא שלך</Text>
-            </View>
-
-            <Text numberOfLines={2} style={styles.featuredTitle}>
-              {nextTraining.title}
-            </Text>
-
-            <View style={styles.featuredMetaRow}>
-              <DashboardMetaItem
-                icon={CalendarDays}
-                value={formatDisplayDate(nextTraining.training_date)}
-              />
-              <DashboardMetaItem
-                icon={Clock3}
-                value={formatDisplayTime(nextTraining.training_time)}
-              />
-              <DashboardMetaItem
-                icon={MapPinned}
-                value={nextTraining.location?.trim() || 'ללא מיקום'}
-              />
-            </View>
-
-            <Text numberOfLines={1} style={styles.featuredSettlements}>
-              {nextTraining.settlements.length
-                ? nextTraining.settlements.join(' • ')
-                : 'ללא שיוך יישובים'}
-            </Text>
-
-            <AppButton
-              fullWidth={false}
-              href={`/trainings/${nextTraining.id}`}
-              label="מעבר לאימון"
-              style={styles.featuredAction}
-              variant="secondary"
-            />
-          </AppCard>
+          <NextTrainingHeroCard training={nextTraining} />
         ) : (
           <AppCard style={styles.featuredEmptyCard}>
             <Text style={styles.featuredEyebrow}>האימון הבא שלך</Text>
@@ -403,16 +308,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'right',
   },
-  featuredAction: {
-    alignSelf: 'flex-start',
-    minHeight: 40,
-    paddingHorizontal: 14,
-  },
-  featuredBadges: {
-    flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
   featuredCard: {
     backgroundColor: theme.colors.surfaceStrong,
     borderColor: theme.colors.info,
@@ -435,41 +330,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'right',
   },
-  featuredHeaderRow: {
-    alignItems: 'center',
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-  },
-  featuredMetaItem: {
-    alignItems: 'center',
-    flex: 1,
-    flexDirection: 'row-reverse',
-    gap: 4,
-    minWidth: 0,
-  },
-  featuredMetaRow: {
-    flexDirection: 'row-reverse',
-    gap: 8,
-  },
-  featuredMetaText: {
-    color: theme.colors.textSecondary,
-    flex: 1,
-    fontSize: 10,
-    fontWeight: '700',
-    textAlign: 'right',
-  },
-  featuredSettlements: {
-    color: theme.colors.textDim,
-    fontSize: 11,
-    fontWeight: '700',
-    lineHeight: 16,
-    textAlign: 'right',
-  },
   featuredSkeleton: {
-    gap: 8,
+    gap: 10,
   },
   featuredSkeletonButton: {
-    width: '34%',
+    height: 42,
+    width: '100%',
   },
   featuredSkeletonLine: {
     backgroundColor: theme.colors.border,
@@ -477,21 +343,15 @@ const styles = StyleSheet.create({
     height: 12,
   },
   featuredSkeletonMeta: {
-    width: '72%',
+    height: 18,
+    width: '82%',
   },
   featuredSkeletonTitle: {
-    height: 28,
-    width: '58%',
+    height: 34,
+    width: '64%',
   },
   featuredSkeletonTop: {
-    width: '28%',
-  },
-  featuredTitle: {
-    color: theme.colors.textPrimary,
-    fontSize: 24,
-    fontWeight: '900',
-    lineHeight: 28,
-    textAlign: 'right',
+    width: '24%',
   },
   hero: {
     gap: 4,
