@@ -78,50 +78,50 @@ export function SettlementListCard({ settlement }: SettlementListCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    minHeight: 74,
+    minHeight: 66,
   },
   cardInactive: {
     opacity: 0.72,
   },
   meta: {
     color: theme.colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 14,
     textAlign: 'right',
   },
   scoreBadge: {
     alignItems: 'center',
     borderRadius: 999,
-    minWidth: 58,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    minWidth: 50,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   scoreBlock: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
-    gap: 6,
+    gap: 5,
   },
   scoreDot: {
     borderRadius: 999,
-    height: 7,
-    width: 7,
+    height: 6,
+    width: 6,
   },
   scoreLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     textAlign: 'center',
   },
   title: {
     color: theme.colors.textPrimary,
     flex: 1,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
     textAlign: 'right',
   },
   topRow: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
-    gap: 10,
+    gap: 8,
     justifyContent: 'space-between',
   },
 });

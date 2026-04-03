@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   card: {
-    gap: 8,
+    gap: 6,
   },
   indicator: {
     alignItems: 'center',
@@ -97,19 +97,19 @@ const styles = StyleSheet.create({
   },
   indicatorLabel: {
     color: theme.colors.textSecondary,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     textAlign: 'right',
   },
   indicatorValue: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '900',
     textAlign: 'center',
   },
   indicators: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
-    gap: 12,
+    gap: 10,
     justifyContent: 'flex-end',
   },
   negative: {
@@ -121,14 +121,14 @@ const styles = StyleSheet.create({
   title: {
     color: theme.colors.textPrimary,
     flex: 1,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
     textAlign: 'right',
   },
   topRow: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
-    gap: 10,
+    gap: 8,
     justifyContent: 'space-between',
   },
 });

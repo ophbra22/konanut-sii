@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Plus, SlidersHorizontal } from 'lucide-react-native';
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Modal,
   Pressable,
@@ -22,6 +22,7 @@ import { canCreateTrainings } from '@/src/features/auth/lib/permissions';
 import type { TrainingListItem } from '@/src/features/trainings/api/trainings-service';
 import { TrainingListCard } from '@/src/features/trainings/components/training-list-card';
 import { useTrainingsQuery } from '@/src/features/trainings/hooks/use-trainings-query';
+import { matchesSearchQuery } from '@/src/lib/search-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { theme } from '@/src/theme';
 
@@ -37,22 +38,20 @@ const statusFilterOptions: Array<{
   { key: 'בוטל', label: 'בוטל' },
 ];
 
-function normalize(value: string | null | undefined) {
-  return value?.trim().toLowerCase() ?? '';
-}
-
 function matchesSearch(training: TrainingListItem, searchTerm: string) {
-  if (!searchTerm) {
-    return true;
-  }
-
-  const candidates = [
-    training.title,
-    training.instructor?.full_name,
-    ...training.settlements.map((settlement) => settlement.name),
-  ].map(normalize);
-
-  return candidates.some((candidate) => candidate.includes(searchTerm));
+  return matchesSearchQuery(
+    [
+      training.title,
+      training.training_type,
+      training.location,
+      training.instructor?.full_name,
+      ...training.settlements.flatMap((settlement) => [
+        settlement.name,
+        settlement.area,
+      ]),
+    ],
+    searchTerm
+  );
 }
 
 export default function TrainingsScreen() {
@@ -62,13 +61,12 @@ export default function TrainingsScreen() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
-  const deferredSearch = useDeferredValue(searchTerm.trim().toLowerCase());
   const { data, error, isLoading, refetch } = useTrainingsQuery();
   const trainings = data ?? [];
 
   const searchedTrainings = useMemo(
-    () => trainings.filter((training) => matchesSearch(training, deferredSearch)),
-    [deferredSearch, trainings]
+    () => trainings.filter((training) => matchesSearch(training, searchTerm)),
+    [searchTerm, trainings]
   );
 
   const filteredTrainings = useMemo(() => {
@@ -283,11 +281,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    gap: 12,
-    paddingBottom: 40,
+    gap: 10,
+    paddingBottom: 32,
   },
   list: {
-    gap: 10,
+    gap: 8,
   },
   modalAction: {
     flex: 1,
@@ -312,6 +310,6 @@ const styles = StyleSheet.create({
   },
   screenContent: {
     flex: 1,
-    paddingTop: theme.spacing.sm,
+    paddingTop: 6,
   },
 });

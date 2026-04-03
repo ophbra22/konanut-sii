@@ -52,10 +52,10 @@ const styles = StyleSheet.create({
     width: 250,
   },
   content: {
-    gap: 18,
-    paddingBottom: 44,
-    paddingHorizontal: 20,
-    paddingTop: 18,
+    gap: 16,
+    paddingBottom: 40,
+    paddingHorizontal: 18,
+    paddingTop: 16,
   },
   fill: {
     flex: 1,

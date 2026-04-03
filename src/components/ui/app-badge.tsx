@@ -41,8 +41,8 @@ const sizeStyles = StyleSheet.create({
     paddingVertical: theme.spacing.xs,
   },
   sm: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
   },
 });
 
@@ -51,7 +51,7 @@ const labelSizeStyles = StyleSheet.create({
     fontSize: 12,
   },
   sm: {
-    fontSize: 11,
+    fontSize: 10,
   },
 });
 

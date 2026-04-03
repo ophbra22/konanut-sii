@@ -83,11 +83,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     gap: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 15,
+    paddingVertical: 13,
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 14,
   },
   cardPressed: {
@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: theme.colors.textPrimary,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
     textAlign: 'right',
   },

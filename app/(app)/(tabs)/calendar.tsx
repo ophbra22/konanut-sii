@@ -710,7 +710,7 @@ const styles = StyleSheet.create({
   selectionActions: {
     alignItems: 'center',
     flexDirection: 'row',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   selectionMeta: {
     flex: 1,
@@ -718,18 +718,21 @@ const styles = StyleSheet.create({
   },
   selectionRow: {
     alignItems: 'center',
+    borderColor: theme.colors.borderStrong,
+    borderTopWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingTop: 10,
   },
   selectionSubTitle: {
     color: theme.colors.textMuted,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     textAlign: 'right',
   },
   selectionTitle: {
     color: theme.colors.textPrimary,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '900',
     textAlign: 'right',
   },

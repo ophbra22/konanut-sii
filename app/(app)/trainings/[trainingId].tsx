@@ -1,29 +1,39 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import type { ComponentType } from 'react';
 import { useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import {
+  Check,
+  MessageSquarePlus,
+  Share2,
+  SquarePen,
+  X,
+} from 'lucide-react-native';
+import {
+  Alert,
+  Pressable,
+  Share,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
 import { AppLoader } from '@/src/components/feedback/app-loader';
 import { StateCard } from '@/src/components/feedback/state-card';
 import { AppBadge } from '@/src/components/ui/app-badge';
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
-import { AppChip } from '@/src/components/ui/app-chip';
 import { AppRevealView } from '@/src/components/ui/app-reveal-view';
-import { DataRow } from '@/src/components/ui/data-row';
-import { MetricCard } from '@/src/components/ui/metric-card';
 import { AppScreen } from '@/src/components/ui/app-screen';
 import { PageHeader } from '@/src/components/ui/page-header';
 import { SectionBlock } from '@/src/components/ui/section-block';
 import {
   canCreateFeedbacks,
-  isSuperAdmin,
+  canManageTrainings,
 } from '@/src/features/auth/lib/permissions';
 import { TrainingFeedbackCard } from '@/src/features/trainings/components/training-feedback-card';
 import { TrainingFeedbackForm } from '@/src/features/trainings/components/training-feedback-form';
-import { trainingStatuses } from '@/src/features/trainings/constants';
 import {
   useDeleteTrainingFeedbackMutation,
-  useDeleteTrainingMutation,
   useSaveTrainingFeedbackMutation,
   useUpdateTrainingStatusMutation,
 } from '@/src/features/trainings/hooks/use-training-mutations';
@@ -31,21 +41,155 @@ import { useTrainingDetailsQuery } from '@/src/features/trainings/hooks/use-trai
 import { getTrainingStatusTone } from '@/src/features/trainings/lib/training-presenters';
 import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
+import type { TrainingStatus } from '@/src/types/database';
 import { theme } from '@/src/theme';
 
-type TrainingSection = 'details' | 'feedbacks';
+type ActionButtonProps = {
+  disabled?: boolean;
+  icon: ComponentType<{ color: string; size: number }>;
+  label: string;
+  onPress: () => void;
+  tone?: 'primary' | 'secondary';
+};
+
+type CompactChipProps = {
+  label: string;
+  tone?: 'neutral' | 'warning';
+};
+
+type StatusChecklistItemProps = {
+  completed: boolean;
+  label: string;
+};
+
+function ActionButton({
+  disabled = false,
+  icon: Icon,
+  label,
+  onPress,
+  tone = 'secondary',
+}: ActionButtonProps) {
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.actionButtonBase,
+        tone === 'primary' ? styles.actionButtonPrimary : styles.actionButtonSecondary,
+        disabled && styles.actionButtonDisabled,
+        pressed && !disabled && styles.actionButtonPressed,
+      ]}
+    >
+      <Icon
+        color={tone === 'primary' ? theme.colors.background : theme.colors.textPrimary}
+        size={15}
+      />
+      <Text
+        style={[
+          styles.actionButtonLabel,
+          tone === 'primary'
+            ? styles.actionButtonLabelPrimary
+            : styles.actionButtonLabelSecondary,
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function CompactChip({ label, tone = 'neutral' }: CompactChipProps) {
+  return (
+    <View
+      style={[
+        styles.compactChip,
+        tone === 'warning' ? styles.compactChipWarning : styles.compactChipNeutral,
+      ]}
+    >
+      <Text
+        numberOfLines={1}
+        style={[
+          styles.compactChipLabel,
+          tone === 'warning'
+            ? styles.compactChipLabelWarning
+            : styles.compactChipLabelNeutral,
+        ]}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function StatusChecklistItem({
+  completed,
+  label,
+}: StatusChecklistItemProps) {
+  return (
+    <View style={styles.statusRow}>
+      <Text style={styles.checklistLabel}>{label}</Text>
+
+      <View style={styles.statusStateGroup}>
+        <Text
+          style={[
+            styles.checklistState,
+            completed ? styles.checklistStateComplete : styles.checklistStateMissing,
+          ]}
+        >
+          {completed ? 'הושלם' : 'חסר'}
+        </Text>
+        {completed ? (
+          <Check color={theme.colors.accentStrong} size={14} />
+        ) : (
+          <X color={theme.colors.danger} size={14} />
+        )}
+      </View>
+    </View>
+  );
+}
+
+function getOperationalScore(averageFeedbackRating: number | null) {
+  if (!averageFeedbackRating) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(averageFeedbackRating * 20)));
+}
+
+function getScoreTone(score: number) {
+  if (score >= 80) {
+    return 'accent';
+  }
+
+  if (score >= 60) {
+    return 'warning';
+  }
+
+  return 'danger';
+}
+
+function getStatusLabelValue(status: TrainingStatus) {
+  switch (status) {
+    case 'הושלם':
+      return 'בוצע';
+    case 'בוטל':
+      return 'מבוטל';
+    case 'נדחה':
+      return 'נדחה';
+    default:
+      return 'מתוכנן';
+  }
+}
 
 export default function TrainingDetailsScreen() {
   const { trainingId } = useLocalSearchParams<{ trainingId: string }>();
   const profile = useAuthStore((state) => state.profile);
   const role = useAuthStore((state) => state.role);
   const router = useRouter();
-  const deleteMutation = useDeleteTrainingMutation();
   const deleteFeedbackMutation = useDeleteTrainingFeedbackMutation();
   const feedbackMutation = useSaveTrainingFeedbackMutation();
   const statusMutation = useUpdateTrainingStatusMutation();
-  const { data, error, isLoading, refetch } = useTrainingDetailsQuery(trainingId);
-  const [activeSection, setActiveSection] = useState<TrainingSection>('details');
+  const { data, error, isLoading } = useTrainingDetailsQuery(trainingId);
   const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(null);
   const [isFeedbackFormVisible, setIsFeedbackFormVisible] = useState(false);
 
@@ -75,359 +219,359 @@ export default function TrainingDetailsScreen() {
   }
 
   const canManageFeedback = canCreateFeedbacks(role);
+  const canEditTraining = canManageTrainings(role);
   const editingFeedback =
     data.feedbacks.find((feedback) => feedback.id === editingFeedbackId) ?? null;
+  const hasScoreData = data.averageFeedbackRating !== null;
+  const trainingScore = getOperationalScore(data.averageFeedbackRating);
+  const scoreTone = hasScoreData ? getScoreTone(trainingScore) : 'neutral';
+  const feedbackCoverageComplete =
+    data.feedbackCount > 0 &&
+    data.settlements.length > 0 &&
+    data.missingFeedbackSettlements.length === 0;
+  const metadataSummary = [
+    formatDisplayDate(data.training_date),
+    formatDisplayTime(data.training_time),
+    data.instructor?.full_name || 'ללא מדריך',
+    data.location?.trim() || 'ללא מיקום',
+  ].join(' • ');
+  const averageLabel = data.averageFeedbackRating
+    ? data.averageFeedbackRating.toFixed(1)
+    : '—';
+  const feedbackSummaryText = `${data.missingFeedbackSettlements.length} חסרים | ${data.feedbackCount} משובים | ממוצע ${averageLabel}`;
+  const shareMessage = [
+    `📍 ${data.title}`,
+    `📅 ${formatDisplayDate(data.training_date)}`,
+    `🕒 ${formatDisplayTime(data.training_time)}`,
+    `📊 ציון: ${trainingScore}`,
+    `📌 סטטוס: ${getStatusLabelValue(data.status)}`,
+  ].join('\n');
+
+  const executionChecklist = [
+    {
+      completed: data.training_type === 'מטווח' && data.status === 'הושלם',
+      label: 'מטווח',
+    },
+    {
+      completed: data.training_type === 'הגנת יישוב' && data.status === 'הושלם',
+      label: 'הגנת יישוב',
+    },
+    {
+      completed: feedbackCoverageComplete,
+      label: 'משובים',
+    },
+  ];
+
+  async function handleShare() {
+    try {
+      await Share.share({
+        message: shareMessage,
+        title: data?.title ?? 'אימון',
+      });
+    } catch {
+      Alert.alert('שיתוף לא זמין', 'לא הצלחנו לפתוח את חלונית השיתוף כרגע.');
+    }
+  }
 
   return (
-    <AppScreen>
+    <AppScreen contentContainerStyle={styles.screenContent}>
       <PageHeader
         eyebrow="אימונים"
-        title={data.title}
-        subtitle="תמונה מבצעית מלאה של האימון, היישובים והמשובים."
+        title="פרטי אימון"
+        subtitle="תמונה מבצעית ממוקדת."
       />
 
-      <AppRevealView delay={30}>
-        <View style={styles.metricsGrid}>
-          <MetricCard label="יישובים משתתפים" value={String(data.settlements.length)} />
-          <MetricCard label="משובים" value={String(data.feedbackCount)} />
-          <MetricCard
-            label="ממוצע דירוג"
-            tone={data.averageFeedbackRating ? 'accent' : 'default'}
-            value={data.averageFeedbackRating ? data.averageFeedbackRating.toFixed(1) : '—'}
+      <AppRevealView delay={20}>
+        <AppCard style={styles.headerCard}>
+          <View style={styles.headerTopRow}>
+            <Text numberOfLines={1} style={styles.trainingTitle}>
+              {data.title}
+            </Text>
+
+            <AppBadge
+              label={data.status}
+              size="sm"
+              tone={getTrainingStatusTone(data.status)}
+            />
+          </View>
+
+          <Text numberOfLines={1} style={styles.metadataSummary}>
+            {metadataSummary}
+          </Text>
+
+          {data.notes?.trim() ? (
+            <Text numberOfLines={1} style={styles.notesInline}>
+              {data.notes.trim()}
+            </Text>
+          ) : null}
+        </AppCard>
+      </AppRevealView>
+
+      <AppRevealView delay={40}>
+        <View style={styles.quickActionsRow}>
+          <ActionButton
+            disabled={!canManageFeedback || !profile}
+            icon={MessageSquarePlus}
+            label="הוסף משוב"
+            onPress={() => {
+              setEditingFeedbackId(null);
+              setIsFeedbackFormVisible(true);
+            }}
           />
-          <MetricCard
-            label="חסרי משוב"
-            tone={data.missingFeedbackSettlements.length ? 'warning' : 'accent'}
-            value={String(data.missingFeedbackSettlements.length)}
+          <ActionButton
+            icon={Share2}
+            label="שיתוף"
+            onPress={() => {
+              void handleShare();
+            }}
+            tone="primary"
+          />
+          <ActionButton
+            disabled={!canEditTraining}
+            icon={SquarePen}
+            label="עריכה"
+            onPress={() => {
+              router.push(`/trainings/${data.id}/edit`);
+            }}
           />
         </View>
       </AppRevealView>
 
       <AppRevealView delay={60}>
-        <View style={styles.tabs}>
-          <AppChip
-            label="פרטים"
-            onPress={() => {
-              setActiveSection('details');
-            }}
-            selected={activeSection === 'details'}
-            tone={activeSection === 'details' ? 'accent' : 'neutral'}
-          />
-          <AppChip
-            label="משובים"
-            onPress={() => {
-              setActiveSection('feedbacks');
-            }}
-            selected={activeSection === 'feedbacks'}
-            tone={activeSection === 'feedbacks' ? 'accent' : 'neutral'}
-          />
-        </View>
+        <SectionBlock title="סטטוס ביצוע">
+          <AppCard style={styles.statusCard}>
+            <View style={styles.checklist}>
+              {executionChecklist.map((item) => (
+                <StatusChecklistItem
+                  key={item.label}
+                  completed={item.completed}
+                  label={item.label}
+                />
+              ))}
+            </View>
+          </AppCard>
+        </SectionBlock>
       </AppRevealView>
 
-      {activeSection === 'details' ? (
-        <AppRevealView delay={90} key="training-details-section">
-          <AppCard
-            description={`${formatDisplayDate(data.training_date)} • ${formatDisplayTime(
-              data.training_time
-            )}`}
-            title="פרטי אימון"
-          >
-            <View style={styles.badges}>
-              <AppBadge label={data.training_type} size="sm" tone="accent" />
-              <AppBadge
-                label={data.status}
-                size="sm"
-                tone={getTrainingStatusTone(data.status)}
-              />
-            </View>
-            <DataRow label="מיקום" value={data.location?.trim() || 'לא הוגדר'} />
-            <DataRow label="מדריך" value={data.instructor?.full_name || 'טרם שובץ'} />
-            <DataRow label="הערות" value={data.notes?.trim() || 'אין הערות'} />
+      <AppRevealView delay={80}>
+        <SectionBlock title="ציון אימון">
+          <AppCard style={styles.scoreCard}>
+            <Text style={[styles.scoreValue, scoreValueStyles[scoreTone]]}>
+              {hasScoreData ? trainingScore : '—'}
+            </Text>
+            <Text style={styles.scoreLabel}>ציון כולל</Text>
+            <Text style={styles.scoreHelper}>
+              {hasScoreData ? 'מבוסס על משובים שנשמרו' : 'עדיין אין נתוני משוב לחישוב'}
+            </Text>
           </AppCard>
+        </SectionBlock>
+      </AppRevealView>
 
-          {isSuperAdmin(role) ? (
-            <AppCard
-              description="עדכון הסטטוס מסנכרן את היומן, הדשבורד והדירוגים."
-              title="שליטת סטטוס"
-              variant="accent"
-            >
-              <View style={styles.statusActions}>
-                {trainingStatuses.map((status) => (
-                  <AppButton
-                    key={status}
-                    disabled={status === data.status || statusMutation.isPending}
-                    fullWidth={false}
-                    label={status}
-                    onPress={() => {
-                      void statusMutation.mutateAsync({
-                        status,
-                        trainingId: data.id,
-                      });
-                    }}
-                    style={styles.statusButton}
-                    variant={status === data.status ? 'primary' : 'secondary'}
-                  />
-                ))}
-              </View>
-            </AppCard>
-          ) : null}
+      <AppRevealView delay={100}>
+        <SectionBlock title="משובים">
+          <AppCard style={styles.feedbackSummaryCard}>
+            <View style={styles.feedbackSummaryTopRow}>
+              <Text style={styles.feedbackSummaryText}>{feedbackSummaryText}</Text>
 
-          <SectionBlock
-            description="היישובים המשתתפים באימון."
-            title="יישובים משתתפים"
-          >
-            {data.settlements.length ? (
-              <View style={styles.list}>
-                {data.settlements.map((settlement) => (
-                  <AppCard
-                    key={settlement.id}
-                    description={settlement.area}
-                    style={styles.innerCard}
-                    title={settlement.name}
-                  >
-                    <AppButton
-                      fullWidth={false}
-                      href={`/settlements/${settlement.id}`}
-                      label="מעבר ליישוב"
-                      variant="secondary"
-                    />
-                  </AppCard>
-                ))}
-              </View>
-            ) : (
-              <StateCard description="עדיין לא שויכו יישובים לאימון זה." title="אין שיוכים" />
-            )}
-          </SectionBlock>
-
-          <AppCard description="עריכה ומחיקה זמינות למנהל מערכת בלבד." title="פעולות">
-            <View style={styles.actions}>
-              <AppButton
-                fullWidth={false}
-                href="/trainings"
-                label="חזרה לרשימה"
-                style={styles.actionButton}
-                variant="ghost"
-              />
-              {isSuperAdmin(role) ? (
+              {canManageFeedback && profile ? (
                 <AppButton
                   fullWidth={false}
-                  href={`/trainings/${data.id}/edit`}
-                  label="עריכת אימון"
-                  style={styles.actionButton}
+                  label={
+                    isFeedbackFormVisible && !editingFeedbackId
+                      ? 'סגור'
+                      : 'הוסף משוב'
+                  }
+                  onPress={() => {
+                    if (isFeedbackFormVisible && !editingFeedbackId) {
+                      setIsFeedbackFormVisible(false);
+                      return;
+                    }
+
+                    setEditingFeedbackId(null);
+                    setIsFeedbackFormVisible(true);
+                  }}
+                  style={styles.feedbackInlineButton}
                   variant="secondary"
                 />
               ) : null}
-              {isSuperAdmin(role) ? (
-                <AppButton
-                  disabled={deleteMutation.isPending}
-                  fullWidth={false}
-                  label="מחיקת אימון"
-                  onPress={() => {
-                    Alert.alert('מחיקת אימון', `האם למחוק את ${data.title}?`, [
-                      { style: 'cancel', text: 'ביטול' },
-                      {
-                        style: 'destructive',
-                        text: 'מחיקה',
-                        onPress: () => {
-                          void deleteMutation.mutateAsync(data.id).then(() => {
-                            router.replace('/trainings');
-                          });
-                        },
-                      },
-                    ]);
-                  }}
-                  style={styles.actionButton}
-                  variant="danger"
-                />
-              ) : null}
-              <AppButton
-                fullWidth={false}
-                label="רענון נתונים"
-                onPress={() => {
-                  void refetch();
-                }}
-                style={styles.actionButton}
-                variant="secondary"
-              />
-            </View>
-          </AppCard>
-        </AppRevealView>
-      ) : null}
-
-      {activeSection === 'feedbacks' ? (
-        <AppRevealView delay={90} key="training-feedbacks-section">
-          <SectionBlock
-            description="משוב אחד לכל יישוב באימון."
-            title="תמונת משובים"
-          >
-            <View style={styles.metricsGrid}>
-              <MetricCard
-                label="ממוצע דירוג"
-                tone={data.averageFeedbackRating ? 'accent' : 'default'}
-                value={data.averageFeedbackRating ? data.averageFeedbackRating.toFixed(1) : '—'}
-              />
-              <MetricCard label="כמות משובים" value={String(data.feedbackCount)} />
-              <MetricCard
-                label="חסרי משוב"
-                tone={data.missingFeedbackSettlements.length ? 'warning' : 'accent'}
-                value={String(data.missingFeedbackSettlements.length)}
-              />
             </View>
 
             {data.missingFeedbackSettlements.length ? (
-              <AppCard
-                description="היישובים הבאים עדיין משתתפים באימון אך אין עבורם משוב שמור."
-                title="יישובים ללא משוב"
-                variant="warning"
-              >
-                <View style={styles.badges}>
+              <View style={styles.missingFeedbackBlock}>
+                <Text style={styles.missingFeedbackTitle}>חסרים משובים עבור</Text>
+                <View style={styles.missingFeedbackChips}>
                   {data.missingFeedbackSettlements.map((settlement) => (
-                    <AppBadge
+                    <CompactChip
                       key={settlement.id}
-                      label={`${settlement.name} • ${settlement.area}`}
-                      size="sm"
+                      label={settlement.name}
                       tone="warning"
                     />
                   ))}
                 </View>
-              </AppCard>
+              </View>
             ) : (
-              <StateCard
-                description="לכל היישובים המשתתפים באימון כבר קיים משוב שמור."
-                title="כיסוי משובים מלא"
-                variant="accent"
-              />
+              <View style={styles.completeFeedbackRow}>
+                <Check color={theme.colors.accentStrong} size={14} />
+                <Text style={styles.completeFeedbackText}>
+                  כל היישובים המשתתפים כבר מכוסים במשוב
+                </Text>
+              </View>
             )}
-          </SectionBlock>
+          </AppCard>
 
-          {canManageFeedback ? (
-            <SectionBlock
-              description="הוספה ועדכון משובים לפי הרשאה."
-              title="ניהול משובים"
-            >
-              {feedbackMutation.error ? (
-                <StateCard
-                  description={feedbackMutation.error.message}
-                  title="לא ניתן לשמור את המשוב"
-                  variant="warning"
-                />
-              ) : null}
-
-              {deleteFeedbackMutation.error ? (
-                <StateCard
-                  description={deleteFeedbackMutation.error.message}
-                  title="לא ניתן למחוק את המשוב"
-                  variant="warning"
-                />
-              ) : null}
-
-              {!profile ? (
-                <StateCard
-                  description="לא הצלחנו לזהות את פרופיל המשתמש המחובר, ולכן אי אפשר לשמור משוב כרגע."
-                  title="פרופיל לא זמין"
-                  variant="warning"
-                />
-              ) : null}
-
-              {!isFeedbackFormVisible && profile ? (
-                <AppButton
-                  fullWidth={false}
-                  label="הוספת משוב"
-                  onPress={() => {
-                    setEditingFeedbackId(null);
-                    setIsFeedbackFormVisible(true);
-                  }}
-                  variant="secondary"
-                />
-              ) : null}
-
-              {isFeedbackFormVisible && profile ? (
-                <TrainingFeedbackForm
-                  existingFeedbacks={data.feedbacks}
-                  initialValues={
-                    editingFeedback
-                      ? {
-                          comment: editingFeedback.comment ?? '',
-                          rating: editingFeedback.rating,
-                          settlement_id:
-                            editingFeedback.settlement?.id ?? editingFeedback.settlement_id,
-                        }
-                      : {
-                          settlement_id:
-                            data.missingFeedbackSettlements[0]?.id ??
-                            data.settlements[0]?.id ??
-                            '',
-                        }
-                  }
-                  isSubmitting={feedbackMutation.isPending}
-                  isUpdating={Boolean(editingFeedback)}
-                  lockSettlement={Boolean(editingFeedback)}
-                  onCancel={() => {
-                    setEditingFeedbackId(null);
-                    setIsFeedbackFormVisible(false);
-                  }}
-                  onSubmit={async (values) => {
-                    await feedbackMutation.mutateAsync({
-                      comment: values.comment || null,
-                      feedbackId: editingFeedback?.id,
-                      instructorId: profile.id,
-                      rating: values.rating,
-                      settlementId: values.settlement_id,
-                      trainingId: data.id,
-                    });
-
-                    setEditingFeedbackId(null);
-                    setIsFeedbackFormVisible(false);
-                  }}
-                  settlementOptions={data.settlements}
-                />
-              ) : null}
-            </SectionBlock>
+          {feedbackMutation.error ? (
+            <StateCard
+              description={feedbackMutation.error.message}
+              title="לא ניתן לשמור את המשוב"
+              variant="warning"
+            />
           ) : null}
 
-          <SectionBlock
-            description="כל רשומות המשוב השמורות עבור האימון."
-            title="רשומות משוב"
-          >
-            {data.feedbacks.length ? (
-              <View style={styles.list}>
-                {data.feedbacks.map((feedback) => (
-                  <TrainingFeedbackCard
-                    key={feedback.id}
-                    canDelete={isSuperAdmin(role)}
-                    canEdit={canManageFeedback}
-                    feedback={feedback}
-                    onDelete={() => {
-                      Alert.alert(
-                        'מחיקת משוב',
-                        `האם למחוק את המשוב עבור ${feedback.settlement?.name || 'היישוב'}?`,
-                        [
-                          { style: 'cancel', text: 'ביטול' },
-                          {
-                            style: 'destructive',
-                            text: 'מחיקה',
-                            onPress: () => {
-                              void deleteFeedbackMutation.mutateAsync({
-                                feedbackId: feedback.id,
-                                trainingId: data.id,
-                              });
-                            },
+          {deleteFeedbackMutation.error ? (
+            <StateCard
+              description={deleteFeedbackMutation.error.message}
+              title="לא ניתן למחוק את המשוב"
+              variant="warning"
+            />
+          ) : null}
+
+          {!profile && canManageFeedback ? (
+            <StateCard
+              description="לא הצלחנו לזהות את פרופיל המשתמש המחובר, ולכן אי אפשר לשמור משוב כרגע."
+              title="פרופיל לא זמין"
+              variant="warning"
+            />
+          ) : null}
+
+          {isFeedbackFormVisible && profile ? (
+            <TrainingFeedbackForm
+              existingFeedbacks={data.feedbacks}
+              initialValues={
+                editingFeedback
+                  ? {
+                      comment: editingFeedback.comment ?? '',
+                      rating: editingFeedback.rating,
+                      settlement_id:
+                        editingFeedback.settlement?.id ?? editingFeedback.settlement_id,
+                    }
+                  : {
+                      settlement_id:
+                        data.missingFeedbackSettlements[0]?.id ??
+                        data.settlements[0]?.id ??
+                        '',
+                    }
+              }
+              isSubmitting={feedbackMutation.isPending}
+              isUpdating={Boolean(editingFeedback)}
+              lockSettlement={Boolean(editingFeedback)}
+              onCancel={() => {
+                setEditingFeedbackId(null);
+                setIsFeedbackFormVisible(false);
+              }}
+              onSubmit={async (values) => {
+                await feedbackMutation.mutateAsync({
+                  comment: values.comment || null,
+                  feedbackId: editingFeedback?.id,
+                  instructorId: profile.id,
+                  rating: values.rating,
+                  settlementId: values.settlement_id,
+                  trainingId: data.id,
+                });
+
+                setEditingFeedbackId(null);
+                setIsFeedbackFormVisible(false);
+              }}
+              settlementOptions={data.settlements}
+            />
+          ) : null}
+
+          {data.feedbacks.length ? (
+            <View style={styles.feedbackList}>
+              {data.feedbacks.map((feedback) => (
+                <TrainingFeedbackCard
+                  key={feedback.id}
+                  canDelete={canEditTraining}
+                  canEdit={canManageFeedback}
+                  feedback={feedback}
+                  onDelete={() => {
+                    Alert.alert(
+                      'מחיקת משוב',
+                      `האם למחוק את המשוב עבור ${feedback.settlement?.name || 'היישוב'}?`,
+                      [
+                        { style: 'cancel', text: 'ביטול' },
+                        {
+                          style: 'destructive',
+                          text: 'מחיקה',
+                          onPress: () => {
+                            void deleteFeedbackMutation.mutateAsync({
+                              feedbackId: feedback.id,
+                              trainingId: data.id,
+                            });
                           },
-                        ]
-                      );
-                    }}
-                    onEdit={() => {
-                      setEditingFeedbackId(feedback.id);
-                      setIsFeedbackFormVisible(true);
-                    }}
+                        },
+                      ]
+                    );
+                  }}
+                  onEdit={() => {
+                    setEditingFeedbackId(feedback.id);
+                    setIsFeedbackFormVisible(true);
+                  }}
+                />
+              ))}
+            </View>
+          ) : (
+            <AppCard style={styles.emptyFeedbackCard}>
+              <Text style={styles.emptyFeedbackTitle}>אין משובים שמורים</Text>
+              <Text style={styles.emptyFeedbackDescription}>
+                טרם הוזן משוב עבור האימון הנוכחי.
+              </Text>
+            </AppCard>
+          )}
+        </SectionBlock>
+      </AppRevealView>
+
+      <AppRevealView delay={120}>
+        <SectionBlock title="יישובים משתתפים">
+          {data.settlements.length ? (
+            <AppCard style={styles.settlementsCard}>
+              <View style={styles.settlementBadges}>
+                {data.settlements.map((settlement) => (
+                  <CompactChip
+                    key={settlement.id}
+                    label={settlement.name}
                   />
                 ))}
               </View>
+            </AppCard>
+          ) : (
+            <StateCard description="עדיין לא שויכו יישובים לאימון זה." title="אין יישובים" />
+          )}
+        </SectionBlock>
+      </AppRevealView>
+
+      {canEditTraining ? (
+        <AppRevealView delay={140}>
+          <SectionBlock title="פעולה מסכמת">
+            {data.status === 'הושלם' ? (
+              <AppCard style={styles.footerCard}>
+                <View style={styles.completeTrainingRow}>
+                  <Check color={theme.colors.accentStrong} size={16} />
+                  <Text style={styles.completeTrainingText}>האימון כבר מסומן כהושלם</Text>
+                </View>
+              </AppCard>
             ) : (
-              <StateCard
-                description="עדיין לא הוזנו משובים עבור האימון. ניתן להתחיל ביישובים שמופיעים תחת חסרי משוב."
-                title="אין משובים"
-              />
+              <AppCard style={styles.footerCard}>
+                <AppButton
+                  label="השלמת אימון"
+                  loading={statusMutation.isPending}
+                  onPress={() => {
+                    void statusMutation.mutateAsync({
+                      status: 'הושלם',
+                      trainingId: data.id,
+                    });
+                  }}
+                />
+              </AppCard>
             )}
           </SectionBlock>
         </AppRevealView>
@@ -437,42 +581,284 @@ export default function TrainingDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  actionButton: {
+  actionButtonBase: {
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
     flex: 1,
-  },
-  actions: {
     flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    gap: 8,
+    gap: 5,
+    height: 38,
+    justifyContent: 'center',
+    paddingHorizontal: 8,
   },
-  badges: {
+  actionButtonDisabled: {
+    opacity: 0.42,
+  },
+  actionButtonLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  actionButtonLabelPrimary: {
+    color: theme.colors.background,
+  },
+  actionButtonLabelSecondary: {
+    color: theme.colors.textPrimary,
+  },
+  actionButtonPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.988 }],
+  },
+  actionButtonPrimary: {
+    backgroundColor: theme.colors.info,
+    borderColor: theme.colors.info,
+    shadowColor: theme.colors.info,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+  },
+  actionButtonSecondary: {
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.borderStrong,
+  },
+  checklist: {
+    gap: 0,
+  },
+  checklistLabel: {
+    color: theme.colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  checklistState: {
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'left',
+  },
+  checklistStateComplete: {
+    color: theme.colors.accentStrong,
+  },
+  checklistStateMissing: {
+    color: theme.colors.danger,
+  },
+  compactChip: {
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+  },
+  compactChipLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  compactChipLabelNeutral: {
+    color: theme.colors.textSecondary,
+  },
+  compactChipLabelWarning: {
+    color: theme.colors.warning,
+  },
+  compactChipNeutral: {
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.border,
+  },
+  compactChipWarning: {
+    backgroundColor: 'rgba(245, 178, 75, 0.10)',
+    borderColor: 'rgba(245, 178, 75, 0.26)',
+  },
+  completeFeedbackRow: {
+    alignItems: 'center',
     flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
-  innerCard: {
-    paddingHorizontal: 14,
+  completeFeedbackText: {
+    color: theme.colors.accentStrong,
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+  completeTrainingRow: {
+    alignItems: 'center',
+    flexDirection: 'row-reverse',
+    gap: 8,
+    justifyContent: 'center',
+  },
+  completeTrainingText: {
+    color: theme.colors.accentStrong,
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  feedbackList: {
+    gap: 6,
+  },
+  feedbackSummaryCard: {
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  feedbackSummaryTopRow: {
+    alignItems: 'center',
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    gap: 10,
+  },
+  feedbackSummaryText: {
+    color: theme.colors.textSecondary,
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
+    textAlign: 'right',
+  },
+  footerCard: {
+    paddingHorizontal: 12,
     paddingVertical: 12,
   },
-  list: {
-    gap: 10,
+  headerBadges: {
+    alignSelf: 'flex-start',
   },
-  metricsGrid: {
-    flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    gap: 10,
+  headerCard: {
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
-  statusActions: {
+  headerTopRow: {
+    alignItems: 'center',
     flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
     gap: 8,
+    justifyContent: 'space-between',
   },
-  statusButton: {
+  emptyFeedbackCard: {
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  emptyFeedbackDescription: {
+    color: theme.colors.textMuted,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: 'right',
+  },
+  emptyFeedbackTitle: {
+    color: theme.colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  feedbackInlineButton: {
+    minHeight: 34,
+    minWidth: 92,
+    paddingHorizontal: 12,
+  },
+  metadataSummary: {
+    color: theme.colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 16,
+    textAlign: 'right',
+  },
+  missingFeedbackBlock: {
+    gap: 5,
+  },
+  missingFeedbackChips: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: 5,
+  },
+  missingFeedbackTitle: {
+    color: theme.colors.warning,
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+  notesInline: {
+    color: theme.colors.textMuted,
+    fontSize: 11,
+    lineHeight: 15,
+    textAlign: 'right',
+  },
+  quickActionsRow: {
+    flexDirection: 'row-reverse',
+    gap: 6,
+  },
+  scoreCard: {
+    alignItems: 'center',
+    gap: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  scoreHelper: {
+    color: theme.colors.textMuted,
+    fontSize: 10,
+    lineHeight: 14,
+    textAlign: 'center',
+  },
+  scoreLabel: {
+    color: theme.colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  scoreValue: {
+    fontSize: 52,
+    fontWeight: '900',
+    lineHeight: 56,
+    textAlign: 'center',
+  },
+  screenContent: {
+    gap: 10,
+  },
+  settlementBadges: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: 5,
+  },
+  settlementsCard: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  statusRow: {
+    alignItems: 'center',
+    borderBottomColor: theme.colors.border,
+    borderBottomWidth: 1,
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    minHeight: 40,
+    paddingVertical: 6,
+  },
+  statusStateGroup: {
+    alignItems: 'center',
+    flexDirection: 'row-reverse',
+    gap: 6,
+  },
+  statusCard: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  trainingTitle: {
+    color: theme.colors.textPrimary,
     flex: 1,
+    fontSize: 21,
+    fontWeight: '900',
+    lineHeight: 24,
+    textAlign: 'right',
   },
-  tabs: {
-    flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    gap: 8,
+});
+
+const scoreValueStyles = StyleSheet.create({
+  accent: {
+    color: theme.colors.accentStrong,
+  },
+  danger: {
+    color: theme.colors.danger,
+  },
+  neutral: {
+    color: theme.colors.textMuted,
+  },
+  warning: {
+    color: theme.colors.warning,
   },
 });

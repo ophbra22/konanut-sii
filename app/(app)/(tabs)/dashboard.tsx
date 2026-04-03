@@ -31,6 +31,17 @@ function getAlertTone(severity: 'high' | 'low' | 'medium') {
   }
 }
 
+function getAlertSeverityLabel(severity: 'high' | 'low' | 'medium') {
+  switch (severity) {
+    case 'high':
+      return 'גבוהה';
+    case 'medium':
+      return 'בינונית';
+    default:
+      return 'מידע';
+  }
+}
+
 export default function DashboardScreen() {
   const role = useAuthStore((state) => state.role);
   const { data, error, isLoading, refetch } = useDashboardQuery();
@@ -163,7 +174,7 @@ export default function DashboardScreen() {
                   <View style={styles.badges}>
                     <AppBadge label={alertItem.type} size="sm" tone="neutral" />
                     <AppBadge
-                      label={alertItem.severity}
+                      label={getAlertSeverityLabel(alertItem.severity)}
                       size="sm"
                       tone={getAlertTone(alertItem.severity)}
                     />

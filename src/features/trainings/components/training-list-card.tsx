@@ -1,6 +1,5 @@
 import { useRouter } from 'expo-router';
 import {
-  CalendarDays,
   Clock3,
   MapPinned,
   UserRound,
@@ -11,7 +10,7 @@ import { AppBadge } from '@/src/components/ui/app-badge';
 import { OpsListCard } from '@/src/components/ui/ops-list-card';
 import type { TrainingListItem } from '@/src/features/trainings/api/trainings-service';
 import { getTrainingStatusTone } from '@/src/features/trainings/lib/training-presenters';
-import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
+import { formatDisplayTime } from '@/src/lib/date-utils';
 import { theme } from '@/src/theme';
 
 type TrainingListCardProps = {
@@ -49,7 +48,7 @@ export function TrainingListCard({ training }: TrainingListCardProps) {
       </View>
 
       <View style={styles.metaRow}>
-        <View style={styles.metaItem}>
+        <View style={[styles.metaItem, styles.locationItem]}>
           <MapPinned color={theme.colors.textMuted} size={12} />
           <Text numberOfLines={1} style={styles.metaText}>
             {getLocationLabel(training)}
@@ -60,13 +59,6 @@ export function TrainingListCard({ training }: TrainingListCardProps) {
           <Clock3 color={theme.colors.textMuted} size={12} />
           <Text numberOfLines={1} style={styles.metaText}>
             {formatDisplayTime(training.training_time)}
-          </Text>
-        </View>
-
-        <View style={styles.metaItem}>
-          <CalendarDays color={theme.colors.textMuted} size={12} />
-          <Text numberOfLines={1} style={styles.metaText}>
-            {formatDisplayDate(training.training_date)}
           </Text>
         </View>
 
@@ -83,7 +75,10 @@ export function TrainingListCard({ training }: TrainingListCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    gap: 8,
+    gap: 6,
+  },
+  locationItem: {
+    flex: 1.3,
   },
   metaItem: {
     alignItems: 'center',
@@ -94,26 +89,26 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: 'row-reverse',
-    gap: 8,
+    gap: 6,
   },
   metaText: {
     color: theme.colors.textSecondary,
     flex: 1,
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '700',
     textAlign: 'right',
   },
   title: {
     color: theme.colors.textPrimary,
     flex: 1,
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
     textAlign: 'right',
   },
   topRow: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
-    gap: 10,
+    gap: 8,
     justifyContent: 'space-between',
   },
 });

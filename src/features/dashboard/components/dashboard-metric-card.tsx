@@ -71,7 +71,6 @@ export function DashboardMetricCard({
 
   return (
     <AppCard style={styles.card} variant={variant}>
-      <Text style={styles.label}>{label}</Text>
       {isLoading ? (
         <View style={styles.skeletonWrapper}>
           <Animated.View style={[styles.skeletonValue, { opacity: shimmer }]} />
@@ -82,6 +81,7 @@ export function DashboardMetricCard({
           <Text style={[styles.value, valueStyles[tone], errorMessage && styles.errorValue]}>
             {displayValue}
           </Text>
+          <Text style={styles.label}>{label}</Text>
           {helperText ? <Text style={styles.helper}>{helperText}</Text> : null}
         </>
       )}
@@ -96,17 +96,17 @@ const styles = StyleSheet.create({
   },
   errorValue: {
     color: theme.colors.warning,
-    fontSize: 17,
+    fontSize: 20,
   },
   helper: {
     color: theme.colors.textMuted,
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 10,
+    lineHeight: 14,
     textAlign: 'right',
   },
   label: {
     color: theme.colors.textMuted,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     textAlign: 'right',
   },
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   value: {
-    fontSize: 22,
+    fontSize: 28,
     fontWeight: '900',
     textAlign: 'right',
   },

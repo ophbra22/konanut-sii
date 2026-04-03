@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { ArrowRight, RotateCw } from 'lucide-react-native';
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppLoader } from '@/src/components/feedback/app-loader';
@@ -23,6 +23,7 @@ import {
   type RankingLevel,
 } from '@/src/features/rankings/utils/ranking-calculator';
 import { getHalfYearLabel } from '@/src/lib/date-utils';
+import { matchesSearchQuery } from '@/src/lib/search-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { theme } from '@/src/theme';
 
@@ -46,7 +47,6 @@ export default function SettlementRankingsScreen() {
   const [period, setPeriod] = useState(getCurrentRankingPeriod());
   const [levelFilter, setLevelFilter] = useState<LevelFilter>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const deferredSearch = useDeferredValue(searchTerm.trim().toLowerCase());
   const syncMutation = useSyncSettlementRankingsMutation();
   const periodsQuery = useRankingPeriodsQuery();
   const { data, error, isLoading, refetch } = useRankingsQuery(period);
@@ -58,21 +58,13 @@ export default function SettlementRankingsScreen() {
   const searchedRankings = useMemo(() => {
     const items = data ?? [];
 
-    if (!deferredSearch) {
-      return items;
-    }
-
     return items.filter((item) => {
-      const candidates = [
-        item.settlementName,
-        item.area,
-        item.regionalCouncil,
-      ]
-        .map((value) => value?.trim().toLowerCase() ?? '');
-
-      return candidates.some((candidate) => candidate.includes(deferredSearch));
+      return matchesSearchQuery(
+        [item.settlementName, item.area, item.regionalCouncil],
+        searchTerm
+      );
     });
-  }, [data, deferredSearch]);
+  }, [data, searchTerm]);
 
   const filteredRankings = useMemo(() => {
     if (levelFilter === 'all') {
@@ -248,14 +240,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    gap: 12,
-    paddingBottom: theme.spacing.xl,
+    gap: 10,
+    paddingBottom: 32,
   },
   list: {
-    gap: 10,
+    gap: 8,
   },
   screenContent: {
     flex: 1,
-    paddingTop: theme.spacing.sm,
+    paddingTop: 6,
   },
 });

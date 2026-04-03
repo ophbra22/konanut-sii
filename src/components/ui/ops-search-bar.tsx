@@ -23,7 +23,10 @@ export function OpsSearchBar({
       <Search color={isFocused ? theme.colors.info : theme.colors.textMuted} size={17} />
       <TextInput
         autoCapitalize="none"
+        autoComplete="off"
         autoCorrect={false}
+        clearButtonMode="while-editing"
+        enterKeyHint="search"
         onBlur={(event) => {
           setIsFocused(false);
           onBlur?.(event);
@@ -34,8 +37,11 @@ export function OpsSearchBar({
         }}
         placeholder={placeholder}
         placeholderTextColor={theme.colors.textMuted}
+        returnKeyType="search"
+        selectionColor={theme.colors.info}
         style={[styles.input, style]}
         textAlign="right"
+        underlineColorAndroid="transparent"
         {...props}
       />
     </View>
@@ -47,7 +53,9 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     flex: 1,
     fontSize: 15,
+    minWidth: 0,
     minHeight: 50,
+    paddingVertical: 0,
     writingDirection: 'rtl',
   },
   wrapper: {
