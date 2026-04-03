@@ -1,16 +1,18 @@
 import { StyleSheet, View } from 'react-native';
 
-import { AppLoader } from '@/src/components/feedback/app-loader';
 import { StateCard } from '@/src/components/feedback/state-card';
 import { AppBadge } from '@/src/components/ui/app-badge';
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import { DataRow } from '@/src/components/ui/data-row';
-import { MetricCard } from '@/src/components/ui/metric-card';
 import { AppScreen } from '@/src/components/ui/app-screen';
 import { PageHeader } from '@/src/components/ui/page-header';
 import { SectionBlock } from '@/src/components/ui/section-block';
-import { isSuperAdmin } from '@/src/features/auth/lib/permissions';
+import {
+  canCreateTrainings,
+  isSuperAdmin,
+} from '@/src/features/auth/lib/permissions';
+import { DashboardMetricCard } from '@/src/features/dashboard/components/dashboard-metric-card';
 import { useDashboardQuery } from '@/src/features/dashboard/hooks/use-dashboard-query';
 import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
@@ -30,31 +32,6 @@ function getAlertTone(severity: 'high' | 'low' | 'medium') {
 export default function DashboardScreen() {
   const role = useAuthStore((state) => state.role);
   const { data, error, isLoading, refetch } = useDashboardQuery();
-
-  if (isLoading) {
-    return <AppLoader label="טוען את תמונת המצב המבצעית..." />;
-  }
-
-  if (error || !data) {
-    return (
-      <AppScreen>
-        <PageHeader
-          eyebrow="חמ״ל דיגיטלי"
-          title="לוח בקרה"
-          subtitle="מרכז השליטה לא הצליח לטעון כרגע את הנתונים התפעוליים."
-        />
-        <StateCard
-          actionLabel="נסו שוב"
-          description={error?.message ?? 'אירעה שגיאה בטעינת הדשבורד.'}
-          onAction={() => {
-            void refetch();
-          }}
-          title="הדשבורד לא זמין כרגע"
-          variant="warning"
-        />
-      </AppScreen>
-    );
-  }
 
   return (
     <AppScreen>
@@ -80,7 +57,7 @@ export default function DashboardScreen() {
             style={styles.quickAction}
           />
         ) : null}
-        {isSuperAdmin(role) ? (
+        {canCreateTrainings(role) ? (
           <AppButton
             fullWidth={false}
             href="/trainings/create"
@@ -91,20 +68,50 @@ export default function DashboardScreen() {
       </View>
 
       <View style={styles.metricsGrid}>
-        <MetricCard
-          label="אימונים שהושלמו החודש"
+        <DashboardMetricCard
+          errorMessage={error?.message}
+          isEmpty={!isLoading && !error && (data?.weeklyTrainingsCount ?? 0) === 0}
+          isLoading={isLoading}
+          label="אימונים השבוע"
           tone="accent"
-          value={String(data.completedTrainingsThisMonth)}
+          value={String(data?.weeklyTrainingsCount ?? 0)}
         />
-        <MetricCard label="אימונים השבוע" value={String(data.trainingsThisWeek)} />
-        <MetricCard
+        <DashboardMetricCard
+          errorMessage={error?.message}
+          isEmpty={!isLoading && !error && (data?.monthlyTrainingsCount ?? 0) === 0}
+          isLoading={isLoading}
+          label="אימונים החודש"
+          tone="accent"
+          value={String(data?.monthlyTrainingsCount ?? 0)}
+        />
+        <DashboardMetricCard
+          errorMessage={error?.message}
+          isEmpty={!isLoading && !error && (data?.activeSettlementsCount ?? 0) === 0}
+          isLoading={isLoading}
           label="יישובים פעילים"
-          value={String(data.activeSettlementsCount)}
+          value={String(data?.activeSettlementsCount ?? 0)}
         />
-        <MetricCard
-          label="חוסרי משוב"
+        <DashboardMetricCard
+          emptyLabel="ללא חוסרים"
+          errorMessage={error?.message}
+          isEmpty={!isLoading && !error && (data?.settlementsMissingFeedbackCount ?? 0) === 0}
+          isLoading={isLoading}
+          label="יישובים ללא משוב"
           tone="warning"
-          value={String(data.missingFeedbackCount)}
+          value={String(data?.settlementsMissingFeedbackCount ?? 0)}
+        />
+        <DashboardMetricCard
+          emptyLabel="אין דירוגים שמורים"
+          errorMessage={error?.message}
+          isEmpty={!isLoading && !error && data?.averageSettlementScore === null}
+          isLoading={isLoading}
+          label="ממוצע ציון יישובים"
+          tone="accent"
+          value={
+            data?.averageSettlementScore === null || data?.averageSettlementScore === undefined
+              ? '0'
+              : String(data.averageSettlementScore)
+          }
         />
       </View>
 
@@ -114,8 +121,11 @@ export default function DashboardScreen() {
         variant="accent"
       >
         <View style={styles.badges}>
-          <AppBadge label={data.systemStatus} tone="accent" />
+          <AppBadge label={data?.systemStatus ?? 'מבצעי'} tone="accent" />
           <AppBadge label="מרכז שליטה פעיל" tone="neutral" />
+          {data?.currentRankingPeriod ? (
+            <AppBadge label={`חציון ${data.currentRankingPeriod}`} tone="neutral" />
+          ) : null}
         </View>
       </AppCard>
 
@@ -123,7 +133,19 @@ export default function DashboardScreen() {
         description="חמש ההתראות האחרונות הזמינות לחשבון המחובר."
         title="סיכום התראות"
       >
-        {data.alertsSummary.length ? (
+        {isLoading ? (
+          <StateCard description="טוען התראות אחרונות..." title="טוען התראות" />
+        ) : error ? (
+          <StateCard
+            actionLabel="נסו שוב"
+            description={error.message}
+            onAction={() => {
+              void refetch();
+            }}
+            title="לא ניתן לטעון התראות"
+            variant="warning"
+          />
+        ) : data?.alertsSummary.length ? (
           <View style={styles.list}>
             {data.alertsSummary.map((alertItem) => (
               <AppCard
@@ -160,7 +182,19 @@ export default function DashboardScreen() {
         description="רשימת האימונים הקרובים שאינם מבוטלים."
         title="אימונים קרובים"
       >
-        {data.upcomingTrainings.length ? (
+        {isLoading ? (
+          <StateCard description="טוען את לוח האימונים הקרוב..." title="טוען אימונים" />
+        ) : error ? (
+          <StateCard
+            actionLabel="נסו שוב"
+            description={error.message}
+            onAction={() => {
+              void refetch();
+            }}
+            title="לא ניתן לטעון אימונים קרובים"
+            variant="warning"
+          />
+        ) : data?.upcomingTrainings.length ? (
           <View style={styles.list}>
             {data.upcomingTrainings.map((training) => (
               <AppCard

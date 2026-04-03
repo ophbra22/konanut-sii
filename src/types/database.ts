@@ -329,7 +329,7 @@ export type Database = {
           id: string;
           is_active: boolean;
           phone: string | null;
-          role: 'super_admin' | 'viewer';
+          role: 'super_admin' | 'instructor' | 'viewer';
         };
         Insert: {
           created_at?: string;
@@ -338,7 +338,7 @@ export type Database = {
           id: string;
           is_active?: boolean;
           phone?: string | null;
-          role: 'super_admin' | 'viewer';
+          role: 'super_admin' | 'instructor' | 'viewer';
         };
         Update: {
           created_at?: string;
@@ -347,16 +347,40 @@ export type Database = {
           id?: string;
           is_active?: boolean;
           phone?: string | null;
-          role?: 'super_admin' | 'viewer';
+          role?: 'super_admin' | 'instructor' | 'viewer';
         };
         Relationships: [];
       };
     };
     Views: Record<string, never>;
     Functions: {
+      can_insert_feedback: {
+        Args: {
+          target_instructor_id: string;
+        };
+        Returns: boolean;
+      };
+      can_insert_training: {
+        Args: {
+          target_instructor_id: string;
+        };
+        Returns: boolean;
+      };
+      can_insert_training_settlement: {
+        Args: {
+          target_training_id: string;
+        };
+        Returns: boolean;
+      };
       current_profile_role: {
         Args: Record<PropertyKey, never>;
         Returns: string | null;
+      };
+      has_any_role: {
+        Args: {
+          allowed_roles: string[];
+        };
+        Returns: boolean;
       };
       has_settlement_access: {
         Args: {
@@ -368,6 +392,14 @@ export type Database = {
         Args: {
           target_training_id: string;
         };
+        Returns: boolean;
+      };
+      is_active_user: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
+      };
+      is_instructor: {
+        Args: Record<PropertyKey, never>;
         Returns: boolean;
       };
       is_super_admin: {

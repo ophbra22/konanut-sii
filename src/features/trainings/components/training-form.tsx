@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppChip } from '@/src/components/ui/app-chip';
+import { AppDateField } from '@/src/components/ui/app-date-field';
 import { AppTextField } from '@/src/components/ui/app-text-field';
 import { SectionBlock } from '@/src/components/ui/section-block';
 import { trainingStatuses, trainingTypes } from '@/src/features/trainings/constants';
@@ -16,6 +17,7 @@ import type { Settlement, UserProfile } from '@/src/types/database';
 import { theme } from '@/src/theme';
 
 type TrainingFormProps = {
+  allowEmptyInstructor?: boolean;
   initialValues?: Partial<TrainingFormValues>;
   instructorOptions: Pick<UserProfile, 'full_name' | 'id'>[];
   isSubmitting?: boolean;
@@ -45,6 +47,7 @@ function FieldError({ message }: { message?: string }) {
 }
 
 export function TrainingForm({
+  allowEmptyInstructor = true,
   initialValues,
   instructorOptions,
   isSubmitting = false,
@@ -171,14 +174,16 @@ export function TrainingForm({
         render={({ field: { onChange, value } }) => (
           <SectionBlock description="ניתן להשאיר ללא מדריך משויך." title="מדריך">
             <View style={styles.chips}>
-              <AppChip
-                label="ללא מדריך"
-                onPress={() => {
-                  onChange('');
-                }}
-                selected={!value}
-                tone={!value ? 'accent' : 'neutral'}
-              />
+              {allowEmptyInstructor ? (
+                <AppChip
+                  label="ללא מדריך"
+                  onPress={() => {
+                    onChange('');
+                  }}
+                  selected={!value}
+                  tone={!value ? 'accent' : 'neutral'}
+                />
+              ) : null}
               {instructorOptions.map((instructor) => (
                 <AppChip
                   key={instructor.id}
@@ -201,16 +206,14 @@ export function TrainingForm({
           <Controller
             control={control}
             name="training_date"
-            render={({ field: { onBlur, onChange, value } }) => (
-              <AppTextField
+            render={({ field: { onChange, value } }) => (
+              <AppDateField
                 errorMessage={errors.training_date?.message}
+                hint="התאריך יישמר אוטומטית בפורמט המערכת."
                 label="תאריך"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                placeholder="2026-04-03"
-                textAlign="left"
+                onChange={onChange}
+                placeholder="בחרו תאריך"
                 value={value}
-                writingDirection="ltr"
               />
             )}
           />

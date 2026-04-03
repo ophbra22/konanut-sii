@@ -6,7 +6,10 @@ import { AppButton } from '@/src/components/ui/app-button';
 import { AppScreen } from '@/src/components/ui/app-screen';
 import { MetricCard } from '@/src/components/ui/metric-card';
 import { PageHeader } from '@/src/components/ui/page-header';
-import { isSuperAdmin } from '@/src/features/auth/lib/permissions';
+import {
+  canCreateTrainings,
+  canManageTrainings,
+} from '@/src/features/auth/lib/permissions';
 import { TrainingListCard } from '@/src/features/trainings/components/training-list-card';
 import { useTrainingsQuery } from '@/src/features/trainings/hooks/use-trainings-query';
 import { useAuthStore } from '@/src/stores/auth-store';
@@ -33,7 +36,7 @@ export default function TrainingsScreen() {
       />
 
       <View style={styles.topActions}>
-        {isSuperAdmin(role) ? (
+        {canCreateTrainings(role) ? (
           <AppButton
             fullWidth={false}
             href="/trainings/create"
@@ -80,13 +83,13 @@ export default function TrainingsScreen() {
               footer={
                 <View style={styles.cardActions}>
                   <AppButton
-                    fullWidth={false}
-                    href={`/trainings/${training.id}`}
-                    label="פרטים"
-                    style={styles.cardAction}
-                    variant="secondary"
-                  />
-                  {isSuperAdmin(role) ? (
+                  fullWidth={false}
+                  href={`/trainings/${training.id}`}
+                  label="פרטים"
+                  style={styles.cardAction}
+                  variant="secondary"
+                />
+                  {canManageTrainings(role) ? (
                     <AppButton
                       fullWidth={false}
                       href={`/trainings/${training.id}/edit`}

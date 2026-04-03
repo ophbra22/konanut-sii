@@ -6,8 +6,11 @@ import { AppCard } from '@/src/components/ui/app-card';
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppScreen } from '@/src/components/ui/app-screen';
 import { PageHeader } from '@/src/components/ui/page-header';
-import { isSuperAdmin } from '@/src/features/auth/lib/permissions';
 import { useActiveProfilesQuery } from '@/src/features/auth/hooks/use-active-profiles-query';
+import {
+  canCreateTrainings,
+  isSuperAdmin,
+} from '@/src/features/auth/lib/permissions';
 import { useSettlementsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
 import { TrainingForm } from '@/src/features/trainings/components/training-form';
 import { useCreateTrainingMutation } from '@/src/features/trainings/hooks/use-training-mutations';
@@ -15,19 +18,21 @@ import { toTrainingInsertInput } from '@/src/features/trainings/lib/training-for
 import { useAuthStore } from '@/src/stores/auth-store';
 
 export default function CreateTrainingScreen() {
+  const profile = useAuthStore((state) => state.profile);
   const role = useAuthStore((state) => state.role);
   const router = useRouter();
   const mutation = useCreateTrainingMutation();
   const settlementsQuery = useSettlementsQuery();
-  const profilesQuery = useActiveProfilesQuery(isSuperAdmin(role));
+  const shouldLoadProfiles = isSuperAdmin(role);
+  const profilesQuery = useActiveProfilesQuery(shouldLoadProfiles);
 
-  if (!isSuperAdmin(role)) {
+  if (!canCreateTrainings(role)) {
     return (
       <AppScreen>
         <PageHeader
           eyebrow="אימונים"
           title="יצירת אימון"
-          subtitle="המסך זמין רק למנהלי מערכת."
+          subtitle="המסך זמין למנהלי מערכת ולמדריכים בלבד."
         />
         <StateCard
           actionLabel="חזרה לרשימת האימונים"
@@ -42,11 +47,15 @@ export default function CreateTrainingScreen() {
     );
   }
 
-  if (settlementsQuery.isLoading || profilesQuery.isLoading) {
+  if (settlementsQuery.isLoading || (shouldLoadProfiles && profilesQuery.isLoading)) {
     return <AppLoader label="מכין את טופס האימון..." />;
   }
 
-  if (settlementsQuery.error || profilesQuery.error) {
+  if (
+    settlementsQuery.error ||
+    (shouldLoadProfiles && profilesQuery.error) ||
+    (!shouldLoadProfiles && !profile)
+  ) {
     return (
       <AppScreen>
         <PageHeader
@@ -59,6 +68,7 @@ export default function CreateTrainingScreen() {
           description={
             settlementsQuery.error?.message ??
             profilesQuery.error?.message ??
+            (!profile ? 'לא הצלחנו לזהות את פרופיל המדריך המחובר.' : null) ??
             'אירעה שגיאה בטעינת הנתונים.'
           }
           onAction={() => {
@@ -76,7 +86,11 @@ export default function CreateTrainingScreen() {
       <PageHeader
         eyebrow="אימונים"
         title="יצירת אימון חדש"
-        subtitle="האימון יכול להיות משויך למספר יישובים, והמדריך הוא משתמש מערכת קיים."
+        subtitle={
+          isSuperAdmin(role)
+            ? 'האימון יכול להיות משויך למספר יישובים, והמדריך הוא משתמש מערכת קיים.'
+            : 'כמדריך, האימון החדש יישמר תחת המשתמש המחובר ויישויך ליישובים שתבחר.'
+        }
       />
 
       {mutation.error ? (
@@ -89,10 +103,29 @@ export default function CreateTrainingScreen() {
 
       <AppCard description="הגדירו פרטי אימון, שיוך יישובים, מדריך וסטטוס." title="פרטי אימון">
         <TrainingForm
-          instructorOptions={(profilesQuery.data ?? []).map((profile) => ({
-            full_name: profile.full_name,
-            id: profile.id,
-          }))}
+          allowEmptyInstructor={isSuperAdmin(role)}
+          initialValues={
+            isSuperAdmin(role) || !profile
+              ? undefined
+              : {
+                  instructor_id: profile.id,
+                }
+          }
+          instructorOptions={
+            isSuperAdmin(role)
+              ? (profilesQuery.data ?? []).map((profileItem) => ({
+                  full_name: profileItem.full_name,
+                  id: profileItem.id,
+                }))
+              : profile
+                ? [
+                    {
+                      full_name: profile.full_name,
+                      id: profile.id,
+                    },
+                  ]
+                : []
+          }
           isSubmitting={mutation.isPending}
           onSubmit={async (values) => {
             const created = await mutation.mutateAsync({

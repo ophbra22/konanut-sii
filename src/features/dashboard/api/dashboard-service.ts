@@ -1,9 +1,20 @@
 import dayjs from 'dayjs';
 
 import { createDataAccessError } from '@/src/lib/error-utils';
-import { getMonthDateRange, getWeekDateRange } from '@/src/lib/date-utils';
+import {
+  getHalfYearPeriod,
+  getMonthDateRange,
+  getWeekDateRange,
+  type HalfYearPeriod,
+} from '@/src/lib/date-utils';
 import { supabase } from '@/src/lib/supabase';
-import type { Alert, Settlement, Training } from '@/src/types/database';
+import type {
+  Alert,
+  Feedback,
+  SettlementRanking,
+  Training,
+  TrainingSettlement,
+} from '@/src/types/database';
 
 type TrainingLinkRow = {
   settlement_id: string;
@@ -27,39 +38,49 @@ export type DashboardUpcomingTraining = Pick<
 export type DashboardOverview = {
   activeSettlementsCount: number;
   alertsSummary: DashboardAlertItem[];
-  completedTrainingsThisMonth: number;
-  missingFeedbackCount: number;
+  averageSettlementScore: number | null;
+  currentRankingPeriod: HalfYearPeriod;
+  monthlyTrainingsCount: number;
+  settlementsMissingFeedbackCount: number;
   systemStatus: 'מבצעי';
-  trainingsThisWeek: number;
+  weeklyTrainingsCount: number;
   upcomingTrainings: DashboardUpcomingTraining[];
 };
-
-function isBetween(dateValue: string, start: dayjs.Dayjs, end: dayjs.Dayjs) {
-  const date = dayjs(dateValue);
-
-  return (
-    (date.isAfter(start) || date.isSame(start, 'day')) &&
-    (date.isBefore(end) || date.isSame(end, 'day'))
-  );
-}
 
 export async function getDashboardOverview(): Promise<DashboardOverview> {
   const monthRange = getMonthDateRange();
   const weekRange = getWeekDateRange();
   const today = dayjs().format('YYYY-MM-DD');
+  const currentRankingPeriod = getHalfYearPeriod();
 
   const [
-    { data: settlements, error: settlementsError },
-    { data: trainings, error: trainingsError },
+    { count: activeSettlementsCount, error: settlementsError },
+    { count: weeklyTrainingsCount, error: weeklyTrainingsError },
+    { count: monthlyTrainingsCount, error: monthlyTrainingsError },
+    { data: rankingRows, error: rankingsError },
     { data: alerts, error: alertsError },
-    { data: trainingLinks, error: trainingLinksError },
+    { data: upcomingTrainings, error: upcomingTrainingsError },
+    { data: completedTrainings, error: completedTrainingsError },
     { data: feedbacks, error: feedbacksError },
   ] = await Promise.all([
-    supabase.from('settlements').select('id, is_active, name').order('name'),
+    supabase
+      .from('settlements')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true),
     supabase
       .from('trainings')
-      .select('id, title, training_type, training_date, training_time, status')
-      .order('training_date', { ascending: true }),
+      .select('id', { count: 'exact', head: true })
+      .gte('training_date', weekRange.start.format('YYYY-MM-DD'))
+      .lte('training_date', weekRange.end.format('YYYY-MM-DD')),
+    supabase
+      .from('trainings')
+      .select('id', { count: 'exact', head: true })
+      .gte('training_date', monthRange.start.format('YYYY-MM-DD'))
+      .lte('training_date', monthRange.end.format('YYYY-MM-DD')),
+    supabase
+      .from('settlement_rankings')
+      .select('final_score')
+      .eq('half_year_period', currentRankingPeriod),
     supabase
       .from('alerts')
       .select(
@@ -78,84 +99,132 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
       )
       .order('created_at', { ascending: false })
       .limit(5),
-    supabase.from('training_settlements').select('training_id, settlement_id'),
-    supabase.from('feedbacks').select('id, training_id, settlement_id'),
+    supabase
+      .from('trainings')
+      .select('id, title, training_type, training_date, training_time, status')
+      .neq('status', 'בוטל')
+      .gte('training_date', today)
+      .order('training_date', { ascending: true })
+      .order('training_time', { ascending: true, nullsFirst: false })
+      .limit(5),
+    supabase.from('trainings').select('id').eq('status', 'הושלם'),
+    supabase.from('feedbacks').select('training_id, settlement_id'),
   ]);
 
   if (settlementsError) {
-    throw createDataAccessError(settlementsError, 'לא ניתן לטעון את תמונת מצב היישובים');
+    throw createDataAccessError(settlementsError, 'לא ניתן לטעון את מספר היישובים הפעילים');
   }
 
-  if (trainingsError) {
-    throw createDataAccessError(trainingsError, 'לא ניתן לטעון את נתוני האימונים');
+  if (weeklyTrainingsError) {
+    throw createDataAccessError(weeklyTrainingsError, 'לא ניתן לטעון את אימוני השבוע');
+  }
+
+  if (monthlyTrainingsError) {
+    throw createDataAccessError(monthlyTrainingsError, 'לא ניתן לטעון את אימוני החודש');
+  }
+
+  if (rankingsError) {
+    throw createDataAccessError(rankingsError, 'לא ניתן לטעון את ממוצע דירוגי היישובים');
   }
 
   if (alertsError) {
     throw createDataAccessError(alertsError, 'לא ניתן לטעון את נתוני ההתראות');
   }
 
-  if (trainingLinksError) {
-    throw createDataAccessError(trainingLinksError, 'לא ניתן לטעון את שיוכי האימונים');
+  if (upcomingTrainingsError) {
+    throw createDataAccessError(upcomingTrainingsError, 'לא ניתן לטעון את רשימת האימונים הקרובים');
+  }
+
+  if (completedTrainingsError) {
+    throw createDataAccessError(completedTrainingsError, 'לא ניתן לטעון את האימונים שהושלמו');
   }
 
   if (feedbacksError) {
     throw createDataAccessError(feedbacksError, 'לא ניתן לטעון את נתוני המשובים');
   }
 
-  const settlementLinksByTraining = new Map<string, string[]>();
+  const completedTrainingIds = (completedTrainings ?? []).map((training) => training.id);
 
-  ((trainingLinks ?? []) as TrainingLinkRow[]).forEach((link) => {
-    settlementLinksByTraining.set(link.training_id, [
-      ...(settlementLinksByTraining.get(link.training_id) ?? []),
-      link.settlement_id,
-    ]);
-  });
+  const [{ data: completedTrainingLinks, error: completedTrainingLinksError }, {
+    data: upcomingTrainingLinks,
+    error: upcomingTrainingLinksError,
+  }] = await Promise.all([
+    completedTrainingIds.length
+      ? supabase
+          .from('training_settlements')
+          .select('training_id, settlement_id')
+          .in('training_id', completedTrainingIds)
+      : Promise.resolve({ data: [], error: null }),
+    (upcomingTrainings ?? []).length
+      ? supabase
+          .from('training_settlements')
+          .select(
+            `
+              training_id,
+              settlement:settlements (
+                id,
+                name
+              )
+            `
+          )
+          .in(
+            'training_id',
+            (upcomingTrainings ?? []).map((training) => training.id)
+          )
+      : Promise.resolve({ data: [], error: null }),
+  ]);
 
-  const settlementNamesById = new Map(
-    (settlements ?? []).map((settlement) => [settlement.id, settlement.name])
-  );
+  if (completedTrainingLinksError) {
+    throw createDataAccessError(completedTrainingLinksError, 'לא ניתן לטעון את שיוכי האימונים שהושלמו');
+  }
 
-  const completedTrainingsThisMonth = (trainings ?? []).filter(
-    (training) =>
-      training.status === 'הושלם' &&
-      isBetween(training.training_date, monthRange.start, monthRange.end)
-  ).length;
-
-  const trainingsThisWeek = (trainings ?? []).filter(
-    (training) =>
-      training.status !== 'בוטל' &&
-      isBetween(training.training_date, weekRange.start, weekRange.end)
-  ).length;
-
-  const completedLinks = ((trainingLinks ?? []) as TrainingLinkRow[]).filter((link) =>
-    (trainings ?? []).some(
-      (training) => training.id === link.training_id && training.status === 'הושלם'
-    )
-  );
+  if (upcomingTrainingLinksError) {
+    throw createDataAccessError(upcomingTrainingLinksError, 'לא ניתן לטעון את שיוכי האימונים הקרובים');
+  }
 
   const feedbackPairs = new Set(
     (feedbacks ?? []).map((feedback) => `${feedback.training_id}:${feedback.settlement_id}`)
   );
 
-  const missingFeedbackCount = completedLinks.filter(
-    (link) => !feedbackPairs.has(`${link.training_id}:${link.settlement_id}`)
-  ).length;
+  const settlementsMissingFeedbackCount = new Set(
+    ((completedTrainingLinks ?? []) as TrainingLinkRow[])
+      .filter((link) => !feedbackPairs.has(`${link.training_id}:${link.settlement_id}`))
+      .map((link) => link.settlement_id)
+  ).size;
 
-  const upcomingTrainings = (trainings ?? [])
-    .filter(
-      (training) =>
-        training.status !== 'בוטל' &&
-        training.training_date >= today
-    )
-    .slice(0, 5)
-    .map((training) => ({
-      ...training,
-      settlements: (settlementLinksByTraining.get(training.id) ?? [])
-        .map((settlementId) => settlementNamesById.get(settlementId) ?? settlementId),
-    }));
+  const settlementLinksByTraining = new Map<string, string[]>();
+
+  (
+    (upcomingTrainingLinks ?? []) as Array<{
+      settlement: { id: string; name: string } | null;
+      training_id: string;
+    }>
+  ).forEach((link) => {
+    const settlementName = link.settlement?.name;
+
+    if (!settlementName) {
+      return;
+    }
+
+    settlementLinksByTraining.set(link.training_id, [
+      ...(settlementLinksByTraining.get(link.training_id) ?? []),
+      settlementName,
+    ]);
+  });
+
+  const averageSettlementScore = (rankingRows ?? []).length
+    ? Number(
+        (
+          ((rankingRows ?? []) as Pick<SettlementRanking, 'final_score'>[]).reduce(
+            (sum, item) => sum + item.final_score,
+            0
+          ) / (rankingRows ?? []).length
+        ).toFixed(1)
+      )
+    : null;
 
   return {
-    activeSettlementsCount: (settlements ?? []).filter((item) => item.is_active).length,
+    activeSettlementsCount: activeSettlementsCount ?? 0,
     alertsSummary: ((alerts ?? []) as Array<
       DashboardAlertItem & {
         settlement?: { name: string } | null;
@@ -170,10 +239,15 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
       title: item.title,
       type: item.type,
     })),
-    completedTrainingsThisMonth,
-    missingFeedbackCount,
+    averageSettlementScore,
+    currentRankingPeriod,
+    monthlyTrainingsCount: monthlyTrainingsCount ?? 0,
+    settlementsMissingFeedbackCount,
     systemStatus: 'מבצעי',
-    trainingsThisWeek,
-    upcomingTrainings,
+    upcomingTrainings: (upcomingTrainings ?? []).map((training) => ({
+      ...training,
+      settlements: settlementLinksByTraining.get(training.id) ?? [],
+    })),
+    weeklyTrainingsCount: weeklyTrainingsCount ?? 0,
   };
 }
