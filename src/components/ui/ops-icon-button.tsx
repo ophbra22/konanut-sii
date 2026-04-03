@@ -4,18 +4,22 @@ import { Pressable, StyleSheet } from 'react-native';
 import { theme } from '@/src/theme';
 
 type OpsIconButtonProps = {
+  accessibilityLabel?: string;
   accent?: boolean;
   icon: ComponentType<{ color: string; size: number }>;
   onPress: () => void;
 };
 
 export function OpsIconButton({
+  accessibilityLabel,
   accent = false,
   icon: Icon,
   onPress,
 }: OpsIconButtonProps) {
   return (
     <Pressable
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
@@ -24,8 +28,8 @@ export function OpsIconButton({
       ]}
     >
       <Icon
-        color={accent ? theme.colors.background : theme.colors.textPrimary}
-        size={18}
+        color={accent ? theme.colors.info : theme.colors.textPrimary}
+        size={17}
       />
     </Pressable>
   );
@@ -34,19 +38,24 @@ export function OpsIconButton({
 const styles = StyleSheet.create({
   button: {
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceStrong,
-    borderColor: theme.colors.border,
-    borderRadius: 18,
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.borderStrong,
+    borderRadius: 999,
     borderWidth: 1,
-    height: 40,
+    height: 36,
     justifyContent: 'center',
-    width: 40,
+    width: 36,
   },
   buttonAccent: {
-    backgroundColor: theme.colors.info,
-    borderColor: theme.colors.info,
+    backgroundColor: theme.colors.surfaceInfo,
+    borderColor: 'rgba(108, 143, 255, 0.45)',
+    shadowColor: theme.colors.info,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.14,
+    shadowRadius: 14,
   },
   pressed: {
-    transform: [{ scale: 0.98 }],
+    opacity: 0.92,
+    transform: [{ scale: 0.975 }],
   },
 });

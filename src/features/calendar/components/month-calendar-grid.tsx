@@ -114,11 +114,11 @@ const styles = StyleSheet.create({
   dayCell: {
     alignItems: 'center',
     alignSelf: 'center',
-    borderRadius: 18,
-    gap: 6,
-    height: 56,
+    borderRadius: 16,
+    gap: 5,
+    height: 52,
     justifyContent: 'center',
-    width: 44,
+    width: 42,
   },
   dayCellMuted: {
     opacity: 0.28,
@@ -126,19 +126,19 @@ const styles = StyleSheet.create({
   dayCellSelected: {
     backgroundColor: theme.colors.info,
     shadowColor: theme.colors.info,
-    shadowOffset: { height: 8, width: 0 },
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
+    shadowOffset: { height: 6, width: 0 },
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
   },
   dayCellToday: {
     backgroundColor: 'rgba(108, 143, 255, 0.08)',
-    borderColor: 'rgba(108, 143, 255, 0.55)',
+    borderColor: 'rgba(108, 143, 255, 0.45)',
     borderWidth: 1,
   },
   dayLabel: {
     color: theme.colors.textPrimary,
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '800',
     textAlign: 'center',
   },
   dayLabelMuted: {
@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    rowGap: theme.spacing.md,
+    rowGap: 12,
   },
   indicator: {
     borderRadius: 999,
@@ -168,12 +168,12 @@ const styles = StyleSheet.create({
   },
   weekHeader: {
     flexDirection: 'row-reverse',
-    marginBottom: theme.spacing.md,
+    marginBottom: 12,
   },
   weekday: {
     color: theme.colors.textMuted,
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '800',
     textAlign: 'center',
     width: '14.285%',
   },

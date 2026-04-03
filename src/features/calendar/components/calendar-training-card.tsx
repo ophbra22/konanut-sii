@@ -56,7 +56,11 @@ export function CalendarTrainingCard({ training }: CalendarTrainingCardProps) {
           </View>
         </View>
 
-        <AppBadge label={training.status} tone={getTrainingStatusTone(training.status)} />
+        <AppBadge
+          label={training.status}
+          size="sm"
+          tone={getTrainingStatusTone(training.status)}
+        />
       </View>
 
       <View style={styles.footer}>
@@ -66,7 +70,7 @@ export function CalendarTrainingCard({ training }: CalendarTrainingCardProps) {
             {getSettlementsLabel(training)}
           </Text>
         </View>
-        <AppBadge label={training.training_type} tone="neutral" />
+        <AppBadge label={training.training_type} size="sm" tone="neutral" />
       </View>
     </Pressable>
   );
@@ -74,16 +78,21 @@ export function CalendarTrainingCard({ training }: CalendarTrainingCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.border,
-    borderRadius: 22,
+    backgroundColor: theme.colors.surfaceElevated,
+    borderColor: theme.colors.borderStrong,
+    borderRadius: 20,
     borderWidth: 1,
-    gap: theme.spacing.md,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 14,
   },
   cardPressed: {
-    transform: [{ scale: 0.99 }],
+    opacity: 0.94,
+    transform: [{ scale: 0.988 }],
   },
   footer: {
     alignItems: 'center',
@@ -99,8 +108,8 @@ const styles = StyleSheet.create({
   footerText: {
     color: theme.colors.textSecondary,
     flex: 1,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     textAlign: 'right',
   },
   header: {
@@ -111,7 +120,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     flex: 1,
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   metaItem: {
     alignItems: 'center',
@@ -121,18 +130,18 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: 'row-reverse',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   metaText: {
     color: theme.colors.textSecondary,
     flex: 1,
-    fontSize: 13,
+    fontSize: 12,
     textAlign: 'right',
   },
   title: {
     color: theme.colors.textPrimary,
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     textAlign: 'right',
   },
 });

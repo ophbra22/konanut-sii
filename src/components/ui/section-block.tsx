@@ -27,20 +27,20 @@ export function SectionBlock({
 const styles = StyleSheet.create({
   description: {
     color: theme.colors.textMuted,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 18,
     textAlign: 'right',
   },
   header: {
-    gap: theme.spacing.xs,
+    gap: 2,
   },
   title: {
     color: theme.colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     textAlign: 'right',
   },
   wrapper: {
-    gap: theme.spacing.md,
+    gap: 10,
   },
 });

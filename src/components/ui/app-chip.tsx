@@ -45,31 +45,36 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     alignSelf: 'flex-start',
-    borderColor: theme.colors.border,
+    borderColor: theme.colors.borderStrong,
     borderRadius: 999,
     borderWidth: 1,
-    minHeight: 38,
+    minHeight: 34,
     justifyContent: 'center',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: 13,
+    paddingVertical: 5,
   },
   disabled: {
     opacity: 0.45,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
     textAlign: 'center',
   },
   pressed: {
-    transform: [{ scale: 0.98 }],
+    opacity: 0.94,
+    transform: [{ scale: 0.975 }],
   },
   selected: {
-    borderColor: theme.colors.accentStrong,
-    backgroundColor: theme.colors.overlay,
+    backgroundColor: theme.colors.surfaceInfo,
+    borderColor: theme.colors.info,
+    shadowColor: theme.colors.info,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.16,
+    shadowRadius: 12,
   },
   selectedLabel: {
-    color: theme.colors.accentStrong,
+    color: theme.colors.info,
   },
 });
 
@@ -78,7 +83,7 @@ const toneStyles = StyleSheet.create({
     backgroundColor: theme.colors.surfaceAccent,
   },
   neutral: {
-    backgroundColor: theme.colors.surfaceStrong,
+    backgroundColor: theme.colors.surface,
   },
   warning: {
     backgroundColor: theme.colors.surfaceWarning,

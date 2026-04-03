@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { SlidersHorizontal, Trophy } from 'lucide-react-native';
+import { Plus, SlidersHorizontal, Trophy } from 'lucide-react-native';
 import { useDeferredValue, useMemo, useState } from 'react';
 import {
   Modal,
@@ -14,7 +14,6 @@ import { StateCard } from '@/src/components/feedback/state-card';
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppChip } from '@/src/components/ui/app-chip';
-import { OpsFab } from '@/src/components/ui/ops-fab';
 import { OpsIconButton } from '@/src/components/ui/ops-icon-button';
 import { OpsListHeader } from '@/src/components/ui/ops-list-header';
 import { OpsSearchBar } from '@/src/components/ui/ops-search-bar';
@@ -96,17 +95,29 @@ export default function SettlementsScreen() {
               actions={
                 <>
                   <OpsIconButton
+                    accessibilityLabel="פתיחת מסנני יישובים"
                     icon={SlidersHorizontal}
                     onPress={() => {
                       setIsFilterSheetOpen(true);
                     }}
                   />
                   <OpsIconButton
+                    accessibilityLabel="מעבר לדירוג יישובים"
                     icon={Trophy}
                     onPress={() => {
                       router.push('/settlement-rankings' as never);
                     }}
                   />
+                  {canCreateSettlement ? (
+                    <OpsIconButton
+                      accessibilityLabel="הוספת יישוב"
+                      accent
+                      icon={Plus}
+                      onPress={() => {
+                        router.push('/settlements/create' as never);
+                      }}
+                    />
+                  ) : null}
                 </>
               }
               subtitle={`${settlements.length} יישובים זמינים`}
@@ -191,13 +202,6 @@ export default function SettlementsScreen() {
             ) : null}
           </ScrollView>
 
-          {canCreateSettlement ? (
-            <OpsFab
-              onPress={() => {
-                router.push('/settlements/create' as never);
-              }}
-            />
-          ) : null}
         </View>
       </AppScreen>
 
@@ -290,7 +294,7 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: 12,
-    paddingBottom: 132,
+    paddingBottom: 40,
   },
   list: {
     gap: 10,

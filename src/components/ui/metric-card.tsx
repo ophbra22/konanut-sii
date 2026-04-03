@@ -18,8 +18,8 @@ export function MetricCard({
 }: MetricCardProps) {
   return (
     <AppCard style={styles.card} variant={tone === 'default' ? 'default' : tone}>
-      <Text style={[styles.value, valueStyles[tone]]}>{value}</Text>
       <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.value, valueStyles[tone]]}>{value}</Text>
     </AppCard>
   );
 }
@@ -27,17 +27,17 @@ export function MetricCard({
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    minWidth: 140,
+    minWidth: 132,
   },
   label: {
     color: theme.colors.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     textAlign: 'right',
   },
   value: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
     textAlign: 'right',
   },
 });

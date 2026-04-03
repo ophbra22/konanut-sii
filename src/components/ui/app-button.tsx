@@ -70,10 +70,10 @@ export function AppButton({
 const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
-    borderRadius: theme.radius.lg,
+    borderRadius: 16,
     justifyContent: 'center',
-    minHeight: 52,
-    paddingHorizontal: theme.spacing.lg,
+    minHeight: 46,
+    paddingHorizontal: 16,
   },
   autoWidth: {
     width: 'auto',
@@ -85,11 +85,12 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   label: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
   },
   pressed: {
-    transform: [{ scale: 0.99 }],
+    opacity: 0.92,
+    transform: [{ scale: 0.985 }],
   },
 });
 
@@ -105,13 +106,13 @@ const variantStyles = StyleSheet.create({
     borderWidth: 1,
   },
   primary: {
-    backgroundColor: theme.colors.accentStrong,
-    borderColor: theme.colors.accentStrong,
+    backgroundColor: theme.colors.info,
+    borderColor: theme.colors.info,
     borderWidth: 1,
   },
   secondary: {
-    backgroundColor: theme.colors.surfaceStrong,
-    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.borderStrong,
     borderWidth: 1,
   },
 });

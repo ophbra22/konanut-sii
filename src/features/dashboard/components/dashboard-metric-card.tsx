@@ -71,6 +71,7 @@ export function DashboardMetricCard({
 
   return (
     <AppCard style={styles.card} variant={variant}>
+      <Text style={styles.label}>{label}</Text>
       {isLoading ? (
         <View style={styles.skeletonWrapper}>
           <Animated.View style={[styles.skeletonValue, { opacity: shimmer }]} />
@@ -81,7 +82,6 @@ export function DashboardMetricCard({
           <Text style={[styles.value, valueStyles[tone], errorMessage && styles.errorValue]}>
             {displayValue}
           </Text>
-          <Text style={styles.label}>{label}</Text>
           {helperText ? <Text style={styles.helper}>{helperText}</Text> : null}
         </>
       )}
@@ -92,42 +92,42 @@ export function DashboardMetricCard({
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    minWidth: 140,
+    minWidth: 132,
   },
   errorValue: {
     color: theme.colors.warning,
-    fontSize: 18,
+    fontSize: 17,
   },
   helper: {
     color: theme.colors.textMuted,
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 16,
     textAlign: 'right',
   },
   label: {
     color: theme.colors.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     textAlign: 'right',
   },
   skeletonLabel: {
     backgroundColor: theme.colors.border,
     borderRadius: theme.radius.sm,
-    height: 12,
-    width: '55%',
+    height: 10,
+    width: '52%',
   },
   skeletonValue: {
     backgroundColor: theme.colors.border,
     borderRadius: theme.radius.md,
-    height: 28,
-    width: '70%',
+    height: 24,
+    width: '66%',
   },
   skeletonWrapper: {
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   value: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontSize: 22,
+    fontWeight: '900',
     textAlign: 'right',
   },
 });

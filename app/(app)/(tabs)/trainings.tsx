@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { SlidersHorizontal } from 'lucide-react-native';
+import { Plus, SlidersHorizontal } from 'lucide-react-native';
 import { useDeferredValue, useMemo, useState } from 'react';
 import {
   Modal,
@@ -14,7 +14,6 @@ import { StateCard } from '@/src/components/feedback/state-card';
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppChip } from '@/src/components/ui/app-chip';
-import { OpsFab } from '@/src/components/ui/ops-fab';
 import { OpsIconButton } from '@/src/components/ui/ops-icon-button';
 import { OpsListHeader } from '@/src/components/ui/ops-list-header';
 import { OpsSearchBar } from '@/src/components/ui/ops-search-bar';
@@ -105,12 +104,25 @@ export default function TrainingsScreen() {
           >
             <OpsListHeader
               actions={
-                <OpsIconButton
-                  icon={SlidersHorizontal}
-                  onPress={() => {
-                    setIsFilterSheetOpen(true);
-                  }}
-                />
+                <>
+                  <OpsIconButton
+                    accessibilityLabel="פתיחת מסנני אימונים"
+                    icon={SlidersHorizontal}
+                    onPress={() => {
+                      setIsFilterSheetOpen(true);
+                    }}
+                  />
+                  {canCreate ? (
+                    <OpsIconButton
+                      accessibilityLabel="הוספת אימון"
+                      accent
+                      icon={Plus}
+                      onPress={() => {
+                        router.push('/trainings/create' as never);
+                      }}
+                    />
+                  ) : null}
+                </>
               }
               subtitle={`${trainings.length} אימונים זמינים`}
               title="אימונים"
@@ -187,13 +199,6 @@ export default function TrainingsScreen() {
             ) : null}
           </ScrollView>
 
-          {canCreate ? (
-            <OpsFab
-              onPress={() => {
-                router.push('/trainings/create' as never);
-              }}
-            />
-          ) : null}
         </View>
       </AppScreen>
 
@@ -279,7 +284,7 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: 12,
-    paddingBottom: 112,
+    paddingBottom: 40,
   },
   list: {
     gap: 10,

@@ -15,6 +15,7 @@ import { StateCard } from '@/src/components/feedback/state-card';
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppChip } from '@/src/components/ui/app-chip';
+import { AppRevealView } from '@/src/components/ui/app-reveal-view';
 import { AppScreen } from '@/src/components/ui/app-screen';
 import { CalendarTrainingCard } from '@/src/features/calendar/components/calendar-training-card';
 import { MonthCalendarGrid } from '@/src/features/calendar/components/month-calendar-grid';
@@ -213,7 +214,7 @@ export default function CalendarScreen() {
             )}
 
             <View style={styles.titleBlock}>
-              <Text style={styles.eyebrow}>מרכז שליטה</Text>
+              <Text style={styles.eyebrow}>חמ״ל מבצעי</Text>
               <Text style={styles.title}>לוח שנה</Text>
             </View>
           </View>
@@ -233,7 +234,7 @@ export default function CalendarScreen() {
           />
         ) : (
           <>
-            <View style={styles.calendarShell}>
+            <AppRevealView delay={40} style={styles.calendarShell}>
               <View style={styles.monthNavRow}>
                 <CircleIconButton
                   icon={ChevronLeft}
@@ -335,19 +336,21 @@ export default function CalendarScreen() {
                   </Text>
                 </View>
               </View>
-            </View>
+            </AppRevealView>
 
             {selectedDayTrainings.length ? (
-              <View style={styles.eventsList}>
+              <AppRevealView delay={80} key={selectedDate} style={styles.eventsList}>
                 {selectedDayTrainings.map((training) => (
                   <CalendarTrainingCard key={training.id} training={training} />
                 ))}
-              </View>
+              </AppRevealView>
             ) : (
-              <StateCard
-                description="אין אימונים להצגה בתאריך הנבחר. אפשר לעבור יום, לשנות חודש או לנקות סינון."
-                title="היום פנוי"
-              />
+              <AppRevealView delay={80} key={`${selectedDate}-empty`}>
+                <StateCard
+                  description="אין אימונים בתאריך הנבחר. אפשר לעבור יום, לשנות חודש או לנקות סינון."
+                  title="היום פנוי"
+                />
+              </AppRevealView>
             )}
           </>
         )}
@@ -370,7 +373,7 @@ export default function CalendarScreen() {
           />
           <View style={styles.modalSheet}>
             <AppCard
-              description="המסננים חלים על החודש הנוכחי, על סימוני הימים ועל רשימת האירועים ביום הנבחר."
+              description="המסננים חלים על סימון הימים ועל רשימת האימונים בתאריך הנבחר."
               title="סינון יומן"
             >
               <View style={styles.filterGroup}>
@@ -512,101 +515,105 @@ const styles = StyleSheet.create({
   },
   addActionText: {
     color: theme.colors.info,
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
     textAlign: 'left',
   },
   calendarShell: {
-    backgroundColor: 'rgba(10, 15, 22, 0.92)',
-    borderColor: theme.colors.border,
-    borderRadius: 30,
+    backgroundColor: 'rgba(13, 19, 24, 0.96)',
+    borderColor: theme.colors.borderStrong,
+    borderRadius: 28,
     borderWidth: 1,
-    gap: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.lg,
+    gap: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
   },
   circleButton: {
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceStrong,
-    borderColor: theme.colors.border,
-    borderRadius: 16,
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.borderStrong,
+    borderRadius: 14,
     borderWidth: 1,
-    height: 38,
+    height: 34,
     justifyContent: 'center',
-    width: 38,
+    width: 34,
   },
   content: {
-    gap: theme.spacing.md,
+    gap: 12,
     paddingBottom: theme.spacing.xl,
-    paddingTop: theme.spacing.md,
+    paddingTop: 12,
   },
   dayFocus: {
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    minHeight: 286,
+    minHeight: 248,
   },
   dayFocusBadge: {
     alignItems: 'center',
     backgroundColor: theme.colors.info,
-    borderRadius: 22,
-    height: 72,
+    borderRadius: 20,
+    height: 62,
     justifyContent: 'center',
-    width: 72,
+    width: 62,
   },
   dayFocusCenter: {
     alignItems: 'center',
     flex: 1,
-    gap: theme.spacing.sm,
+    gap: 8,
     justifyContent: 'center',
   },
   dayFocusDate: {
     color: theme.colors.background,
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 24,
+    fontWeight: '900',
   },
   dayFocusLabel: {
     color: theme.colors.textPrimary,
-    fontSize: 21,
-    fontWeight: '800',
+    fontSize: 19,
+    fontWeight: '900',
     textAlign: 'center',
   },
   dayFocusSubLabel: {
     color: theme.colors.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     textAlign: 'center',
   },
   eyebrow: {
     color: theme.colors.textMuted,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: 0.7,
     textAlign: 'right',
   },
   eventsList: {
-    gap: theme.spacing.md,
+    gap: 10,
   },
   filterChips: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   filterGroup: {
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   filterTitle: {
     color: theme.colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
     textAlign: 'right',
   },
   hero: {
-    gap: theme.spacing.md,
-    paddingBottom: theme.spacing.xs,
+    gap: 10,
+    paddingBottom: 2,
   },
   heroHeader: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
@@ -634,54 +641,59 @@ const styles = StyleSheet.create({
   monthTitle: {
     color: theme.colors.textPrimary,
     flex: 1,
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 26,
+    fontWeight: '900',
     textAlign: 'center',
   },
   plusButton: {
     alignItems: 'center',
     backgroundColor: theme.colors.info,
-    borderRadius: 18,
-    height: 40,
+    borderRadius: 16,
+    height: 38,
     justifyContent: 'center',
-    width: 40,
+    shadowColor: theme.colors.info,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    width: 38,
   },
   plusButtonPlaceholder: {
-    height: 40,
-    width: 40,
+    height: 38,
+    width: 38,
   },
   pressed: {
+    opacity: 0.92,
     transform: [{ scale: 0.98 }],
   },
   secondaryAction: {
     alignItems: 'center',
-    backgroundColor: theme.colors.surfaceStrong,
-    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.borderStrong,
     borderRadius: 999,
     borderWidth: 1,
     flexDirection: 'row-reverse',
-    gap: theme.spacing.xs,
-    minHeight: 34,
-    paddingHorizontal: theme.spacing.md,
+    gap: 6,
+    minHeight: 32,
+    paddingHorizontal: 12,
   },
   secondaryActionText: {
     color: theme.colors.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '800',
   },
   segmentedSwitch: {
-    backgroundColor: theme.colors.surfaceStrong,
-    borderColor: theme.colors.border,
-    borderRadius: 20,
+    backgroundColor: theme.colors.surfaceElevated,
+    borderColor: theme.colors.borderStrong,
+    borderRadius: 18,
     borderWidth: 1,
     flexDirection: 'row-reverse',
-    padding: 4,
+    padding: 3,
   },
   segment: {
     alignItems: 'center',
-    borderRadius: 16,
+    borderRadius: 15,
     flex: 1,
-    minHeight: 42,
+    minHeight: 38,
     justifyContent: 'center',
   },
   segmentActive: {
@@ -689,8 +701,8 @@ const styles = StyleSheet.create({
   },
   segmentLabel: {
     color: theme.colors.textMuted,
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 13,
+    fontWeight: '800',
   },
   segmentLabelActive: {
     color: theme.colors.background,
@@ -711,20 +723,20 @@ const styles = StyleSheet.create({
   },
   selectionSubTitle: {
     color: theme.colors.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     textAlign: 'right',
   },
   selectionTitle: {
     color: theme.colors.textPrimary,
-    fontSize: 18,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '900',
     textAlign: 'right',
   },
   title: {
     color: theme.colors.textPrimary,
-    fontSize: 30,
-    fontWeight: '800',
+    fontSize: 32,
+    fontWeight: '900',
     textAlign: 'right',
   },
   titleBlock: {

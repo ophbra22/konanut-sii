@@ -86,8 +86,8 @@ export function TrainingFeedbackForm({
     <AppCard
       description={
         isUpdating
-          ? 'עדכון משוב קיים ליישוב באימון. בעת עריכה היישוב נשאר קבוע כדי לשמור על רשומת משוב אחת.'
-          : 'הוספת משוב עבור יישוב שמשויך לאימון הנוכחי בלבד.'
+          ? 'עדכון משוב קיים ליישוב באימון.'
+          : 'הוספת משוב עבור יישוב שמשויך לאימון הנוכחי.'
       }
       title={isUpdating ? 'עריכת משוב' : 'הוספת משוב'}
       variant="accent"
@@ -203,38 +203,38 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   chips: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   commentInput: {
-    minHeight: 120,
+    minHeight: 108,
   },
   error: {
     color: theme.colors.danger,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 17,
     textAlign: 'right',
   },
   field: {
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   form: {
-    gap: theme.spacing.md,
+    gap: 12,
   },
   hint: {
     color: theme.colors.warning,
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 12,
+    lineHeight: 17,
     textAlign: 'right',
   },
   label: {
     color: theme.colors.textPrimary,
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     textAlign: 'right',
   },
 });

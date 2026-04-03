@@ -30,9 +30,9 @@ export function TrainingFeedbackCard({
       title={feedback.settlement?.name || 'יישוב לא זמין'}
     >
       <View style={styles.badges}>
-        <AppBadge label={`דירוג ${feedback.rating}/5`} tone="accent" />
+        <AppBadge label={`דירוג ${feedback.rating}/5`} size="sm" tone="accent" />
         {feedback.settlement?.area ? (
-          <AppBadge label={feedback.settlement.area} tone="neutral" />
+          <AppBadge label={feedback.settlement.area} size="sm" tone="neutral" />
         ) : null}
       </View>
 
@@ -74,17 +74,18 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   badges: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   card: {
-    padding: theme.spacing.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   meta: {
-    gap: theme.spacing.sm,
+    gap: 8,
   },
 });

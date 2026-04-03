@@ -20,26 +20,26 @@ export function PageHeader({ eyebrow, subtitle, title }: PageHeaderProps) {
 
 const styles = StyleSheet.create({
   container: {
-    gap: theme.spacing.sm,
+    gap: theme.spacing.xxs,
   },
   eyebrow: {
-    color: theme.colors.accentStrong,
-    fontSize: 12,
+    color: theme.colors.textMuted,
+    fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 1.1,
+    letterSpacing: 0.9,
     textAlign: 'right',
   },
   subtitle: {
-    color: theme.colors.textSecondary,
-    fontSize: 15,
-    lineHeight: 24,
+    color: theme.colors.textDim,
+    fontSize: 13,
+    lineHeight: 19,
     textAlign: 'right',
   },
   title: {
     color: theme.colors.textPrimary,
-    fontSize: 30,
-    fontWeight: '800',
-    lineHeight: 38,
+    fontSize: 32,
+    fontWeight: '900',
+    lineHeight: 36,
     textAlign: 'right',
   },
 });

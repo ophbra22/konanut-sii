@@ -1,5 +1,6 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
+import { AppCard } from '@/src/components/ui/app-card';
 import { AppScreen } from '@/src/components/ui/app-screen';
 import { theme } from '@/src/theme';
 
@@ -10,10 +11,10 @@ type AppLoaderProps = {
 export function AppLoader({ label }: AppLoaderProps) {
   return (
     <AppScreen contentContainerStyle={styles.content} scroll={false}>
-      <View style={styles.loader}>
-        <ActivityIndicator color={theme.colors.accentStrong} size="large" />
+      <AppCard style={styles.loader} variant="default">
+        <ActivityIndicator color={theme.colors.info} size="large" />
         <Text style={styles.label}>{label}</Text>
-      </View>
+      </AppCard>
     </AppScreen>
   );
 }
@@ -26,12 +27,14 @@ const styles = StyleSheet.create({
   },
   label: {
     color: theme.colors.textSecondary,
-    fontSize: 15,
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
   },
   loader: {
     alignItems: 'center',
-    gap: theme.spacing.md,
+    gap: 12,
     maxWidth: 260,
+    minWidth: 220,
   },
 });

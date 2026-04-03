@@ -19,21 +19,21 @@ export function DataRow({ label, value }: DataRowProps) {
 const styles = StyleSheet.create({
   label: {
     color: theme.colors.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '700',
     textAlign: 'right',
   },
   row: {
-    alignItems: 'flex-start',
+    alignItems: 'center',
     flexDirection: 'row-reverse',
-    gap: theme.spacing.md,
+    gap: 10,
     justifyContent: 'space-between',
   },
   value: {
     color: theme.colors.textPrimary,
     flex: 1,
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 13,
+    lineHeight: 18,
     textAlign: 'left',
   },
 });

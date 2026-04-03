@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
   actions: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
-    gap: theme.spacing.sm,
+    gap: 8,
     minWidth: 40,
   },
   row: {
@@ -42,22 +42,23 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: theme.colors.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
     textAlign: 'right',
   },
   title: {
     color: theme.colors.textPrimary,
-    fontSize: 30,
-    fontWeight: '800',
+    fontSize: 32,
+    fontWeight: '900',
+    lineHeight: 36,
     textAlign: 'right',
   },
   titleBlock: {
     alignItems: 'flex-end',
-    gap: 4,
+    gap: 2,
     maxWidth: '72%',
   },
   wrapper: {
-    gap: theme.spacing.sm,
+    gap: 6,
   },
 });

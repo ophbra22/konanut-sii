@@ -8,6 +8,7 @@ import { AppBadge } from '@/src/components/ui/app-badge';
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppChip } from '@/src/components/ui/app-chip';
+import { AppRevealView } from '@/src/components/ui/app-reveal-view';
 import { DataRow } from '@/src/components/ui/data-row';
 import { MetricCard } from '@/src/components/ui/metric-card';
 import { AppScreen } from '@/src/components/ui/app-screen';
@@ -82,45 +83,49 @@ export default function TrainingDetailsScreen() {
       <PageHeader
         eyebrow="אימונים"
         title={data.title}
-        subtitle="מסך מבצעי מלא עם לשוניות לפרטי אימון ולניהול משובים לפי יישוב."
+        subtitle="תמונה מבצעית מלאה של האימון, היישובים והמשובים."
       />
 
-      <View style={styles.metricsGrid}>
-        <MetricCard label="יישובים משתתפים" value={String(data.settlements.length)} />
-        <MetricCard label="משובים" value={String(data.feedbackCount)} />
-        <MetricCard
-          label="ממוצע דירוג"
-          tone={data.averageFeedbackRating ? 'accent' : 'default'}
-          value={data.averageFeedbackRating ? data.averageFeedbackRating.toFixed(1) : '—'}
-        />
-        <MetricCard
-          label="חסרי משוב"
-          tone={data.missingFeedbackSettlements.length ? 'warning' : 'accent'}
-          value={String(data.missingFeedbackSettlements.length)}
-        />
-      </View>
+      <AppRevealView delay={30}>
+        <View style={styles.metricsGrid}>
+          <MetricCard label="יישובים משתתפים" value={String(data.settlements.length)} />
+          <MetricCard label="משובים" value={String(data.feedbackCount)} />
+          <MetricCard
+            label="ממוצע דירוג"
+            tone={data.averageFeedbackRating ? 'accent' : 'default'}
+            value={data.averageFeedbackRating ? data.averageFeedbackRating.toFixed(1) : '—'}
+          />
+          <MetricCard
+            label="חסרי משוב"
+            tone={data.missingFeedbackSettlements.length ? 'warning' : 'accent'}
+            value={String(data.missingFeedbackSettlements.length)}
+          />
+        </View>
+      </AppRevealView>
 
-      <View style={styles.tabs}>
-        <AppChip
-          label="פרטים"
-          onPress={() => {
-            setActiveSection('details');
-          }}
-          selected={activeSection === 'details'}
-          tone={activeSection === 'details' ? 'accent' : 'neutral'}
-        />
-        <AppChip
-          label="משובים"
-          onPress={() => {
-            setActiveSection('feedbacks');
-          }}
-          selected={activeSection === 'feedbacks'}
-          tone={activeSection === 'feedbacks' ? 'accent' : 'neutral'}
-        />
-      </View>
+      <AppRevealView delay={60}>
+        <View style={styles.tabs}>
+          <AppChip
+            label="פרטים"
+            onPress={() => {
+              setActiveSection('details');
+            }}
+            selected={activeSection === 'details'}
+            tone={activeSection === 'details' ? 'accent' : 'neutral'}
+          />
+          <AppChip
+            label="משובים"
+            onPress={() => {
+              setActiveSection('feedbacks');
+            }}
+            selected={activeSection === 'feedbacks'}
+            tone={activeSection === 'feedbacks' ? 'accent' : 'neutral'}
+          />
+        </View>
+      </AppRevealView>
 
       {activeSection === 'details' ? (
-        <>
+        <AppRevealView delay={90} key="training-details-section">
           <AppCard
             description={`${formatDisplayDate(data.training_date)} • ${formatDisplayTime(
               data.training_time
@@ -128,8 +133,12 @@ export default function TrainingDetailsScreen() {
             title="פרטי אימון"
           >
             <View style={styles.badges}>
-              <AppBadge label={data.training_type} tone="accent" />
-              <AppBadge label={data.status} tone={getTrainingStatusTone(data.status)} />
+              <AppBadge label={data.training_type} size="sm" tone="accent" />
+              <AppBadge
+                label={data.status}
+                size="sm"
+                tone={getTrainingStatusTone(data.status)}
+              />
             </View>
             <DataRow label="מיקום" value={data.location?.trim() || 'לא הוגדר'} />
             <DataRow label="מדריך" value={data.instructor?.full_name || 'טרם שובץ'} />
@@ -138,7 +147,7 @@ export default function TrainingDetailsScreen() {
 
           {isSuperAdmin(role) ? (
             <AppCard
-              description="עדכון הסטטוס משפיע על הדשבורד, על היומן ועל חישוב דירוגי היישובים."
+              description="עדכון הסטטוס מסנכרן את היומן, הדשבורד והדירוגים."
               title="שליטת סטטוס"
               variant="accent"
             >
@@ -164,7 +173,7 @@ export default function TrainingDetailsScreen() {
           ) : null}
 
           <SectionBlock
-            description="היישובים המשתתפים באימון. היישוב הוא יחידת הכוננות המרכזית במערכת."
+            description="היישובים המשתתפים באימון."
             title="יישובים משתתפים"
           >
             {data.settlements.length ? (
@@ -190,7 +199,7 @@ export default function TrainingDetailsScreen() {
             )}
           </SectionBlock>
 
-          <AppCard description="רק מנהל מערכת יכול לערוך או למחוק אימון." title="פעולות">
+          <AppCard description="עריכה ומחיקה זמינות למנהל מערכת בלבד." title="פעולות">
             <View style={styles.actions}>
               <AppButton
                 fullWidth={false}
@@ -242,13 +251,13 @@ export default function TrainingDetailsScreen() {
               />
             </View>
           </AppCard>
-        </>
+        </AppRevealView>
       ) : null}
 
       {activeSection === 'feedbacks' ? (
-        <>
+        <AppRevealView delay={90} key="training-feedbacks-section">
           <SectionBlock
-            description="משוב אחד לכל יישוב באימון. היישובים החסרים מחושבים לפי training_settlements מול feedbacks."
+            description="משוב אחד לכל יישוב באימון."
             title="תמונת משובים"
           >
             <View style={styles.metricsGrid}>
@@ -267,7 +276,7 @@ export default function TrainingDetailsScreen() {
 
             {data.missingFeedbackSettlements.length ? (
               <AppCard
-                description="היישובים הבאים עדיין משתתפים באימון אך לא קיים עבורם משוב שמור."
+                description="היישובים הבאים עדיין משתתפים באימון אך אין עבורם משוב שמור."
                 title="יישובים ללא משוב"
                 variant="warning"
               >
@@ -276,6 +285,7 @@ export default function TrainingDetailsScreen() {
                     <AppBadge
                       key={settlement.id}
                       label={`${settlement.name} • ${settlement.area}`}
+                      size="sm"
                       tone="warning"
                     />
                   ))}
@@ -292,7 +302,7 @@ export default function TrainingDetailsScreen() {
 
           {canManageFeedback ? (
             <SectionBlock
-              description="מדריך ומנהל מערכת יכולים להוסיף משוב חדש או לעדכן משוב קיים. מחיקה זמינה למנהל מערכת בלבד."
+              description="הוספה ועדכון משובים לפי הרשאה."
               title="ניהול משובים"
             >
               {feedbackMutation.error ? (
@@ -376,7 +386,7 @@ export default function TrainingDetailsScreen() {
           ) : null}
 
           <SectionBlock
-            description="כל רשומות המשוב הקיימות עבור האימון, כולל דירוג, הערת מדריך ותאריך יצירה."
+            description="כל רשומות המשוב השמורות עבור האימון."
             title="רשומות משוב"
           >
             {data.feedbacks.length ? (
@@ -420,7 +430,7 @@ export default function TrainingDetailsScreen() {
               />
             )}
           </SectionBlock>
-        </>
+        </AppRevealView>
       ) : null}
     </AppScreen>
   );
@@ -433,28 +443,29 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   badges: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   innerCard: {
-    padding: theme.spacing.md,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   list: {
-    gap: theme.spacing.md,
+    gap: 10,
   },
   metricsGrid: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: theme.spacing.md,
+    gap: 10,
   },
   statusActions: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
   statusButton: {
     flex: 1,
@@ -462,6 +473,6 @@ const styles = StyleSheet.create({
   tabs: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 8,
   },
 });
