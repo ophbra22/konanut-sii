@@ -1,24 +1,19 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { AppLoader } from '@/src/components/feedback/app-loader';
 import { StateCard } from '@/src/components/feedback/state-card';
-import { AppCard } from '@/src/components/ui/app-card';
+import { AppButton } from '@/src/components/ui/app-button';
 import { AppScreen } from '@/src/components/ui/app-screen';
+import { MetricCard } from '@/src/components/ui/metric-card';
 import { PageHeader } from '@/src/components/ui/page-header';
+import { isSuperAdmin } from '@/src/features/auth/lib/permissions';
 import { TrainingListCard } from '@/src/features/trainings/components/training-list-card';
 import { useTrainingsQuery } from '@/src/features/trainings/hooks/use-trainings-query';
+import { useAuthStore } from '@/src/stores/auth-store';
 import { theme } from '@/src/theme';
 
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <AppCard style={styles.metricCard}>
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricLabel}>{label}</Text>
-    </AppCard>
-  );
-}
-
 export default function TrainingsScreen() {
+  const role = useAuthStore((state) => state.role);
   const { data, error, isLoading, refetch } = useTrainingsQuery();
 
   if (isLoading) {
@@ -36,6 +31,17 @@ export default function TrainingsScreen() {
         title="ניהול אימונים"
         subtitle="המסך מחובר כעת לשכבת הנתונים האמיתית של Supabase ומציג רק אימונים הנגישים למשתמש המחובר."
       />
+
+      <View style={styles.topActions}>
+        {isSuperAdmin(role) ? (
+          <AppButton
+            fullWidth={false}
+            href="/trainings/create"
+            label="יצירת אימון"
+            style={styles.topAction}
+          />
+        ) : null}
+      </View>
 
       <View style={styles.metricsGrid}>
         <MetricCard label="אימונים נגישים" value={String(trainings.length)} />
@@ -69,7 +75,30 @@ export default function TrainingsScreen() {
       {!error && trainings.length ? (
         <View style={styles.list}>
           {trainings.map((training) => (
-            <TrainingListCard key={training.id} training={training} />
+            <TrainingListCard
+              key={training.id}
+              footer={
+                <View style={styles.cardActions}>
+                  <AppButton
+                    fullWidth={false}
+                    href={`/trainings/${training.id}`}
+                    label="פרטים"
+                    style={styles.cardAction}
+                    variant="secondary"
+                  />
+                  {isSuperAdmin(role) ? (
+                    <AppButton
+                      fullWidth={false}
+                      href={`/trainings/${training.id}/edit`}
+                      label="עריכה"
+                      style={styles.cardAction}
+                      variant="ghost"
+                    />
+                  ) : null}
+                </View>
+              }
+              training={training}
+            />
           ))}
         </View>
       ) : null}
@@ -78,28 +107,28 @@ export default function TrainingsScreen() {
 }
 
 const styles = StyleSheet.create({
+  cardAction: {
+    flex: 1,
+  },
+  cardActions: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
   list: {
     gap: theme.spacing.md,
-  },
-  metricCard: {
-    flex: 1,
-    minWidth: 100,
-  },
-  metricLabel: {
-    color: theme.colors.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'right',
-  },
-  metricValue: {
-    color: theme.colors.accentStrong,
-    fontSize: 24,
-    fontWeight: '800',
-    textAlign: 'right',
   },
   metricsGrid: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
     gap: theme.spacing.md,
+  },
+  topAction: {
+    flex: 1,
+  },
+  topActions: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
   },
 });

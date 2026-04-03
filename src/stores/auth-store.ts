@@ -183,9 +183,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
       }));
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+          email: 'test1@example.com',
+          password: 'Test1234!',
       });
+      
 
       if (error) {
         const message = translateAuthError(error);

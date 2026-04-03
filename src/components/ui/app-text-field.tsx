@@ -21,21 +21,24 @@ export function AppTextField({
 }: AppTextFieldProps) {
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
+     <Text style={styles.label}>{label}</Text>
+    <TextInput
         placeholderTextColor={theme.colors.textMuted}
         style={[
-          styles.input,
-          {
-            textAlign,
-            writingDirection,
-          },
-          errorMessage ? styles.inputError : null,
+            styles.input,
+            {
+                textAlign,
+                writingDirection,
+            },
+            errorMessage ? styles.inputError : null,
         ]}
+        autoCorrect={false}
+        autoCapitalize="none"
+        importantForAutofill="no"
         {...props}
-      />
-      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
-      {!errorMessage && hint ? <Text style={styles.hint}>{hint}</Text> : null}
+    />
+     {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+     {!errorMessage && hint ? <Text style={styles.hint}>{hint}</Text> : null}
     </View>
   );
 }

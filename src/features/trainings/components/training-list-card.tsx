@@ -1,12 +1,15 @@
 import dayjs from 'dayjs';
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppBadge } from '@/src/components/ui/app-badge';
+import { DataRow } from '@/src/components/ui/data-row';
 import type { TrainingListItem } from '@/src/features/trainings/api/trainings-service';
 import { theme } from '@/src/theme';
 
 type TrainingListCardProps = {
+  footer?: ReactNode;
   training: TrainingListItem;
 };
 
@@ -35,7 +38,10 @@ function getSettlementsLabel(training: TrainingListItem) {
   return training.settlements.map((settlement) => settlement.name).join(', ');
 }
 
-export function TrainingListCard({ training }: TrainingListCardProps) {
+export function TrainingListCard({
+  footer,
+  training,
+}: TrainingListCardProps) {
   return (
     <AppCard
       description={`${dayjs(training.training_date).format('DD/MM/YYYY')} • ${formatTime(
@@ -49,23 +55,12 @@ export function TrainingListCard({ training }: TrainingListCardProps) {
       </View>
 
       <View style={styles.meta}>
-        <View style={styles.row}>
-          <Text style={styles.label}>מיקום</Text>
-          <Text style={styles.value}>{training.location?.trim() || 'לא הוגדר'}</Text>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={styles.label}>מדריך</Text>
-          <Text style={styles.value}>
-            {training.instructor?.full_name || 'טרם שובץ'}
-          </Text>
-        </View>
-
-        <View style={styles.row}>
-          <Text style={styles.label}>יישובים</Text>
-          <Text style={styles.value}>{getSettlementsLabel(training)}</Text>
-        </View>
+        <DataRow label="מיקום" value={training.location?.trim() || 'לא הוגדר'} />
+        <DataRow label="מדריך" value={training.instructor?.full_name || 'טרם שובץ'} />
+        <DataRow label="יישובים" value={getSettlementsLabel(training)} />
       </View>
+
+      {footer ? <View style={styles.footer}>{footer}</View> : null}
     </AppCard>
   );
 }
@@ -76,26 +71,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: theme.spacing.sm,
   },
-  label: {
-    color: theme.colors.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'right',
+  footer: {
+    marginTop: theme.spacing.xs,
   },
   meta: {
     gap: theme.spacing.sm,
-  },
-  row: {
-    alignItems: 'flex-start',
-    flexDirection: 'row-reverse',
-    gap: theme.spacing.md,
-    justifyContent: 'space-between',
-  },
-  value: {
-    color: theme.colors.textPrimary,
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 21,
-    textAlign: 'left',
   },
 });

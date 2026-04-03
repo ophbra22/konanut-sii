@@ -1,6 +1,6 @@
 import { supabase } from '@/src/lib/supabase';
 import { createDataAccessError } from '@/src/lib/error-utils';
-import type { AuthProfile } from '@/src/types/database';
+import type { AuthProfile, UserProfile } from '@/src/types/database';
 
 function getAuthErrorMessage(message: string) {
   if (message.includes('Invalid login credentials')) {
@@ -58,4 +58,18 @@ export async function fetchUserProfile(userId: string): Promise<AuthProfile | nu
     ...profile,
     linkedSettlementIds: (links ?? []).map((item) => item.settlement_id),
   };
+}
+
+export async function listActiveProfiles(): Promise<UserProfile[]> {
+  const { data, error } = await supabase
+    .from('users_profile')
+    .select('id, full_name, email, phone, role, is_active, created_at')
+    .eq('is_active', true)
+    .order('full_name', { ascending: true });
+
+  if (error) {
+    throw createDataAccessError(error, 'לא ניתן לטעון את רשימת המשתמשים');
+  }
+
+  return data ?? [];
 }

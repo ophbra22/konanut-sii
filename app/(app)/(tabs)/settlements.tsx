@@ -3,23 +3,14 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AppLoader } from '@/src/components/feedback/app-loader';
 import { StateCard } from '@/src/components/feedback/state-card';
 import { AppButton } from '@/src/components/ui/app-button';
-import { AppCard } from '@/src/components/ui/app-card';
 import { AppScreen } from '@/src/components/ui/app-screen';
+import { MetricCard } from '@/src/components/ui/metric-card';
 import { PageHeader } from '@/src/components/ui/page-header';
 import { getRoleLabel, isSuperAdmin } from '@/src/features/auth/lib/permissions';
 import { SettlementListCard } from '@/src/features/settlements/components/settlement-list-card';
 import { useSettlementsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { theme } from '@/src/theme';
-
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <AppCard style={styles.metricCard}>
-      <Text style={styles.metricValue}>{value}</Text>
-      <Text style={styles.metricLabel}>{label}</Text>
-    </AppCard>
-  );
-}
 
 export default function SettlementsScreen() {
   const role = useAuthStore((state) => state.role);
@@ -48,6 +39,24 @@ export default function SettlementsScreen() {
             : `מוצגים רק היישובים המקושרים לחשבון שלך תחת הרשאת ${getRoleLabel(role)}.`
         }
       />
+
+      <View style={styles.topActions}>
+        {isSuperAdmin(role) ? (
+          <AppButton
+            fullWidth={false}
+            href="/settlements/create"
+            label="יצירת יישוב"
+            style={styles.topAction}
+          />
+        ) : null}
+        <AppButton
+          fullWidth={false}
+          href="/settlement-rankings"
+          label="דירוג יישובים"
+          style={styles.topAction}
+          variant="secondary"
+        />
+      </View>
 
       <View style={styles.metricsGrid}>
         <MetricCard label="יישובים נגישים" value={String(settlements.length)} />
@@ -81,44 +90,60 @@ export default function SettlementsScreen() {
       {!error && settlements.length ? (
         <View style={styles.list}>
           {settlements.map((settlement) => (
-            <SettlementListCard key={settlement.id} settlement={settlement} />
+            <SettlementListCard
+              key={settlement.id}
+              footer={
+                <View style={styles.cardActions}>
+                  <AppButton
+                    fullWidth={false}
+                    href={`/settlements/${settlement.id}`}
+                    label="פרטים"
+                    style={styles.cardAction}
+                    variant="secondary"
+                  />
+                  {isSuperAdmin(role) ? (
+                    <AppButton
+                      fullWidth={false}
+                      href={`/settlements/${settlement.id}/edit`}
+                      label="עריכה"
+                      style={styles.cardAction}
+                      variant="ghost"
+                    />
+                  ) : null}
+                </View>
+              }
+              settlement={settlement}
+            />
           ))}
         </View>
       ) : null}
-
-      <AppCard
-        description="מסך דירוג היישובים מחובר לאותו עקרון דומיין שבו היישוב הוא יחידת הכוננות והדירוג המרכזית."
-        title="המשך ניווט"
-      >
-        <AppButton href="/settlement-rankings" label="מעבר לדירוג יישובים" />
-      </AppCard>
     </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
+  cardAction: {
+    flex: 1,
+  },
+  cardActions: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
+  },
   list: {
     gap: theme.spacing.md,
-  },
-  metricCard: {
-    flex: 1,
-    minWidth: 100,
-  },
-  metricLabel: {
-    color: theme.colors.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'right',
-  },
-  metricValue: {
-    color: theme.colors.accentStrong,
-    fontSize: 24,
-    fontWeight: '800',
-    textAlign: 'right',
   },
   metricsGrid: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
     gap: theme.spacing.md,
+  },
+  topAction: {
+    flex: 1,
+  },
+  topActions: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
   },
 });

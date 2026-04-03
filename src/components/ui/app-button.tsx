@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router/build/hooks';
-import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { theme } from '@/src/theme';
 
-export type AppButtonVariant = 'primary' | 'secondary' | 'ghost';
+export type AppButtonVariant = 'danger' | 'ghost' | 'primary' | 'secondary';
 type RouterHref = Parameters<ReturnType<typeof useRouter>['push']>[0];
 
 export type AppButtonHref =
@@ -17,12 +18,13 @@ export type AppButtonHref =
     };
 
 type AppButtonProps = {
-  label: string;
-  href?: AppButtonHref;
-  loading?: boolean;
   disabled?: boolean;
+  fullWidth?: boolean;
+  href?: AppButtonHref;
+  label: string;
+  loading?: boolean;
   onPress?: () => void;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   variant?: AppButtonVariant;
 };
 
@@ -31,6 +33,7 @@ export function AppButton({
   href,
   loading = false,
   disabled = false,
+  fullWidth = true,
   onPress,
   style,
   variant = 'primary',
@@ -50,6 +53,7 @@ export function AppButton({
       }}
       style={({ pressed }) => [
         styles.base,
+        fullWidth ? styles.fullWidth : styles.autoWidth,
         variantStyles[variant],
         isDisabled && styles.disabled,
         pressed && !isDisabled && styles.pressed,
@@ -70,10 +74,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 52,
     paddingHorizontal: theme.spacing.lg,
-    width: '100%',
+  },
+  autoWidth: {
+    width: 'auto',
   },
   disabled: {
     opacity: 0.6,
+  },
+  fullWidth: {
+    width: '100%',
   },
   label: {
     fontSize: 15,
@@ -85,6 +94,11 @@ const styles = StyleSheet.create({
 });
 
 const variantStyles = StyleSheet.create({
+  danger: {
+    backgroundColor: theme.colors.danger,
+    borderColor: theme.colors.danger,
+    borderWidth: 1,
+  },
   ghost: {
     backgroundColor: 'transparent',
     borderColor: theme.colors.border,
@@ -103,6 +117,9 @@ const variantStyles = StyleSheet.create({
 });
 
 const labelStyles = StyleSheet.create({
+  danger: {
+    color: theme.colors.background,
+  },
   ghost: {
     color: theme.colors.textPrimary,
   },

@@ -31,14 +31,14 @@ export function LoginForm() {
     },
     resolver: zodResolver(loginSchema),
   });
-
+   
   const isBusy = isSubmitting || status === 'loading';
 
   const onSubmit = handleSubmit(async (values) => {
     clearError();
     await signIn({
       email: values.email.trim().toLowerCase(),
-      password: values.password,
+      password: values.password.trim(),
     });
   });
 
@@ -68,6 +68,7 @@ export function LoginForm() {
               render={({ field: { onBlur, onChange, value } }) => (
                 <AppTextField
                   autoCapitalize="none"
+                  autoCorrect={false}
                   autoComplete="email"
                   keyboardType="email-address"
                   label='דוא"ל'
@@ -90,22 +91,24 @@ export function LoginForm() {
               control={control}
               name="password"
               render={({ field: { onBlur, onChange, value } }) => (
-                <AppTextField
-                  autoCapitalize="none"
-                  label="סיסמה"
-                  onBlur={onBlur}
-                  onChangeText={(text) => {
-                    clearError();
-                    onChange(text);
-                  }}
-                  placeholder="הזינו סיסמה"
-                  secureTextEntry
-                  textAlign="left"
-                  textContentType="password"
-                  value={value}
-                  writingDirection="ltr"
-                  errorMessage={errors.password?.message}
-                />
+                  <AppTextField
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      autoComplete="off"
+                      label="סיסמה"
+                      onBlur={onBlur}
+                      onChangeText={(text) => {
+                          clearError();
+                          onChange(text);
+                      }}
+                      placeholder="הזינו סיסמה"
+                      secureTextEntry
+                      textAlign="left"
+                      textContentType="none"
+                      value={value}
+                      writingDirection="ltr"
+                      errorMessage={errors.password?.message}
+                  />
               )}
             />
 
@@ -116,7 +119,7 @@ export function LoginForm() {
               label={isBusy ? 'מתחבר...' : 'כניסה'}
               loading={isBusy}
               onPress={() => {
-                void onSubmit();
+                  void onSubmit();
               }}
             />
           </View>

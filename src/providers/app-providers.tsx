@@ -4,6 +4,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { AppToast } from '@/src/components/feedback/app-toast';
 import { queryClient } from '@/src/lib/query-client';
 import { useAuthStore } from '@/src/stores/auth-store';
 
@@ -22,7 +23,10 @@ export function AppProviders({ children }: PropsWithChildren) {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <AuthBootstrap>{children}</AuthBootstrap>
+          <AuthBootstrap>
+            {children}
+            <AppToast />
+          </AuthBootstrap>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
