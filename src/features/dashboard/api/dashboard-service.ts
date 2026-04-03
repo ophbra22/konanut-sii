@@ -30,7 +30,13 @@ export type DashboardAlertItem = Pick<
 
 export type DashboardUpcomingTraining = Pick<
   Training,
-  'id' | 'status' | 'title' | 'training_date' | 'training_time' | 'training_type'
+  | 'id'
+  | 'location'
+  | 'status'
+  | 'title'
+  | 'training_date'
+  | 'training_time'
+  | 'training_type'
 > & {
   settlements: string[];
 };
@@ -98,15 +104,15 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
         `
       )
       .order('created_at', { ascending: false })
-      .limit(5),
+      .limit(3),
     supabase
       .from('trainings')
-      .select('id, title, training_type, training_date, training_time, status')
+      .select('id, title, training_type, training_date, training_time, status, location')
       .neq('status', 'בוטל')
       .gte('training_date', today)
       .order('training_date', { ascending: true })
       .order('training_time', { ascending: true, nullsFirst: false })
-      .limit(5),
+      .limit(3),
     supabase.from('trainings').select('id').eq('status', 'הושלם'),
     supabase.from('feedbacks').select('training_id, settlement_id'),
   ]);

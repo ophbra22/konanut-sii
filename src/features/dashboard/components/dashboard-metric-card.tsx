@@ -92,11 +92,16 @@ export function DashboardMetricCard({
 const styles = StyleSheet.create({
   card: {
     flex: 1,
-    minWidth: 132,
+    gap: 4,
+    justifyContent: 'space-between',
+    minHeight: 108,
+    minWidth: 148,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   errorValue: {
     color: theme.colors.warning,
-    fontSize: 20,
+    fontSize: 22,
   },
   helper: {
     color: theme.colors.textMuted,
@@ -106,7 +111,7 @@ const styles = StyleSheet.create({
   },
   label: {
     color: theme.colors.textMuted,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
     textAlign: 'right',
   },
@@ -119,15 +124,18 @@ const styles = StyleSheet.create({
   skeletonValue: {
     backgroundColor: theme.colors.border,
     borderRadius: theme.radius.md,
-    height: 24,
-    width: '66%',
+    height: 28,
+    width: '56%',
   },
   skeletonWrapper: {
-    gap: 8,
+    gap: 6,
+    justifyContent: 'space-between',
+    minHeight: 76,
   },
   value: {
-    fontSize: 28,
+    fontSize: 31,
     fontWeight: '900',
+    lineHeight: 34,
     textAlign: 'right',
   },
 });
