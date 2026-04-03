@@ -47,25 +47,25 @@ function getCountdownText(scheduledAt: Dayjs, now: Dayjs) {
   const minutesDiff = scheduledAt.diff(now, 'minute');
 
   if (minutesDiff <= 0) {
-    return 'מתחיל כעת';
+    return '⏳ מתחיל כעת';
   }
 
   if (minutesDiff < 60) {
-    return `מתחיל בעוד ${minutesDiff} דק׳`;
+    return `⏳ בעוד ${minutesDiff} דק׳`;
   }
 
   if (minutesDiff < 24 * 60) {
     const hours = Math.ceil(minutesDiff / 60);
-    return `מתחיל בעוד ${hours} שעות`;
+    return `⏳ בעוד ${hours} שעות`;
   }
 
   const days = Math.ceil(minutesDiff / (24 * 60));
 
   if (days === 1) {
-    return 'מתחיל בעוד יום';
+    return '⏳ בעוד יום';
   }
 
-  return `מתחיל בעוד ${days} ימים`;
+  return `⏳ בעוד ${days} ימים`;
 }
 
 export function NextTrainingHeroCard({
@@ -103,6 +103,7 @@ export function NextTrainingHeroCard({
     <AppCard style={styles.card}>
       <View pointerEvents="none" style={styles.glowPrimary} />
       <View pointerEvents="none" style={styles.glowSecondary} />
+      <View pointerEvents="none" style={styles.edgeGlow} />
 
       <View style={styles.content}>
         <View style={styles.topRow}>
@@ -131,7 +132,6 @@ export function NextTrainingHeroCard({
         </View>
 
         <View style={styles.countdownBand}>
-          <Clock3 color={theme.colors.info} size={14} />
           <Text style={styles.countdownText}>{countdownText}</Text>
         </View>
 
@@ -156,27 +156,36 @@ const styles = StyleSheet.create({
     shadowRadius: 22,
   },
   content: {
-    gap: 11,
+    gap: 12,
     position: 'relative',
     zIndex: 1,
   },
   countdownBand: {
     alignItems: 'center',
     alignSelf: 'stretch',
-    backgroundColor: 'rgba(108, 143, 255, 0.10)',
-    borderColor: 'rgba(108, 143, 255, 0.24)',
-    borderRadius: 16,
+    backgroundColor: 'rgba(108, 143, 255, 0.14)',
+    borderColor: 'rgba(108, 143, 255, 0.30)',
+    borderRadius: 18,
     borderWidth: 1,
     flexDirection: 'row-reverse',
-    gap: 6,
-    minHeight: 40,
-    paddingHorizontal: 12,
+    minHeight: 44,
+    paddingHorizontal: 14,
   },
   countdownText: {
     color: theme.colors.info,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '900',
     textAlign: 'right',
+  },
+  edgeGlow: {
+    backgroundColor: 'rgba(108, 143, 255, 0.08)',
+    borderRadius: 999,
+    height: 112,
+    opacity: 0.85,
+    position: 'absolute',
+    right: -36,
+    top: 48,
+    width: 112,
   },
   eyebrow: {
     color: theme.colors.textMuted,
@@ -228,9 +237,9 @@ const styles = StyleSheet.create({
   },
   title: {
     color: theme.colors.textPrimary,
-    fontSize: 27,
+    fontSize: 31,
     fontWeight: '900',
-    lineHeight: 31,
+    lineHeight: 35,
     textAlign: 'right',
   },
   topRow: {

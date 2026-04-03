@@ -1,5 +1,6 @@
+import { useRouter } from 'expo-router';
 import dayjs from 'dayjs';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { StateCard } from '@/src/components/feedback/state-card';
 import { AppBadge } from '@/src/components/ui/app-badge';
@@ -28,7 +29,7 @@ function getAlertColor(severity: 'high' | 'low' | 'medium') {
     case 'medium':
       return theme.colors.warning;
     default:
-      return theme.colors.info;
+      return theme.colors.accentStrong;
   }
 }
 
@@ -43,6 +44,10 @@ function getAlertSeverityLabel(severity: 'high' | 'low' | 'medium') {
   }
 }
 
+function getAlertStatusLabel(status: 'open' | 'resolved') {
+  return status === 'resolved' ? 'טופל' : 'ללא טיפול';
+}
+
 function getSystemSupportLine(data: DashboardOverview | undefined) {
   if (!data) {
     return 'המערכת מסונכרנת ומוכנה לעבודה.';
@@ -55,37 +60,47 @@ function getSystemSupportLine(data: DashboardOverview | undefined) {
   return `מסונכרן ל-${getHalfYearLabel(data.currentRankingPeriod)}`;
 }
 
+function getGreetingLabel() {
+  const hour = dayjs().hour();
+
+  if (hour >= 18) {
+    return 'ערב טוב';
+  }
+
+  if (hour >= 12) {
+    return 'צהריים טובים';
+  }
+
+  if (hour >= 5) {
+    return 'בוקר טוב';
+  }
+
+  return 'לילה טוב';
+}
+
 export default function DashboardScreen() {
+  const router = useRouter();
   const role = useAuthStore((state) => state.role);
-  const profile = useAuthStore((state) => state.profile);
   const { data, error, isLoading, refetch } = useDashboardQuery();
   const nextTraining = data?.upcomingTrainings[0] ?? null;
   const alerts = data?.alertsSummary.slice(0, 3) ?? [];
-  const heroContext = profile?.full_name
-    ? `${profile.full_name} • ${getRoleLabel(role)}`
-    : getRoleLabel(role);
+  const heroGreeting = `${getGreetingLabel()}, ${getRoleLabel(role)}`;
+  const todayLabel = formatDisplayDate(dayjs().format('YYYY-MM-DD'));
 
   return (
     <AppScreen contentContainerStyle={styles.screenContent}>
       <AppRevealView delay={20}>
         <View style={styles.hero}>
-          <View style={styles.heroMetaRow}>
-            <Text style={styles.heroMetaText}>
-              {formatDisplayDate(dayjs().format('YYYY-MM-DD'))}
-            </Text>
-            <AppBadge label={getRoleLabel(role)} size="sm" tone="neutral" />
-          </View>
-
-          <Text style={styles.heroEyebrow}>חמ״ל דיגיטלי</Text>
           <Text style={styles.heroTitle}>זרוע יישובים מג״ב דרום</Text>
-          <Text style={styles.heroSubtitle}>תמונת מצב אימונים בזמן אמת</Text>
-          <Text numberOfLines={1} style={styles.heroContext}>
-            {heroContext}
+          <Text numberOfLines={1} style={styles.heroGreeting}>
+            {heroGreeting}
           </Text>
+          <Text style={styles.heroDate}>{todayLabel}</Text>
+          <Text style={styles.heroSubtitle}>תמונת מצב אימונים בזמן אמת</Text>
         </View>
       </AppRevealView>
 
-      <AppRevealView delay={50}>
+      <AppRevealView delay={40}>
         <View style={styles.metricsGrid}>
           <DashboardMetricCard
             errorMessage={error?.message}
@@ -122,7 +137,7 @@ export default function DashboardScreen() {
         </View>
       </AppRevealView>
 
-      <AppRevealView delay={85}>
+      <AppRevealView delay={70}>
         {isLoading ? (
           <AppCard style={styles.featuredCard}>
             <View style={styles.featuredSkeleton}>
@@ -153,32 +168,30 @@ export default function DashboardScreen() {
         )}
       </AppRevealView>
 
-      <AppRevealView delay={120}>
-        <SectionBlock title="סטטוס מערכת">
-          {error ? (
-            <StateCard
-              actionLabel="נסו שוב"
-              description={error.message}
-              onAction={() => {
-                void refetch();
-              }}
-              title="לא ניתן להציג סטטוס מערכת"
-              variant="warning"
-            />
-          ) : (
-            <AppCard style={styles.systemCard}>
-              <View style={styles.systemTopRow}>
-                <AppBadge label={data?.systemStatus ?? 'מבצעי'} size="sm" tone="accent" />
-                <Text style={styles.systemTitle}>סטטוס מערכת</Text>
-              </View>
-              <Text style={styles.systemText}>{getSystemSupportLine(data)}</Text>
-            </AppCard>
-          )}
-        </SectionBlock>
+      <AppRevealView delay={95}>
+        {error ? (
+          <StateCard
+            actionLabel="נסו שוב"
+            description={error.message}
+            onAction={() => {
+              void refetch();
+            }}
+            title="לא ניתן להציג סטטוס מערכת"
+            variant="warning"
+          />
+        ) : (
+          <AppCard style={styles.systemCard}>
+            <View style={styles.systemTopRow}>
+              <AppBadge label={data?.systemStatus ?? 'מבצעי'} size="sm" tone="accent" />
+              <Text style={styles.systemTitle}>סטטוס מערכת</Text>
+            </View>
+            <Text style={styles.systemText}>{getSystemSupportLine(data)}</Text>
+          </AppCard>
+        )}
       </AppRevealView>
 
-      <AppRevealView delay={155}>
-        <SectionBlock title="התראות אחרונות">
+      <AppRevealView delay={120}>
+        <SectionBlock title="התראות">
           {isLoading ? (
             <AppCard style={styles.alertsCard}>
               <Text style={styles.alertsPlaceholder}>טוען את ההתראות האחרונות...</Text>
@@ -203,28 +216,38 @@ export default function DashboardScreen() {
                     index < alerts.length - 1 && styles.alertRowBorder,
                   ]}
                 >
-                  <View style={styles.alertMetaRow}>
-                    <Text numberOfLines={1} style={styles.alertMetaText}>
-                      {alertItem.related_settlement_name || getAlertSeverityLabel(alertItem.severity)}
-                    </Text>
-                    <View
-                      style={[
-                        styles.alertDot,
-                        { backgroundColor: getAlertColor(alertItem.severity) },
-                      ]}
-                    />
-                  </View>
+                  <View
+                    style={[
+                      styles.alertDot,
+                      { backgroundColor: getAlertColor(alertItem.severity) },
+                    ]}
+                  />
 
                   <View style={styles.alertContent}>
                     <Text numberOfLines={1} style={styles.alertTitle}>
-                      {alertItem.title}
+                      {alertItem.related_settlement_name
+                        ? `${alertItem.title} – ${alertItem.related_settlement_name}`
+                        : alertItem.title}
                     </Text>
                     <Text numberOfLines={1} style={styles.alertSubtitle}>
-                      {getAlertSeverityLabel(alertItem.severity)} • {formatDisplayDate(alertItem.created_at)}
+                      {formatDisplayDate(alertItem.created_at)} •{' '}
+                      {getAlertStatusLabel(alertItem.status)}
                     </Text>
                   </View>
                 </View>
               ))}
+
+              <Pressable
+                onPress={() => {
+                  router.push('/alerts' as never);
+                }}
+                style={({ pressed }) => [
+                  styles.alertsCta,
+                  pressed && styles.alertsCtaPressed,
+                ]}
+              >
+                <Text style={styles.alertsCtaText}>לכל ההתראות →</Text>
+              </Pressable>
             </AppCard>
           ) : (
             <AppCard style={styles.alertsCard}>
@@ -243,28 +266,32 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
+  alertsCta: {
+    alignSelf: 'flex-start',
+    marginTop: 4,
+    paddingVertical: 4,
+  },
+  alertsCtaPressed: {
+    opacity: 0.82,
+  },
+  alertsCtaText: {
+    color: theme.colors.info,
+    fontSize: 12,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
   alertDot: {
     borderRadius: 999,
-    height: 8,
-    width: 8,
-  },
-  alertMetaRow: {
-    alignItems: 'center',
-    flexDirection: 'row-reverse',
-    gap: 6,
-  },
-  alertMetaText: {
-    color: theme.colors.textMuted,
-    fontSize: 10,
-    fontWeight: '700',
-    textAlign: 'left',
+    height: 9,
+    marginTop: 3,
+    width: 9,
   },
   alertRow: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flexDirection: 'row-reverse',
-    gap: 10,
-    minHeight: 54,
-    paddingVertical: 8,
+    gap: 9,
+    minHeight: 46,
+    paddingVertical: 7,
   },
   alertRowBorder: {
     borderBottomColor: theme.colors.border,
@@ -287,7 +314,7 @@ const styles = StyleSheet.create({
   alertsCard: {
     gap: 0,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
   },
   alertsPlaceholder: {
     color: theme.colors.textMuted,
@@ -354,38 +381,25 @@ const styles = StyleSheet.create({
     width: '24%',
   },
   hero: {
-    gap: 4,
+    gap: 2,
   },
-  heroContext: {
+  heroDate: {
+    color: theme.colors.textMuted,
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+  heroGreeting: {
     color: theme.colors.textSecondary,
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 18,
     textAlign: 'right',
-  },
-  heroEyebrow: {
-    color: theme.colors.textMuted,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    textAlign: 'right',
-  },
-  heroMetaRow: {
-    alignItems: 'center',
-    flexDirection: 'row-reverse',
-    gap: 8,
-    justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  heroMetaText: {
-    color: theme.colors.textMuted,
-    fontSize: 10,
-    fontWeight: '700',
-    textAlign: 'left',
   },
   heroSubtitle: {
     color: theme.colors.textDim,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
     textAlign: 'right',
   },
   heroTitle: {
@@ -398,20 +412,20 @@ const styles = StyleSheet.create({
   metricsGrid: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: 10,
+    gap: 8,
   },
   screenContent: {
-    gap: 16,
+    gap: 12,
   },
   systemCard: {
-    gap: 6,
+    gap: 4,
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
   },
   systemText: {
     color: theme.colors.textDim,
-    fontSize: 12,
-    lineHeight: 16,
+    fontSize: 11,
+    lineHeight: 15,
     textAlign: 'right',
   },
   systemTitle: {
