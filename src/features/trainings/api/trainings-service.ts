@@ -9,30 +9,61 @@ import type {
   UserProfile,
 } from '@/src/types/database';
 
+type SettlementSummary = Pick<Settlement, 'area' | 'id' | 'name'>;
+type UserSummary = Pick<UserProfile, 'full_name' | 'id'>;
+
 type TrainingListQueryRow = Training & {
-  instructor: Pick<UserProfile, 'id' | 'full_name'> | null;
+  instructor: UserSummary | null;
   training_settlements: Array<{
-    settlement: Pick<Settlement, 'id' | 'name' | 'area'> | null;
+    settlement: SettlementSummary | null;
+  }>;
+};
+
+type TrainingDetailsQueryRow = Training & {
+  feedbacks: Array<
+    Pick<
+      Feedback,
+      'comment' | 'created_at' | 'id' | 'instructor_id' | 'rating' | 'settlement_id' | 'training_id'
+    > & {
+      instructor: UserSummary | null;
+      settlement: SettlementSummary | null;
+    }
+  >;
+  instructor: UserSummary | null;
+  training_settlements: Array<{
+    settlement: SettlementSummary | null;
   }>;
 };
 
 export type TrainingListItem = Training & {
-  instructor: Pick<UserProfile, 'id' | 'full_name'> | null;
-  settlements: Array<Pick<Settlement, 'id' | 'name' | 'area'>>;
+  instructor: UserSummary | null;
+  settlements: SettlementSummary[];
 };
 
 export type TrainingFeedbackItem = Pick<
   Feedback,
-  'comment' | 'created_at' | 'id' | 'rating'
+  'comment' | 'created_at' | 'id' | 'instructor_id' | 'rating' | 'settlement_id' | 'training_id'
 > & {
-  instructor: Pick<UserProfile, 'id' | 'full_name'> | null;
-  settlement: Pick<Settlement, 'id' | 'name' | 'area'> | null;
+  instructor: UserSummary | null;
+  settlement: SettlementSummary | null;
 };
 
 export type TrainingDetails = Training & {
+  averageFeedbackRating: number | null;
+  feedbackCount: number;
   feedbacks: TrainingFeedbackItem[];
-  instructor: Pick<UserProfile, 'id' | 'full_name'> | null;
-  settlements: Array<Pick<Settlement, 'id' | 'name' | 'area'>>;
+  instructor: UserSummary | null;
+  missingFeedbackSettlements: SettlementSummary[];
+  settlements: SettlementSummary[];
+};
+
+type SaveTrainingFeedbackParams = {
+  comment: string | null;
+  feedbackId?: string;
+  instructorId: string | null;
+  rating: number;
+  settlementId: string;
+  trainingId: string;
 };
 
 const trainingsListSelect = `
@@ -59,6 +90,47 @@ const trainingsListSelect = `
   )
 `;
 
+function mapSettlements(
+  trainingSettlements: Array<{
+    settlement: SettlementSummary | null;
+  }>
+) {
+  return trainingSettlements
+    .map((item) => item.settlement)
+    .filter((settlement): settlement is NonNullable<typeof settlement> =>
+      Boolean(settlement)
+    );
+}
+
+function normalizeComment(comment: string | null) {
+  const normalized = comment?.trim();
+  return normalized ? normalized : null;
+}
+
+function buildTrainingDetails(data: TrainingDetailsQueryRow): TrainingDetails {
+  const settlements = mapSettlements(data.training_settlements ?? []);
+  const feedbacks = [...(data.feedbacks ?? [])].sort((left, right) =>
+    right.created_at.localeCompare(left.created_at)
+  );
+  const feedbackSettlementIds = new Set(
+    feedbacks.map((feedback) => feedback.settlement?.id ?? feedback.settlement_id)
+  );
+  const totalRating = feedbacks.reduce((sum, feedback) => sum + feedback.rating, 0);
+
+  return {
+    ...data,
+    averageFeedbackRating: feedbacks.length
+      ? Number((totalRating / feedbacks.length).toFixed(1))
+      : null,
+    feedbackCount: feedbacks.length,
+    feedbacks,
+    missingFeedbackSettlements: settlements.filter(
+      (settlement) => !feedbackSettlementIds.has(settlement.id)
+    ),
+    settlements,
+  };
+}
+
 export async function listTrainings(): Promise<TrainingListItem[]> {
   const { data, error } = await supabase
     .from('trainings')
@@ -74,13 +146,8 @@ export async function listTrainings(): Promise<TrainingListItem[]> {
 
   return rows.map((row) => ({
     ...row,
-    training_settlements: undefined,
-    settlements: row.training_settlements
-      .map((item) => item.settlement)
-      .filter((settlement): settlement is NonNullable<typeof settlement> =>
-        Boolean(settlement)
-      ),
-  })) as TrainingListItem[];
+    settlements: mapSettlements(row.training_settlements ?? []),
+  }));
 }
 
 export async function getTrainingDetails(
@@ -113,6 +180,9 @@ export async function getTrainingDetails(
         ),
         feedbacks (
           id,
+          training_id,
+          settlement_id,
+          instructor_id,
           rating,
           comment,
           created_at,
@@ -139,23 +209,7 @@ export async function getTrainingDetails(
     throw new Error('האימון המבוקש לא נמצא');
   }
 
-  const typedData = data as unknown as Training & {
-    feedbacks: TrainingFeedbackItem[];
-    instructor: Pick<UserProfile, 'id' | 'full_name'> | null;
-    training_settlements: Array<{
-      settlement: Pick<Settlement, 'id' | 'name' | 'area'> | null;
-    }>;
-  };
-
-  return {
-    ...typedData,
-    feedbacks: typedData.feedbacks ?? [],
-    settlements: (typedData.training_settlements ?? [])
-      .map((item) => item.settlement)
-      .filter((settlement): settlement is NonNullable<typeof settlement> =>
-        Boolean(settlement)
-      ),
-  };
+  return buildTrainingDetails(data as unknown as TrainingDetailsQueryRow);
 }
 
 async function replaceTrainingSettlements(
@@ -184,6 +238,26 @@ async function replaceTrainingSettlements(
 
   if (insertError) {
     throw createDataAccessError(insertError, 'לא ניתן לשמור את שיוכי היישובים');
+  }
+}
+
+async function ensureSettlementLinkedToTraining(
+  trainingId: string,
+  settlementId: string
+) {
+  const { data, error } = await supabase
+    .from('training_settlements')
+    .select('id')
+    .eq('training_id', trainingId)
+    .eq('settlement_id', settlementId)
+    .maybeSingle();
+
+  if (error) {
+    throw createDataAccessError(error, 'לא ניתן לאמת את שיוך היישוב לאימון');
+  }
+
+  if (!data) {
+    throw new Error('ניתן להזין משוב רק עבור יישוב שמשויך לאימון הנוכחי');
   }
 }
 
@@ -230,6 +304,70 @@ export async function updateTraining(params: {
   return getTrainingDetails(params.trainingId);
 }
 
+export async function saveTrainingFeedback(params: SaveTrainingFeedbackParams) {
+  await ensureSettlementLinkedToTraining(params.trainingId, params.settlementId);
+
+  if (params.feedbackId) {
+    const { error } = await supabase
+      .from('feedbacks')
+      .update({
+        comment: normalizeComment(params.comment),
+        instructor_id: params.instructorId,
+        rating: params.rating,
+        settlement_id: params.settlementId,
+      })
+      .eq('id', params.feedbackId);
+
+    if (error) {
+      throw createDataAccessError(error, 'לא ניתן לעדכן את המשוב');
+    }
+
+    return getTrainingDetails(params.trainingId);
+  }
+
+  const { data: existingFeedback, error: existingFeedbackError } = await supabase
+    .from('feedbacks')
+    .select('id')
+    .eq('training_id', params.trainingId)
+    .eq('settlement_id', params.settlementId)
+    .maybeSingle();
+
+  if (existingFeedbackError) {
+    throw createDataAccessError(existingFeedbackError, 'לא ניתן לבדוק אם קיים משוב קודם');
+  }
+
+  if (existingFeedback) {
+    const { error } = await supabase
+      .from('feedbacks')
+      .update({
+        comment: normalizeComment(params.comment),
+        instructor_id: params.instructorId,
+        rating: params.rating,
+      })
+      .eq('id', existingFeedback.id);
+
+    if (error) {
+      throw createDataAccessError(error, 'לא ניתן לעדכן את המשוב הקיים');
+    }
+
+    return getTrainingDetails(params.trainingId);
+  }
+
+  const { error } = await supabase.from('feedbacks').insert({
+    comment: normalizeComment(params.comment),
+    instructor_id: params.instructorId,
+    rating: params.rating,
+    settlement_id: params.settlementId,
+    training_id: params.trainingId,
+  });
+
+  if (error) {
+    throw createDataAccessError(error, 'לא ניתן לשמור משוב חדש');
+  }
+
+  return getTrainingDetails(params.trainingId);
+}
+
 export async function updateTrainingStatus(
   trainingId: string,
   status: Training['status']
@@ -254,4 +392,17 @@ export async function deleteTraining(trainingId: string) {
   if (error) {
     throw createDataAccessError(error, 'לא ניתן למחוק את האימון');
   }
+}
+
+export async function deleteTrainingFeedback(params: {
+  feedbackId: string;
+  trainingId: string;
+}) {
+  const { error } = await supabase.from('feedbacks').delete().eq('id', params.feedbackId);
+
+  if (error) {
+    throw createDataAccessError(error, 'לא ניתן למחוק את המשוב');
+  }
+
+  return getTrainingDetails(params.trainingId);
 }

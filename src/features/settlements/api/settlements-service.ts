@@ -17,7 +17,11 @@ import type {
   UserProfile,
 } from '@/src/types/database';
 
-export type SettlementListItem = Settlement;
+export type SettlementListItem = Settlement & {
+  readinessCalculatedAt: string | null;
+  readinessLevel: string | null;
+  readinessScore: number | null;
+};
 
 export type SettlementTrainingSummary = Pick<
   Training,
@@ -48,17 +52,53 @@ export type SettlementDetails = Settlement & {
 };
 
 export async function listSettlements(): Promise<SettlementListItem[]> {
-  const { data, error } = await supabase
-    .from('settlements')
-    .select('*')
-    .order('is_active', { ascending: false })
-    .order('name', { ascending: true });
+  const [
+    { data: settlements, error: settlementsError },
+    { data: rankings, error: rankingsError },
+  ] = await Promise.all([
+    supabase
+      .from('settlements')
+      .select('*')
+      .order('is_active', { ascending: false })
+      .order('name', { ascending: true }),
+    supabase
+      .from('settlement_rankings')
+      .select('settlement_id, final_score, ranking_level, calculated_at')
+      .order('calculated_at', { ascending: false }),
+  ]);
 
-  if (error) {
-    throw createDataAccessError(error, 'לא ניתן לטעון את רשימת היישובים');
+  if (settlementsError) {
+    throw createDataAccessError(settlementsError, 'לא ניתן לטעון את רשימת היישובים');
   }
 
-  return data ?? [];
+  if (rankingsError) {
+    throw createDataAccessError(rankingsError, 'לא ניתן לטעון את נתוני המוכנות של היישובים');
+  }
+
+  const latestRankingBySettlement = new Map<
+    string,
+    Pick<
+      SettlementRanking,
+      'calculated_at' | 'final_score' | 'ranking_level' | 'settlement_id'
+    >
+  >();
+
+  (rankings ?? []).forEach((ranking) => {
+    if (!latestRankingBySettlement.has(ranking.settlement_id)) {
+      latestRankingBySettlement.set(ranking.settlement_id, ranking);
+    }
+  });
+
+  return (settlements ?? []).map((settlement) => {
+    const ranking = latestRankingBySettlement.get(settlement.id);
+
+    return {
+      ...settlement,
+      readinessCalculatedAt: ranking?.calculated_at ?? null,
+      readinessLevel: ranking?.ranking_level ?? null,
+      readinessScore: ranking?.final_score ?? null,
+    };
+  });
 }
 
 export async function getSettlementDetails(

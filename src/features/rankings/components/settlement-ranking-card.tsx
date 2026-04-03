@@ -1,65 +1,134 @@
-import { StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { AppBadge } from '@/src/components/ui/app-badge';
-import { AppButton } from '@/src/components/ui/app-button';
-import { AppCard } from '@/src/components/ui/app-card';
-import { DataRow } from '@/src/components/ui/data-row';
-import { getHalfYearLabel } from '@/src/lib/date-utils';
-import { theme } from '@/src/theme';
+import { OpsListCard } from '@/src/components/ui/ops-list-card';
 import type { SettlementRankingListItem } from '@/src/features/rankings/api/rankings-service';
-import { getRankingTone } from '@/src/features/rankings/lib/ranking-presenters';
+import { theme } from '@/src/theme';
 
 type SettlementRankingCardProps = {
   ranking: SettlementRankingListItem;
 };
 
+function getScoreTone(score: number) {
+  if (score >= 90) {
+    return 'accent' as const;
+  }
+
+  if (score >= 75) {
+    return 'teal' as const;
+  }
+
+  if (score >= 60) {
+    return 'warning' as const;
+  }
+
+  return 'danger' as const;
+}
+
 export function SettlementRankingCard({
   ranking,
 }: SettlementRankingCardProps) {
+  const router = useRouter();
+
   return (
-    <AppCard
-      description={`${ranking.area} • ${getHalfYearLabel(ranking.halfYearPeriod)}`}
+    <OpsListCard
+      onPress={() => {
+        router.push(`/settlements/${ranking.settlementId}` as never);
+      }}
       style={styles.card}
-      title={ranking.settlementName}
     >
-      <View style={styles.badges}>
-        <AppBadge label={`ציון ${ranking.finalScore}`} tone="accent" />
+      <View style={styles.topRow}>
+        <Text numberOfLines={1} style={styles.title}>
+          {ranking.settlementName}
+        </Text>
+
         <AppBadge
-          label={ranking.rankingLevel}
-          tone={getRankingTone(ranking.rankingLevel)}
+          label={`${ranking.finalScore}`}
+          size="sm"
+          tone={getScoreTone(ranking.finalScore)}
         />
       </View>
 
-      <DataRow
-        label="מועצה אזורית"
-        value={ranking.regionalCouncil?.trim() || 'לא הוגדרה'}
-      />
-      <DataRow label="מטווח" value={ranking.shootingCompleted ? 'כן' : 'לא'} />
-      <DataRow label="הגנת יישוב" value={ranking.defenseCompleted ? 'כן' : 'לא'} />
-      <DataRow
-        label="ממוצע משוב"
-        value={ranking.averageRating === null ? 'ללא משוב' : String(ranking.averageRating)}
-      />
-      <DataRow label="ניקוד אימונים" value={String(ranking.trainingScore)} />
-      <DataRow label="ניקוד משובים" value={String(ranking.feedbackScore)} />
+      <View style={styles.bottomRow}>
+        <View style={styles.indicators}>
+          <View style={styles.indicator}>
+            <Text style={styles.indicatorLabel}>מטווח</Text>
+            <Text
+              style={[
+                styles.indicatorValue,
+                ranking.shootingCompleted ? styles.positive : styles.negative,
+              ]}
+            >
+              {ranking.shootingCompleted ? '✔' : '✖'}
+            </Text>
+          </View>
 
-      <AppButton
-        fullWidth={false}
-        href={`/settlements/${ranking.settlementId}`}
-        label="מעבר ליישוב"
-        variant="secondary"
-      />
-    </AppCard>
+          <View style={styles.indicator}>
+            <Text style={styles.indicatorLabel}>הגנת יישוב</Text>
+            <Text
+              style={[
+                styles.indicatorValue,
+                ranking.defenseCompleted ? styles.positive : styles.negative,
+              ]}
+            >
+              {ranking.defenseCompleted ? '✔' : '✖'}
+            </Text>
+          </View>
+        </View>
+      </View>
+    </OpsListCard>
   );
 }
 
 const styles = StyleSheet.create({
-  badges: {
+  bottomRow: {
+    alignItems: 'center',
     flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    justifyContent: 'flex-end',
   },
   card: {
-    padding: theme.spacing.md,
+    gap: 8,
+  },
+  indicator: {
+    alignItems: 'center',
+    flexDirection: 'row-reverse',
+    gap: 4,
+  },
+  indicatorLabel: {
+    color: theme.colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+  indicatorValue: {
+    fontSize: 11,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  indicators: {
+    alignItems: 'center',
+    flexDirection: 'row-reverse',
+    gap: 12,
+    justifyContent: 'flex-end',
+  },
+  negative: {
+    color: theme.colors.danger,
+  },
+  positive: {
+    color: theme.colors.accentStrong,
+  },
+  title: {
+    color: theme.colors.textPrimary,
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  topRow: {
+    alignItems: 'center',
+    flexDirection: 'row-reverse',
+    gap: 10,
+    justifyContent: 'space-between',
   },
 });

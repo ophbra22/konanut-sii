@@ -9,6 +9,6 @@ export function getTrainingStatusTone(status: TrainingStatus) {
     case 'הושלם':
       return 'accent';
     default:
-      return 'neutral';
+      return 'info';
   }
 }

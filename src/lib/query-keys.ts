@@ -2,6 +2,10 @@ export const queryKeys = {
   auth: {
     profile: ['auth', 'profile'] as const,
   },
+  calendar: {
+    all: ['calendar'] as const,
+    month: (monthKey: string) => ['calendar', monthKey] as const,
+  },
   dashboard: {
     overview: ['dashboard', 'overview'] as const,
   },

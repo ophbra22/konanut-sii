@@ -1,80 +1,119 @@
-import dayjs from 'dayjs';
-import type { ReactNode } from 'react';
+import { useRouter } from 'expo-router';
+import {
+  CalendarDays,
+  Clock3,
+  MapPinned,
+  UserRound,
+} from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { AppCard } from '@/src/components/ui/app-card';
 import { AppBadge } from '@/src/components/ui/app-badge';
-import { DataRow } from '@/src/components/ui/data-row';
+import { OpsListCard } from '@/src/components/ui/ops-list-card';
 import type { TrainingListItem } from '@/src/features/trainings/api/trainings-service';
+import { getTrainingStatusTone } from '@/src/features/trainings/lib/training-presenters';
+import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
 import { theme } from '@/src/theme';
 
 type TrainingListCardProps = {
-  footer?: ReactNode;
   training: TrainingListItem;
 };
 
-function getStatusTone(status: TrainingListItem['status']) {
-  switch (status) {
-    case 'בוטל':
-      return 'danger';
-    case 'נדחה':
-      return 'warning';
-    case 'הושלם':
-      return 'accent';
-    default:
-      return 'neutral';
-  }
+function getLocationLabel(training: TrainingListItem) {
+  return training.location?.trim() || 'ללא מיקום';
 }
 
-function formatTime(value: string | null) {
-  return value ? value.slice(0, 5) : 'ללא שעה';
+function getInstructorLabel(training: TrainingListItem) {
+  return training.instructor?.full_name || 'ללא מדריך';
 }
 
-function getSettlementsLabel(training: TrainingListItem) {
-  if (!training.settlements.length) {
-    return 'לא שויכו יישובים';
-  }
+export function TrainingListCard({ training }: TrainingListCardProps) {
+  const router = useRouter();
 
-  return training.settlements.map((settlement) => settlement.name).join(', ');
-}
-
-export function TrainingListCard({
-  footer,
-  training,
-}: TrainingListCardProps) {
   return (
-    <AppCard
-      description={`${dayjs(training.training_date).format('DD/MM/YYYY')} • ${formatTime(
-        training.training_time
-      )}`}
-      title={training.title}
+    <OpsListCard
+      onPress={() => {
+        router.push(`/trainings/${training.id}` as never);
+      }}
+      style={styles.card}
     >
-      <View style={styles.badges}>
-        <AppBadge label={training.training_type} tone="accent" />
-        <AppBadge label={training.status} tone={getStatusTone(training.status)} />
+      <View style={styles.topRow}>
+        <Text numberOfLines={1} style={styles.title}>
+          {training.title}
+        </Text>
+
+        <AppBadge
+          label={training.status}
+          size="sm"
+          tone={getTrainingStatusTone(training.status)}
+        />
       </View>
 
-      <View style={styles.meta}>
-        <DataRow label="מיקום" value={training.location?.trim() || 'לא הוגדר'} />
-        <DataRow label="מדריך" value={training.instructor?.full_name || 'טרם שובץ'} />
-        <DataRow label="יישובים" value={getSettlementsLabel(training)} />
-      </View>
+      <View style={styles.metaRow}>
+        <View style={styles.metaItem}>
+          <MapPinned color={theme.colors.textMuted} size={12} />
+          <Text numberOfLines={1} style={styles.metaText}>
+            {getLocationLabel(training)}
+          </Text>
+        </View>
 
-      {footer ? <View style={styles.footer}>{footer}</View> : null}
-    </AppCard>
+        <View style={styles.metaItem}>
+          <Clock3 color={theme.colors.textMuted} size={12} />
+          <Text numberOfLines={1} style={styles.metaText}>
+            {formatDisplayTime(training.training_time)}
+          </Text>
+        </View>
+
+        <View style={styles.metaItem}>
+          <CalendarDays color={theme.colors.textMuted} size={12} />
+          <Text numberOfLines={1} style={styles.metaText}>
+            {formatDisplayDate(training.training_date)}
+          </Text>
+        </View>
+
+        <View style={styles.metaItem}>
+          <UserRound color={theme.colors.textMuted} size={12} />
+          <Text numberOfLines={1} style={styles.metaText}>
+            {getInstructorLabel(training)}
+          </Text>
+        </View>
+      </View>
+    </OpsListCard>
   );
 }
 
 const styles = StyleSheet.create({
-  badges: {
+  card: {
+    gap: 8,
+  },
+  metaItem: {
+    alignItems: 'center',
+    flex: 1,
     flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 4,
+    minWidth: 0,
   },
-  footer: {
-    marginTop: theme.spacing.xs,
+  metaRow: {
+    flexDirection: 'row-reverse',
+    gap: 8,
   },
-  meta: {
-    gap: theme.spacing.sm,
+  metaText: {
+    color: theme.colors.textSecondary,
+    flex: 1,
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  title: {
+    color: theme.colors.textPrimary,
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  topRow: {
+    alignItems: 'center',
+    flexDirection: 'row-reverse',
+    gap: 10,
+    justifyContent: 'space-between',
   },
 });

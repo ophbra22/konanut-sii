@@ -2,7 +2,9 @@ import { useMutation } from '@tanstack/react-query';
 
 import {
   createTraining,
+  deleteTrainingFeedback,
   deleteTraining,
+  saveTrainingFeedback,
   updateTraining,
   updateTrainingStatus,
 } from '@/src/features/trainings/api/trainings-service';
@@ -22,6 +24,15 @@ type TrainingUpdateMutationInput = {
   values: TablesUpdate<'trainings'>;
 };
 
+type TrainingFeedbackMutationInput = {
+  comment: string | null;
+  feedbackId?: string;
+  instructorId: string | null;
+  rating: number;
+  settlementId: string;
+  trainingId: string;
+};
+
 export function useCreateTrainingMutation() {
   const showToast = useFeedbackStore((state) => state.showToast);
 
@@ -29,6 +40,7 @@ export function useCreateTrainingMutation() {
     mutationFn: (params: TrainingMutationInput) => createTraining(params),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.trainings.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.calendar.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.overview });
       void queryClient.invalidateQueries({ queryKey: queryKeys.rankings.all });
       showToast('האימון נוצר בהצלחה', 'success');
@@ -46,6 +58,7 @@ export function useUpdateTrainingMutation() {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.trainings.detail(variables.trainingId),
       });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.calendar.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.overview });
       void queryClient.invalidateQueries({ queryKey: queryKeys.rankings.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.settlements.all });
@@ -70,6 +83,7 @@ export function useUpdateTrainingStatusMutation() {
       void queryClient.invalidateQueries({
         queryKey: queryKeys.trainings.detail(variables.trainingId),
       });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.calendar.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.overview });
       void queryClient.invalidateQueries({ queryKey: queryKeys.rankings.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.settlements.all });
@@ -85,10 +99,55 @@ export function useDeleteTrainingMutation() {
     mutationFn: (trainingId: string) => deleteTraining(trainingId),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.trainings.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.calendar.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.overview });
       void queryClient.invalidateQueries({ queryKey: queryKeys.rankings.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.settlements.all });
       showToast('האימון נמחק', 'success');
+    },
+  });
+}
+
+export function useSaveTrainingFeedbackMutation() {
+  const showToast = useFeedbackStore((state) => state.showToast);
+
+  return useMutation({
+    mutationFn: (params: TrainingFeedbackMutationInput) => saveTrainingFeedback(params),
+    onSuccess: (_, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.trainings.detail(variables.trainingId),
+      });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.trainings.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.overview });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.rankings.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.settlements.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.calendar.all });
+      showToast('המשוב נשמר בהצלחה', 'success');
+    },
+  });
+}
+
+export function useDeleteTrainingFeedbackMutation() {
+  const showToast = useFeedbackStore((state) => state.showToast);
+
+  return useMutation({
+    mutationFn: ({
+      feedbackId,
+      trainingId,
+    }: {
+      feedbackId: string;
+      trainingId: string;
+    }) => deleteTrainingFeedback({ feedbackId, trainingId }),
+    onSuccess: (_, variables) => {
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.trainings.detail(variables.trainingId),
+      });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.trainings.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.overview });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.rankings.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.settlements.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.calendar.all });
+      showToast('המשוב נמחק', 'success');
     },
   });
 }
