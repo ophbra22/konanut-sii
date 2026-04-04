@@ -20,7 +20,6 @@ import {
 import { useSettlementsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { theme } from '@/src/theme';
-import type { UserRole } from '@/src/types/database';
 
 export default function UsersApprovalScreen() {
   const router = useRouter();
@@ -39,6 +38,13 @@ export default function UsersApprovalScreen() {
       name: settlement.name,
       regional_council: settlement.regional_council,
     }));
+  const regionalCouncilOptions = Array.from(
+    new Set(
+      settlementOptions
+        .map((settlement) => settlement.regional_council?.trim())
+        .filter((regionalCouncil): regionalCouncil is string => Boolean(regionalCouncil))
+    )
+  ).sort((left, right) => left.localeCompare(right, 'he'));
 
   if (!canManage) {
     return (
@@ -142,8 +148,9 @@ export default function UsersApprovalScreen() {
                   key={user.id}
                   isApproving={approvingUserId === user.id}
                   isRejecting={rejectingUserId === user.id}
-                  onApprove={({ role: selectedRole, settlementIds }) => {
+                  onApprove={({ regionalCouncils, role: selectedRole, settlementIds }) => {
                     void approveMutation.mutateAsync({
+                      regionalCouncils,
                       role: selectedRole,
                       settlementIds,
                       userId: user.id,
@@ -165,6 +172,7 @@ export default function UsersApprovalScreen() {
                       ]
                     );
                   }}
+                  regionalCouncilOptions={regionalCouncilOptions}
                   settlementOptions={settlementOptions}
                   user={user}
                 />

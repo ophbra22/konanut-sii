@@ -11,9 +11,10 @@ import { DataRow } from '@/src/components/ui/data-row';
 import { MetricCard } from '@/src/components/ui/metric-card';
 import { PageHeader } from '@/src/components/ui/page-header';
 import {
+  canManageUserApprovals,
   getRoleLabel,
-  isMashkabat,
-  isSuperAdmin,
+  isCouncilScopedRole,
+  isSettlementScopedRole,
 } from '@/src/features/auth/lib/permissions';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { theme } from '@/src/theme';
@@ -24,9 +25,12 @@ export default function ProfileScreen() {
   const role = useAuthStore((state) => state.role);
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const signOut = useAuthStore((state) => state.signOut);
-  const canApproveUsers = isSuperAdmin(role);
+  const canApproveUsers = canManageUserApprovals(role);
+  const isCouncilScoped = isCouncilScopedRole(role);
   const showSettlementAssignments =
-    Boolean(profile?.linkedSettlements.length) || isMashkabat(role);
+    Boolean(profile?.linkedSettlements.length) || isSettlementScopedRole(role);
+  const showRegionalCouncilAssignments =
+    Boolean(profile?.linkedRegionalCouncils.length) || isCouncilScoped;
 
   return (
     <AppScreen contentContainerStyle={styles.screenContent}>
@@ -49,10 +53,20 @@ export default function ProfileScreen() {
               <MetricCard label="סטטוס" style={styles.metricCard} tone="accent" value="מחובר" />
               <MetricCard label="תפקיד" style={styles.metricCard} value={getRoleLabel(role)} />
               <MetricCard
-                label="יישובים מקושרים"
+                label={isCouncilScoped ? 'מועצות מקושרות' : 'יישובים מקושרים'}
                 style={styles.metricCard}
-                tone={profile.linkedSettlementIds.length ? 'accent' : 'warning'}
-                value={String(profile.linkedSettlementIds.length)}
+                tone={
+                  (isCouncilScoped
+                    ? profile.linkedRegionalCouncils.length
+                    : profile.linkedSettlementIds.length)
+                    ? 'accent'
+                    : 'warning'
+                }
+                value={String(
+                  isCouncilScoped
+                    ? profile.linkedRegionalCouncils.length
+                    : profile.linkedSettlementIds.length
+                )}
               />
             </View>
           </AppRevealView>
@@ -79,6 +93,29 @@ export default function ProfileScreen() {
                 <DataRow label="דוא״ל" value={profile.email?.trim() || 'לא הוגדר'} />
                 <DataRow label="טלפון" value={profile.phone?.trim() || 'לא הוגדר'} />
               </View>
+
+              {showRegionalCouncilAssignments ? (
+                <View style={styles.assignmentSection}>
+                  <Text style={styles.assignmentLabel}>מועצות משויכות</Text>
+
+                  {profile.linkedRegionalCouncils.length ? (
+                    <View style={styles.badges}>
+                      {profile.linkedRegionalCouncils.map((regionalCouncil) => (
+                        <AppBadge
+                          key={regionalCouncil}
+                          label={regionalCouncil}
+                          size="sm"
+                          tone="info"
+                        />
+                      ))}
+                    </View>
+                  ) : (
+                    <Text style={styles.assignmentEmpty}>
+                      עדיין לא הוגדרו מועצות משויכות לחשבון הזה.
+                    </Text>
+                  )}
+                </View>
+              ) : null}
 
               {showSettlementAssignments ? (
                 <View style={styles.assignmentSection}>

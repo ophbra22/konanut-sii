@@ -14,7 +14,15 @@ export const registerSchema = z
       .string()
       .min(6, 'יש להזין סיסמה באורך 6 תווים לפחות'),
     password_confirmation: z.string().min(1, 'יש לאמת את הסיסמה'),
-    requested_role: z.enum(['viewer', 'instructor', 'mashkabat', 'super_admin']),
+    requested_role: z.enum([
+      'super_admin',
+      'instructor',
+      'machbal',
+      'eshkol_officer',
+      'mashkabat',
+      'razar',
+      'sarazar',
+    ]),
     phone: z
       .string()
       .trim()

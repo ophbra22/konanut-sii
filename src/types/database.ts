@@ -321,6 +321,34 @@ export type Database = {
           },
         ];
       };
+      user_regional_councils: {
+        Row: {
+          created_at: string;
+          id: string;
+          regional_council: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          regional_council: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          regional_council?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'user_regional_councils_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'users_profile';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       users_profile: {
         Row: {
           created_at: string;
@@ -330,8 +358,23 @@ export type Database = {
           is_active: boolean;
           phone: string | null;
           requested_area: string | null;
-          requested_role: 'super_admin' | 'instructor' | 'mashkabat' | 'viewer' | null;
-          role: 'super_admin' | 'instructor' | 'mashkabat' | 'viewer';
+          requested_role:
+            | 'super_admin'
+            | 'instructor'
+            | 'machbal'
+            | 'eshkol_officer'
+            | 'mashkabat'
+            | 'razar'
+            | 'sarazar'
+            | null;
+          role:
+            | 'super_admin'
+            | 'instructor'
+            | 'machbal'
+            | 'eshkol_officer'
+            | 'mashkabat'
+            | 'razar'
+            | 'sarazar';
         };
         Insert: {
           created_at?: string;
@@ -341,8 +384,23 @@ export type Database = {
           is_active?: boolean;
           phone?: string | null;
           requested_area?: string | null;
-          requested_role?: 'super_admin' | 'instructor' | 'mashkabat' | 'viewer' | null;
-          role: 'super_admin' | 'instructor' | 'mashkabat' | 'viewer';
+          requested_role?:
+            | 'super_admin'
+            | 'instructor'
+            | 'machbal'
+            | 'eshkol_officer'
+            | 'mashkabat'
+            | 'razar'
+            | 'sarazar'
+            | null;
+          role:
+            | 'super_admin'
+            | 'instructor'
+            | 'machbal'
+            | 'eshkol_officer'
+            | 'mashkabat'
+            | 'razar'
+            | 'sarazar';
         };
         Update: {
           created_at?: string;
@@ -352,8 +410,23 @@ export type Database = {
           is_active?: boolean;
           phone?: string | null;
           requested_area?: string | null;
-          requested_role?: 'super_admin' | 'instructor' | 'mashkabat' | 'viewer' | null;
-          role?: 'super_admin' | 'instructor' | 'mashkabat' | 'viewer';
+          requested_role?:
+            | 'super_admin'
+            | 'instructor'
+            | 'machbal'
+            | 'eshkol_officer'
+            | 'mashkabat'
+            | 'razar'
+            | 'sarazar'
+            | null;
+          role?:
+            | 'super_admin'
+            | 'instructor'
+            | 'machbal'
+            | 'eshkol_officer'
+            | 'mashkabat'
+            | 'razar'
+            | 'sarazar';
         };
         Relationships: [];
       };
@@ -385,6 +458,12 @@ export type Database = {
       has_any_role: {
         Args: {
           allowed_roles: string[];
+        };
+        Returns: boolean;
+      };
+      has_regional_council_access: {
+        Args: {
+          target_regional_council: string;
         };
         Returns: boolean;
       };
@@ -443,6 +522,7 @@ export type SettlementRanking = Tables<'settlement_rankings'>;
 export type Training = Tables<'trainings'>;
 export type TrainingSettlement = Tables<'training_settlements'>;
 export type UserProfile = Tables<'users_profile'>;
+export type UserRegionalCouncil = Tables<'user_regional_councils'>;
 export type UserSettlement = Tables<'user_settlements'>;
 
 export type UserRole = UserProfile['role'];
@@ -457,6 +537,7 @@ export type LinkedSettlement = Pick<
 >;
 
 export type AuthProfile = UserProfile & {
+  linkedRegionalCouncils: string[];
   linkedSettlementIds: string[];
   linkedSettlements: LinkedSettlement[];
 };

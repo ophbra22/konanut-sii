@@ -1,4 +1,8 @@
 import { supabase } from '@/src/lib/supabase';
+import {
+  requiresRegionalCouncilAssignment,
+  requiresSettlementAssignment,
+} from '@/src/features/auth/lib/permissions';
 import { createDataAccessError, getErrorMessage } from '@/src/lib/error-utils';
 import type {
   LinkedSettlement,
@@ -8,6 +12,7 @@ import type {
 
 export type PendingUserProfile = UserProfile;
 export type ManagedUserProfile = UserProfile & {
+  linkedRegionalCouncils: string[];
   linkedSettlementIds: string[];
   linkedSettlements: LinkedSettlement[];
 };
@@ -24,6 +29,7 @@ const settlementLinksSelect = `
     regional_council
   )
 `;
+const regionalCouncilLinksSelect = 'user_id, regional_council';
 
 function shouldFallbackToLegacyProfileSelect(error: unknown) {
   const message = getErrorMessage(error, '');
@@ -32,6 +38,16 @@ function shouldFallbackToLegacyProfileSelect(error: unknown) {
     message.includes('requested_role') ||
     message.includes('requested_area') ||
     message.includes('column') ||
+    message.includes('schema cache')
+  );
+}
+
+function shouldIgnoreRegionalCouncilLinksError(error: unknown) {
+  const message = getErrorMessage(error, '');
+
+  return (
+    message.includes('user_regional_councils') ||
+    message.includes('relation') ||
     message.includes('schema cache')
   );
 }
@@ -57,13 +73,39 @@ type SettlementLinkRow = {
   user_id: string;
 };
 
+type RegionalCouncilLinkRow = {
+  regional_council: string | null;
+  user_id: string;
+};
+
 function normalizeSettlementIds(settlementIds: string[] | undefined) {
   return Array.from(new Set((settlementIds ?? []).filter(Boolean)));
 }
 
-function assertSettlementSelection(role: UserRole, settlementIds: string[]) {
-  if (role === 'mashkabat' && settlementIds.length === 0) {
+function normalizeRegionalCouncilNames(regionalCouncils: string[] | undefined) {
+  return Array.from(
+    new Set(
+      (regionalCouncils ?? [])
+        .map((regionalCouncil) => regionalCouncil.trim())
+        .filter(Boolean)
+    )
+  );
+}
+
+function assertAccessScopeSelection(params: {
+  regionalCouncils: string[];
+  role: UserRole;
+  settlementIds: string[];
+}) {
+  if (requiresSettlementAssignment(params.role) && params.settlementIds.length === 0) {
     throw new Error('יש לבחור לפחות יישוב אחד עבור משתמש משקב״ט');
+  }
+
+  if (
+    requiresRegionalCouncilAssignment(params.role) &&
+    params.regionalCouncils.length === 0
+  ) {
+    throw new Error('יש לבחור לפחות מועצה אזורית אחת עבור מחב״ל או מש״ק אשכול');
   }
 }
 
@@ -94,6 +136,33 @@ function groupSettlementLinksByUserId(links: SettlementLinkRow[] | null | undefi
   return settlementMap;
 }
 
+function groupRegionalCouncilsByUserId(
+  links: RegionalCouncilLinkRow[] | null | undefined
+) {
+  const regionalCouncilsMap = new Map<string, string[]>();
+
+  (links ?? []).forEach((link) => {
+    const regionalCouncil = link.regional_council?.trim();
+
+    if (!regionalCouncil) {
+      return;
+    }
+
+    const currentRegionalCouncils = regionalCouncilsMap.get(link.user_id) ?? [];
+    regionalCouncilsMap.set(link.user_id, [
+      ...currentRegionalCouncils,
+      regionalCouncil,
+    ]);
+  });
+
+  return new Map(
+    Array.from(regionalCouncilsMap.entries()).map(([userId, regionalCouncils]) => [
+      userId,
+      Array.from(new Set(regionalCouncils)),
+    ])
+  );
+}
+
 async function replaceUserSettlementAssignments(userId: string, settlementIds: string[]) {
   const normalizedSettlementIds = normalizeSettlementIds(settlementIds);
 
@@ -119,6 +188,37 @@ async function replaceUserSettlementAssignments(userId: string, settlementIds: s
 
   if (insertError) {
     throw createDataAccessError(insertError, 'לא ניתן לשמור את שיוכי היישובים');
+  }
+}
+
+async function replaceUserRegionalCouncilAssignments(
+  userId: string,
+  regionalCouncils: string[]
+) {
+  const normalizedRegionalCouncils = normalizeRegionalCouncilNames(regionalCouncils);
+
+  const { error: deleteError } = await supabase
+    .from('user_regional_councils')
+    .delete()
+    .eq('user_id', userId);
+
+  if (deleteError) {
+    throw createDataAccessError(deleteError, 'לא ניתן לעדכן את שיוכי המועצות');
+  }
+
+  if (!normalizedRegionalCouncils.length) {
+    return;
+  }
+
+  const { error: insertError } = await supabase.from('user_regional_councils').insert(
+    normalizedRegionalCouncils.map((regionalCouncil) => ({
+      regional_council: regionalCouncil,
+      user_id: userId,
+    }))
+  );
+
+  if (insertError) {
+    throw createDataAccessError(insertError, 'לא ניתן לשמור את שיוכי המועצות');
   }
 }
 
@@ -151,14 +251,23 @@ export async function listPendingUsers(): Promise<PendingUserProfile[]> {
 }
 
 export async function approvePendingUser(params: {
+  regionalCouncils?: string[];
   role: UserRole;
   settlementIds?: string[];
   userId: string;
 }) {
-  const settlementIds =
-    params.role === 'mashkabat' ? normalizeSettlementIds(params.settlementIds) : [];
+  const settlementIds = requiresSettlementAssignment(params.role)
+    ? normalizeSettlementIds(params.settlementIds)
+    : [];
+  const regionalCouncils = requiresRegionalCouncilAssignment(params.role)
+    ? normalizeRegionalCouncilNames(params.regionalCouncils)
+    : [];
 
-  assertSettlementSelection(params.role, settlementIds);
+  assertAccessScopeSelection({
+    regionalCouncils,
+    role: params.role,
+    settlementIds,
+  });
 
   const { error } = await supabase
     .from('users_profile')
@@ -174,7 +283,10 @@ export async function approvePendingUser(params: {
     throw createDataAccessError(error, 'לא ניתן לאשר את המשתמש');
   }
 
-  await replaceUserSettlementAssignments(params.userId, settlementIds);
+  await Promise.all([
+    replaceUserSettlementAssignments(params.userId, settlementIds),
+    replaceUserRegionalCouncilAssignments(params.userId, regionalCouncils),
+  ]);
 }
 
 export async function rejectPendingUser(userId: string) {
@@ -191,7 +303,10 @@ export async function rejectPendingUser(userId: string) {
     throw createDataAccessError(error, 'לא ניתן לדחות את המשתמש');
   }
 
-  await replaceUserSettlementAssignments(userId, []);
+  await Promise.all([
+    replaceUserSettlementAssignments(userId, []),
+    replaceUserRegionalCouncilAssignments(userId, []),
+  ]);
 }
 
 export async function listManagedUsers(): Promise<ManagedUserProfile[]> {
@@ -225,39 +340,77 @@ export async function listManagedUsers(): Promise<ManagedUserProfile[]> {
     return [];
   }
 
-  const { data: links, error: linksError } = await supabase
-    .from('user_settlements')
-    .select(settlementLinksSelect)
-    .in('user_id', userIds);
+  const [
+    { data: links, error: linksError },
+    { data: regionalCouncilLinks, error: regionalCouncilLinksError },
+  ] = await Promise.all([
+    supabase
+      .from('user_settlements')
+      .select(settlementLinksSelect)
+      .in('user_id', userIds),
+    supabase
+      .from('user_regional_councils')
+      .select(regionalCouncilLinksSelect)
+      .in('user_id', userIds),
+  ]);
 
   if (linksError) {
     throw createDataAccessError(linksError, 'לא ניתן לטעון את שיוכי היישובים');
   }
 
+  if (
+    regionalCouncilLinksError &&
+    !shouldIgnoreRegionalCouncilLinksError(regionalCouncilLinksError)
+  ) {
+    throw createDataAccessError(
+      regionalCouncilLinksError,
+      'לא ניתן לטעון את שיוכי המועצות'
+    );
+  }
+
   const linksByUserId = groupSettlementLinksByUserId((links ?? []) as SettlementLinkRow[]);
+  const shouldIgnoreRegionalCouncilLinks = regionalCouncilLinksError
+    ? shouldIgnoreRegionalCouncilLinksError(regionalCouncilLinksError)
+    : false;
+  const regionalCouncilsByUserId = groupRegionalCouncilsByUserId(
+    shouldIgnoreRegionalCouncilLinks
+      ? []
+      : ((regionalCouncilLinks ?? []) as RegionalCouncilLinkRow[])
+  );
 
   return (profiles ?? []).map((profile) => {
     const linkedSettlements = linksByUserId.get(profile.id) ?? {
       linkedSettlementIds: [],
       linkedSettlements: [],
     };
+    const linkedRegionalCouncils = regionalCouncilsByUserId.get(profile.id) ?? [];
 
     return {
       ...profile,
+      linkedRegionalCouncils,
       ...linkedSettlements,
     };
   });
 }
 
 export async function updateManagedUserAccess(params: {
+  regionalCouncils?: string[];
   role: UserRole;
   settlementIds?: string[];
   userId: string;
 }) {
-  const settlementIds =
-    params.role === 'mashkabat' ? normalizeSettlementIds(params.settlementIds) : [];
+  const settlementIds = requiresSettlementAssignment(params.role)
+    ? normalizeSettlementIds(params.settlementIds)
+    : [];
+  const regionalCouncils = requiresRegionalCouncilAssignment(params.role)
+    ? normalizeRegionalCouncilNames(params.regionalCouncils)
+    : [];
 
-  assertSettlementSelection(params.role, settlementIds);
+  assertAccessScopeSelection({
+    regionalCouncils,
+    role: params.role,
+    settlementIds,
+  });
 
   const { error } = await supabase
     .from('users_profile')
@@ -270,5 +423,8 @@ export async function updateManagedUserAccess(params: {
     throw createDataAccessError(error, 'לא ניתן לעדכן את הרשאות המשתמש');
   }
 
-  await replaceUserSettlementAssignments(params.userId, settlementIds);
+  await Promise.all([
+    replaceUserSettlementAssignments(params.userId, settlementIds),
+    replaceUserRegionalCouncilAssignments(params.userId, regionalCouncils),
+  ]);
 }

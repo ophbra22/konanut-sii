@@ -16,6 +16,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppTextField } from '@/src/components/ui/app-text-field';
 import { AuthScreenShell } from '@/src/features/auth/components/auth-screen-shell';
 import { AuthSubmitButton } from '@/src/features/auth/components/auth-submit-button';
+import { registrationRoleOptions } from '@/src/features/auth/lib/permissions';
 import {
   registerSchema,
   type RegisterFormValues,
@@ -43,7 +44,7 @@ export function RegisterForm() {
       password: '',
       password_confirmation: '',
       phone: '',
-      requested_role: 'viewer',
+      requested_role: 'razar',
       settlement_area: '',
     },
     resolver: zodResolver(registerSchema),
@@ -234,7 +235,7 @@ export function RegisterForm() {
             <View style={styles.roleField}>
               <Text style={styles.roleLabel}>תפקיד מבוקש</Text>
               <View style={styles.roleOptions}>
-                {ROLE_OPTIONS.map((option) => {
+                {registrationRoleOptions.map((option) => {
                   const isSelected = value === option.value;
 
                   return (
@@ -271,7 +272,10 @@ export function RegisterForm() {
                   );
                 })}
               </View>
-              <Text style={styles.roleHint}>התפקיד בפועל ייקבע רק לאחר אישור מנהל.</Text>
+              <Text style={styles.roleHint}>
+                התפקיד המבוקש ייבדק ידנית, ושיוך ליישובים או למועצות יוגדר רק לאחר אישור
+                מנהל.
+              </Text>
             </View>
           )}
         />
@@ -470,30 +474,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
-const ROLE_OPTIONS: Array<{
-  description: string;
-  label: string;
-  value: RegisterFormValues['requested_role'];
-}> = [
-  {
-    description: 'גישה לצפייה בנתוני המערכת לאחר אישור.',
-    label: 'צופה',
-    value: 'viewer',
-  },
-  {
-    description: 'שיוך מבצעי ליישוב אחד או יותר, לפי הקצאה של מנהל.',
-    label: 'משקב״ט',
-    value: 'mashkabat',
-  },
-  {
-    description: 'גישה לניהול אימונים ומשובים בתחום האחריות.',
-    label: 'מדריך',
-    value: 'instructor',
-  },
-  {
-    description: 'בקשת הרשאה ניהולית מלאה, בכפוף לאישור מפורש.',
-    label: 'מנהל מערכת',
-    value: 'super_admin',
-  },
-];

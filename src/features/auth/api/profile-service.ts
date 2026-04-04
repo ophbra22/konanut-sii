@@ -18,6 +18,7 @@ const settlementLinksSelect = `
     regional_council
   )
 `;
+const regionalCouncilLinksSelect = 'user_id, regional_council';
 
 function shouldFallbackToLegacyProfileSelect(error: unknown) {
   const message = getErrorMessage(error, '');
@@ -26,6 +27,16 @@ function shouldFallbackToLegacyProfileSelect(error: unknown) {
     message.includes('requested_role') ||
     message.includes('requested_area') ||
     message.includes('column') ||
+    message.includes('schema cache')
+  );
+}
+
+function shouldIgnoreRegionalCouncilLinksError(error: unknown) {
+  const message = getErrorMessage(error, '');
+
+  return (
+    message.includes('user_regional_councils') ||
+    message.includes('relation') ||
     message.includes('schema cache')
   );
 }
@@ -66,6 +77,14 @@ function getAuthErrorMessage(message: string) {
     return 'יש לבחור סיסמה באורך 6 תווים לפחות';
   }
 
+  if (
+    message.includes('users_profile_role_check') ||
+    message.includes('users_profile_requested_role_check') ||
+    message.includes('user_regional_councils')
+  ) {
+    return 'נדרש לעדכן את סכמת ההרשאות ב-Supabase לפני השלמת הפעולה';
+  }
+
   if (message.includes('Unable to validate email address')) {
     return 'יש להזין כתובת דוא"ל תקינה';
   }
@@ -96,6 +115,11 @@ type SettlementLinkRow = {
   user_id: string;
 };
 
+type RegionalCouncilLinkRow = {
+  regional_council: string | null;
+  user_id: string;
+};
+
 function mapSettlementLinks(links: SettlementLinkRow[] | null | undefined) {
   const linkedSettlements = (links ?? [])
     .map((item) => item.settlement)
@@ -107,19 +131,40 @@ function mapSettlementLinks(links: SettlementLinkRow[] | null | undefined) {
   };
 }
 
+function mapRegionalCouncilLinks(
+  links: RegionalCouncilLinkRow[] | null | undefined
+) {
+  return {
+    linkedRegionalCouncils: Array.from(
+      new Set(
+        (links ?? [])
+          .map((item) => item.regional_council?.trim())
+          .filter((regionalCouncil): regionalCouncil is string => Boolean(regionalCouncil))
+      )
+    ),
+  };
+}
+
 export async function fetchUserProfile(userId: string): Promise<AuthProfile | null> {
-  const [{ data: rawProfile, error: profileError }, { data: links, error: linksError }] =
-    await Promise.all([
-      supabase
-        .from('users_profile')
-        .select(fullProfileSelect)
-        .eq('id', userId)
-        .maybeSingle(),
-      supabase
-        .from('user_settlements')
-        .select(settlementLinksSelect)
-        .eq('user_id', userId),
-    ]);
+  const [
+    { data: rawProfile, error: profileError },
+    { data: links, error: linksError },
+    { data: regionalCouncilLinks, error: regionalCouncilLinksError },
+  ] = await Promise.all([
+    supabase
+      .from('users_profile')
+      .select(fullProfileSelect)
+      .eq('id', userId)
+      .maybeSingle(),
+    supabase
+      .from('user_settlements')
+      .select(settlementLinksSelect)
+      .eq('user_id', userId),
+    supabase
+      .from('user_regional_councils')
+      .select(regionalCouncilLinksSelect)
+      .eq('user_id', userId),
+  ]);
 
   let profile = rawProfile as UserProfile | null;
 
@@ -143,14 +188,33 @@ export async function fetchUserProfile(userId: string): Promise<AuthProfile | nu
     throw createDataAccessError(linksError, 'לא ניתן לטעון את שיוכי היישובים');
   }
 
+  if (
+    regionalCouncilLinksError &&
+    !shouldIgnoreRegionalCouncilLinksError(regionalCouncilLinksError)
+  ) {
+    throw createDataAccessError(
+      regionalCouncilLinksError,
+      'לא ניתן לטעון את שיוכי המועצות'
+    );
+  }
+
   if (!profile) {
     return null;
   }
 
   const settlementLinks = mapSettlementLinks((links ?? []) as SettlementLinkRow[]);
+  const shouldIgnoreRegionalCouncilLinks = regionalCouncilLinksError
+    ? shouldIgnoreRegionalCouncilLinksError(regionalCouncilLinksError)
+    : false;
+  const regionalCouncils = mapRegionalCouncilLinks(
+    shouldIgnoreRegionalCouncilLinks
+      ? []
+      : ((regionalCouncilLinks ?? []) as RegionalCouncilLinkRow[])
+  );
 
   return {
     ...profile,
+    ...regionalCouncils,
     ...settlementLinks,
   };
 }

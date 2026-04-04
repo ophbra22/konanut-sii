@@ -6,7 +6,10 @@ import { AppCard } from '@/src/components/ui/app-card';
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppScreen } from '@/src/components/ui/app-screen';
 import { PageHeader } from '@/src/components/ui/page-header';
-import { isSuperAdmin } from '@/src/features/auth/lib/permissions';
+import {
+  canManageTrainings,
+  isSuperAdmin,
+} from '@/src/features/auth/lib/permissions';
 import { useActiveProfilesQuery } from '@/src/features/auth/hooks/use-active-profiles-query';
 import { useSettlementsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
 import { TrainingForm } from '@/src/features/trainings/components/training-form';
@@ -25,7 +28,8 @@ export default function EditTrainingScreen() {
   const mutation = useUpdateTrainingMutation();
   const detailsQuery = useTrainingDetailsQuery(trainingId);
   const settlementsQuery = useSettlementsQuery();
-  const profilesQuery = useActiveProfilesQuery(isSuperAdmin(role));
+  const canChooseInstructor = isSuperAdmin(role);
+  const profilesQuery = useActiveProfilesQuery(canChooseInstructor);
 
   if (
     detailsQuery.isLoading ||
@@ -35,13 +39,13 @@ export default function EditTrainingScreen() {
     return <AppLoader label="טוען את נתוני האימון לעריכה..." />;
   }
 
-  if (!isSuperAdmin(role)) {
+  if (!canManageTrainings(role)) {
     return (
       <AppScreen>
         <PageHeader
           eyebrow="אימונים"
           title="עריכת אימון"
-          subtitle="המסך זמין רק למנהלי מערכת."
+          subtitle="המסך זמין למנהלי מערכת ולמדריכים."
         />
         <StateCard
           actionLabel="חזרה לפרטי האימון"
@@ -108,10 +112,21 @@ export default function EditTrainingScreen() {
       <AppCard title="עדכון אימון" description="השינויים נשמרים ישירות ב-Supabase ומשפיעים על הדשבורד והדירוגים.">
         <TrainingForm
           initialValues={getTrainingFormValues(training)}
-          instructorOptions={(profilesQuery.data ?? []).map((profile) => ({
-            full_name: profile.full_name,
-            id: profile.id,
-          }))}
+          instructorOptions={
+            canChooseInstructor
+              ? (profilesQuery.data ?? []).map((profile) => ({
+                  full_name: profile.full_name,
+                  id: profile.id,
+                }))
+              : training.instructor
+                ? [
+                    {
+                      full_name: training.instructor.full_name,
+                      id: training.instructor.id,
+                    },
+                  ]
+                : []
+          }
           isSubmitting={mutation.isPending}
           onSubmit={async (values) => {
             await mutation.mutateAsync({

@@ -17,14 +17,16 @@ export function useApprovePendingUserMutation() {
 
   return useMutation({
     mutationFn: ({
+      regionalCouncils,
       role,
       settlementIds,
       userId,
     }: {
+      regionalCouncils?: string[];
       role: UserRole;
       settlementIds?: string[];
       userId: string;
-    }) => approvePendingUser({ role, settlementIds, userId }),
+    }) => approvePendingUser({ regionalCouncils, role, settlementIds, userId }),
     onSuccess: async () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.auth.pendingUsers });
       void queryClient.invalidateQueries({ queryKey: queryKeys.auth.activeProfiles });
@@ -54,14 +56,16 @@ export function useUpdateManagedUserAccessMutation() {
 
   return useMutation({
     mutationFn: ({
+      regionalCouncils,
       role,
       settlementIds,
       userId,
     }: {
+      regionalCouncils?: string[];
       role: UserRole;
       settlementIds?: string[];
       userId: string;
-    }) => updateManagedUserAccess({ role, settlementIds, userId }),
+    }) => updateManagedUserAccess({ regionalCouncils, role, settlementIds, userId }),
     onSuccess: async () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.auth.activeProfiles });
       void queryClient.invalidateQueries({ queryKey: queryKeys.auth.managedUsers });

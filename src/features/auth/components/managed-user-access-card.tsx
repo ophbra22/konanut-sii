@@ -6,37 +6,42 @@ import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppChip } from '@/src/components/ui/app-chip';
 import { DataRow } from '@/src/components/ui/data-row';
+import { UserRegionalCouncilAssignmentField } from '@/src/features/auth/components/user-regional-council-assignment-field';
 import { UserSettlementAssignmentField } from '@/src/features/auth/components/user-settlement-assignment-field';
-import { getRoleLabel } from '@/src/features/auth/lib/permissions';
+import {
+  assignableRoleOptions,
+  getRoleLabel,
+  requiresRegionalCouncilAssignment,
+  requiresSettlementAssignment,
+} from '@/src/features/auth/lib/permissions';
 import { formatDisplayDate } from '@/src/lib/date-utils';
 import { theme } from '@/src/theme';
 import type { ManagedUserProfile } from '@/src/features/auth/api/user-approval-service';
-import type {
-  LinkedSettlement,
-  UserRole,
-} from '@/src/types/database';
+import type { LinkedSettlement, UserRole } from '@/src/types/database';
 
 type ManagedUserAccessCardProps = {
   isSaving?: boolean;
-  onSave: (payload: { role: UserRole; settlementIds: string[] }) => void;
+  onSave: (payload: {
+    regionalCouncils: string[];
+    role: UserRole;
+    settlementIds: string[];
+  }) => void;
+  regionalCouncilOptions: string[];
   settlementOptions: LinkedSettlement[];
   user: ManagedUserProfile;
 };
 
-const roleOptions: Array<{ label: string; value: UserRole }> = [
-  { label: 'צפייה', value: 'viewer' },
-  { label: 'משקב״ט', value: 'mashkabat' },
-  { label: 'מדריך', value: 'instructor' },
-  { label: 'מנהל', value: 'super_admin' },
-];
-
 export function ManagedUserAccessCard({
   isSaving = false,
   onSave,
+  regionalCouncilOptions,
   settlementOptions,
   user,
 }: ManagedUserAccessCardProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole>(user.role);
+  const [selectedRegionalCouncils, setSelectedRegionalCouncils] = useState<string[]>(
+    user.linkedRegionalCouncils
+  );
   const [selectedSettlementIds, setSelectedSettlementIds] = useState<string[]>(
     user.linkedSettlementIds
   );
@@ -44,12 +49,16 @@ export function ManagedUserAccessCard({
 
   useEffect(() => {
     setSelectedRole(user.role);
+    setSelectedRegionalCouncils(user.linkedRegionalCouncils);
     setSelectedSettlementIds(user.linkedSettlementIds);
     setAssignmentError(null);
   }, [user]);
 
   useEffect(() => {
-    if (selectedRole !== 'mashkabat') {
+    if (
+      !requiresSettlementAssignment(selectedRole) &&
+      !requiresRegionalCouncilAssignment(selectedRole)
+    ) {
       setAssignmentError(null);
     }
   }, [selectedRole]);
@@ -76,11 +85,12 @@ export function ManagedUserAccessCard({
       <View style={styles.roleSection}>
         <Text style={styles.sectionLabel}>תפקיד פעיל</Text>
         <View style={styles.roleChips}>
-          {roleOptions.map((option) => (
+          {assignableRoleOptions.map((option) => (
             <AppChip
               key={option.value}
               label={option.label}
               onPress={() => {
+                setAssignmentError(null);
                 setSelectedRole(option.value);
               }}
               selected={selectedRole === option.value}
@@ -90,10 +100,10 @@ export function ManagedUserAccessCard({
         </View>
       </View>
 
-      {selectedRole === 'mashkabat' ? (
+      {requiresSettlementAssignment(selectedRole) ? (
         <UserSettlementAssignmentField
           errorMessage={assignmentError ?? undefined}
-          helperText="השיוכים נשמרים ב־user_settlements ומאפשרים ניהול כמה יישובים לאותו משתמש."
+          helperText="למשתמש משקב״ט חייב להיות לפחות שיוך אחד ליישוב."
           onToggleSettlement={(settlementId) => {
             setAssignmentError(null);
             setSelectedSettlementIds((currentIds) =>
@@ -105,14 +115,46 @@ export function ManagedUserAccessCard({
           selectedSettlementIds={selectedSettlementIds}
           settlements={settlementOptions}
         />
-      ) : user.linkedSettlements.length ? (
+      ) : null}
+
+      {requiresRegionalCouncilAssignment(selectedRole) ? (
+        <UserRegionalCouncilAssignmentField
+          errorMessage={assignmentError ?? undefined}
+          helperText="מחב״ל ומש״ק אשכול חייבים שיוך למועצה אזורית אחת לפחות."
+          onToggleRegionalCouncil={(regionalCouncil) => {
+            setAssignmentError(null);
+            setSelectedRegionalCouncils((currentRegionalCouncils) =>
+              currentRegionalCouncils.includes(regionalCouncil)
+                ? currentRegionalCouncils.filter((item) => item !== regionalCouncil)
+                : [...currentRegionalCouncils, regionalCouncil]
+            );
+          }}
+          regionalCouncilOptions={regionalCouncilOptions}
+          selectedRegionalCouncils={selectedRegionalCouncils}
+        />
+      ) : null}
+
+      {!requiresSettlementAssignment(selectedRole) &&
+      !requiresRegionalCouncilAssignment(selectedRole) &&
+      (user.linkedSettlements.length || user.linkedRegionalCouncils.length) ? (
         <View style={styles.roleSection}>
           <Text style={styles.sectionLabel}>שיוכים קיימים</Text>
-          <View style={styles.roleChips}>
-            {user.linkedSettlements.map((settlement) => (
-              <AppChip key={settlement.id} label={settlement.name} selected tone="accent" />
-            ))}
-          </View>
+
+          {user.linkedRegionalCouncils.length ? (
+            <View style={styles.roleChips}>
+              {user.linkedRegionalCouncils.map((regionalCouncil) => (
+                <AppChip key={regionalCouncil} label={regionalCouncil} selected tone="accent" />
+              ))}
+            </View>
+          ) : null}
+
+          {user.linkedSettlements.length ? (
+            <View style={styles.roleChips}>
+              {user.linkedSettlements.map((settlement) => (
+                <AppChip key={settlement.id} label={settlement.name} selected tone="accent" />
+              ))}
+            </View>
+          ) : null}
         </View>
       ) : null}
 
@@ -121,12 +163,24 @@ export function ManagedUserAccessCard({
         label="שמירת הרשאות"
         loading={isSaving}
         onPress={() => {
-          if (selectedRole === 'mashkabat' && selectedSettlementIds.length === 0) {
+          if (
+            requiresSettlementAssignment(selectedRole) &&
+            selectedSettlementIds.length === 0
+          ) {
             setAssignmentError('יש לבחור לפחות יישוב אחד עבור משתמש משקב״ט');
             return;
           }
 
+          if (
+            requiresRegionalCouncilAssignment(selectedRole) &&
+            selectedRegionalCouncils.length === 0
+          ) {
+            setAssignmentError('יש לבחור לפחות מועצה אזורית אחת עבור מחב״ל או מש״ק אשכול');
+            return;
+          }
+
           onSave({
+            regionalCouncils: selectedRegionalCouncils,
             role: selectedRole,
             settlementIds: selectedSettlementIds,
           });

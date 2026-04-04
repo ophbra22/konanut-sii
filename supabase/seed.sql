@@ -18,6 +18,7 @@ begin
     public.alerts,
     public.settlement_rankings,
     public.trainings,
+    public.user_regional_councils,
     public.user_settlements,
     public.settlements
   restart identity cascade;
@@ -194,7 +195,7 @@ begin
     full_name = 'רכז צפון',
     email = 'viewer.north@konanut.local',
     phone = '050-7000002',
-    role = 'viewer',
+    role = 'razar',
     is_active = true
   where id = viewer_north_user_id;
 
@@ -203,7 +204,7 @@ begin
     full_name = 'רכז מרכז',
     email = 'viewer.center@konanut.local',
     phone = '050-7000003',
-    role = 'viewer',
+    role = 'razar',
     is_active = true
   where id = viewer_center_user_id;
 

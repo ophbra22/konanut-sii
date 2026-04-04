@@ -37,6 +37,17 @@ export default function UsersManagementScreen() {
         })),
     [settlementsQuery.data]
   );
+  const regionalCouncilOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          settlementOptions
+            .map((settlement) => settlement.regional_council?.trim())
+            .filter((regionalCouncil): regionalCouncil is string => Boolean(regionalCouncil))
+        )
+      ).sort((left, right) => left.localeCompare(right, 'he')),
+    [settlementOptions]
+  );
 
   if (!canManage) {
     return (
@@ -138,13 +149,15 @@ export default function UsersManagementScreen() {
                 <ManagedUserAccessCard
                   key={user.id}
                   isSaving={savingUserId === user.id}
-                  onSave={({ role: selectedRole, settlementIds }) => {
+                  onSave={({ regionalCouncils, role: selectedRole, settlementIds }) => {
                     void updateMutation.mutateAsync({
+                      regionalCouncils,
                       role: selectedRole,
                       settlementIds,
                       userId: user.id,
                     });
                   }}
+                  regionalCouncilOptions={regionalCouncilOptions}
                   settlementOptions={settlementOptions}
                   user={user}
                 />

@@ -6,36 +6,35 @@ import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppChip } from '@/src/components/ui/app-chip';
 import { DataRow } from '@/src/components/ui/data-row';
+import { UserRegionalCouncilAssignmentField } from '@/src/features/auth/components/user-regional-council-assignment-field';
 import { UserSettlementAssignmentField } from '@/src/features/auth/components/user-settlement-assignment-field';
 import {
+  assignableRoleOptions,
   getRoleLabel,
+  requiresRegionalCouncilAssignment,
+  requiresSettlementAssignment,
 } from '@/src/features/auth/lib/permissions';
 import { formatDisplayDate } from '@/src/lib/date-utils';
 import { theme } from '@/src/theme';
-import type {
-  LinkedSettlement,
-  UserRole,
-} from '@/src/types/database';
 import type { PendingUserProfile } from '@/src/features/auth/api/user-approval-service';
+import type { LinkedSettlement, UserRole } from '@/src/types/database';
 
 type PendingUserApprovalCardProps = {
   isApproving?: boolean;
   isRejecting?: boolean;
-  onApprove: (payload: { role: UserRole; settlementIds: string[] }) => void;
+  onApprove: (payload: {
+    regionalCouncils: string[];
+    role: UserRole;
+    settlementIds: string[];
+  }) => void;
   onReject: () => void;
+  regionalCouncilOptions: string[];
   settlementOptions: LinkedSettlement[];
   user: PendingUserProfile;
 };
 
-const roleOptions: Array<{ label: string; value: UserRole }> = [
-  { label: 'צפייה', value: 'viewer' },
-  { label: 'משקב״ט', value: 'mashkabat' },
-  { label: 'מדריך', value: 'instructor' },
-  { label: 'מנהל', value: 'super_admin' },
-];
-
 function getDefaultRole(user: PendingUserProfile): UserRole {
-  return user.requested_role ?? user.role ?? 'viewer';
+  return user.requested_role ?? user.role ?? 'razar';
 }
 
 function getStatusPresentation(user: PendingUserProfile) {
@@ -57,21 +56,27 @@ export function PendingUserApprovalCard({
   isRejecting = false,
   onApprove,
   onReject,
+  regionalCouncilOptions,
   settlementOptions,
   user,
 }: PendingUserApprovalCardProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole>(() => getDefaultRole(user));
+  const [selectedRegionalCouncils, setSelectedRegionalCouncils] = useState<string[]>([]);
   const [selectedSettlementIds, setSelectedSettlementIds] = useState<string[]>([]);
   const [assignmentError, setAssignmentError] = useState<string | null>(null);
 
   useEffect(() => {
     setSelectedRole(getDefaultRole(user));
+    setSelectedRegionalCouncils([]);
     setSelectedSettlementIds([]);
     setAssignmentError(null);
   }, [user]);
 
   useEffect(() => {
-    if (selectedRole !== 'mashkabat') {
+    if (
+      !requiresSettlementAssignment(selectedRole) &&
+      !requiresRegionalCouncilAssignment(selectedRole)
+    ) {
       setAssignmentError(null);
     }
   }, [selectedRole]);
@@ -110,11 +115,12 @@ export function PendingUserApprovalCard({
       <View style={styles.roleSection}>
         <Text style={styles.sectionLabel}>תפקיד באישור</Text>
         <View style={styles.roleChips}>
-          {roleOptions.map((option) => (
+          {assignableRoleOptions.map((option) => (
             <AppChip
               key={option.value}
               label={option.label}
               onPress={() => {
+                setAssignmentError(null);
                 setSelectedRole(option.value);
               }}
               selected={selectedRole === option.value}
@@ -124,7 +130,7 @@ export function PendingUserApprovalCard({
         </View>
       </View>
 
-      {selectedRole === 'mashkabat' ? (
+      {requiresSettlementAssignment(selectedRole) ? (
         <UserSettlementAssignmentField
           errorMessage={assignmentError ?? undefined}
           helperText="למשתמש משקב״ט חייב להיות לפחות שיוך אחד ליישוב."
@@ -138,6 +144,23 @@ export function PendingUserApprovalCard({
           }}
           selectedSettlementIds={selectedSettlementIds}
           settlements={settlementOptions}
+        />
+      ) : null}
+
+      {requiresRegionalCouncilAssignment(selectedRole) ? (
+        <UserRegionalCouncilAssignmentField
+          errorMessage={assignmentError ?? undefined}
+          helperText="למחב״ל ולמש״ק אשכול חייבת להיות לפחות מועצה אזורית אחת משויכת."
+          onToggleRegionalCouncil={(regionalCouncil) => {
+            setAssignmentError(null);
+            setSelectedRegionalCouncils((currentRegionalCouncils) =>
+              currentRegionalCouncils.includes(regionalCouncil)
+                ? currentRegionalCouncils.filter((item) => item !== regionalCouncil)
+                : [...currentRegionalCouncils, regionalCouncil]
+            );
+          }}
+          regionalCouncilOptions={regionalCouncilOptions}
+          selectedRegionalCouncils={selectedRegionalCouncils}
         />
       ) : null}
 
@@ -157,12 +180,24 @@ export function PendingUserApprovalCard({
           label="אישור משתמש"
           loading={isApproving}
           onPress={() => {
-            if (selectedRole === 'mashkabat' && selectedSettlementIds.length === 0) {
+            if (
+              requiresSettlementAssignment(selectedRole) &&
+              selectedSettlementIds.length === 0
+            ) {
               setAssignmentError('יש לבחור לפחות יישוב אחד לפני אישור המשתמש');
               return;
             }
 
+            if (
+              requiresRegionalCouncilAssignment(selectedRole) &&
+              selectedRegionalCouncils.length === 0
+            ) {
+              setAssignmentError('יש לבחור לפחות מועצה אזורית אחת לפני אישור המשתמש');
+              return;
+            }
+
             onApprove({
+              regionalCouncils: selectedRegionalCouncils,
               role: selectedRole,
               settlementIds: selectedSettlementIds,
             });
