@@ -6,11 +6,13 @@ import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppChip } from '@/src/components/ui/app-chip';
 import { DataRow } from '@/src/components/ui/data-row';
+import { UserPlagaAssignmentField } from '@/src/features/auth/components/user-plaga-assignment-field';
 import { UserRegionalCouncilAssignmentField } from '@/src/features/auth/components/user-regional-council-assignment-field';
 import { UserSettlementAssignmentField } from '@/src/features/auth/components/user-settlement-assignment-field';
 import {
   assignableRoleOptions,
   getRoleLabel,
+  requiresPlagaAssignment,
   requiresRegionalCouncilAssignment,
   requiresSettlementAssignment,
 } from '@/src/features/auth/lib/permissions';
@@ -23,11 +25,13 @@ type PendingUserApprovalCardProps = {
   isApproving?: boolean;
   isRejecting?: boolean;
   onApprove: (payload: {
+    assignedPlaga: string | null;
     regionalCouncils: string[];
     role: UserRole;
     settlementIds: string[];
   }) => void;
   onReject: () => void;
+  plagaOptions: readonly string[];
   regionalCouncilOptions: string[];
   settlementOptions: LinkedSettlement[];
   user: PendingUserProfile;
@@ -56,17 +60,20 @@ export function PendingUserApprovalCard({
   isRejecting = false,
   onApprove,
   onReject,
+  plagaOptions,
   regionalCouncilOptions,
   settlementOptions,
   user,
 }: PendingUserApprovalCardProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole>(() => getDefaultRole(user));
+  const [selectedPlaga, setSelectedPlaga] = useState<string | null>(user.assigned_plaga ?? null);
   const [selectedRegionalCouncils, setSelectedRegionalCouncils] = useState<string[]>([]);
   const [selectedSettlementIds, setSelectedSettlementIds] = useState<string[]>([]);
   const [assignmentError, setAssignmentError] = useState<string | null>(null);
 
   useEffect(() => {
     setSelectedRole(getDefaultRole(user));
+    setSelectedPlaga(user.assigned_plaga ?? null);
     setSelectedRegionalCouncils([]);
     setSelectedSettlementIds([]);
     setAssignmentError(null);
@@ -74,6 +81,7 @@ export function PendingUserApprovalCard({
 
   useEffect(() => {
     if (
+      !requiresPlagaAssignment(selectedRole) &&
       !requiresSettlementAssignment(selectedRole) &&
       !requiresRegionalCouncilAssignment(selectedRole)
     ) {
@@ -95,7 +103,10 @@ export function PendingUserApprovalCard({
       <View style={styles.headerRow}>
         <View style={styles.badges}>
           {user.requested_area?.trim() ? (
-            <AppBadge label={`אזור: ${user.requested_area.trim()}`} size="sm" tone="neutral" />
+            <AppBadge label={`שיוך: ${user.requested_area.trim()}`} size="sm" tone="neutral" />
+          ) : null}
+          {user.assigned_plaga ? (
+            <AppBadge label={`פלגה: ${user.assigned_plaga}`} size="sm" tone="neutral" />
           ) : null}
           <AppBadge label={requestedRoleLabel} size="sm" tone="info" />
           <AppBadge label={status.label} size="sm" tone={status.tone} />
@@ -109,6 +120,7 @@ export function PendingUserApprovalCard({
       <View style={styles.details}>
         <DataRow label="דוא״ל" value={user.email?.trim() || 'לא הוגדר'} />
         <DataRow label="טלפון" value={user.phone?.trim() || 'לא הוגדר'} />
+        {user.assigned_plaga ? <DataRow label="פלגה" value={user.assigned_plaga} /> : null}
         <DataRow label="נרשם" value={formatDisplayDate(user.created_at)} />
       </View>
 
@@ -147,6 +159,19 @@ export function PendingUserApprovalCard({
         />
       ) : null}
 
+      {requiresPlagaAssignment(selectedRole) ? (
+        <UserPlagaAssignmentField
+          errorMessage={assignmentError ?? undefined}
+          helperText="למפל״ג ולסמפל״ג חייבת להיות פלגה משויכת לפני אישור המשתמש."
+          onSelectPlaga={(plaga) => {
+            setAssignmentError(null);
+            setSelectedPlaga(plaga);
+          }}
+          plagaOptions={plagaOptions}
+          selectedPlaga={selectedPlaga}
+        />
+      ) : null}
+
       {requiresRegionalCouncilAssignment(selectedRole) ? (
         <UserRegionalCouncilAssignmentField
           errorMessage={assignmentError ?? undefined}
@@ -180,6 +205,11 @@ export function PendingUserApprovalCard({
           label="אישור משתמש"
           loading={isApproving}
           onPress={() => {
+            if (requiresPlagaAssignment(selectedRole) && !selectedPlaga) {
+              setAssignmentError('יש לבחור פלגה לפני אישור המשתמש');
+              return;
+            }
+
             if (
               requiresSettlementAssignment(selectedRole) &&
               selectedSettlementIds.length === 0
@@ -197,6 +227,7 @@ export function PendingUserApprovalCard({
             }
 
             onApprove({
+              assignedPlaga: requiresPlagaAssignment(selectedRole) ? selectedPlaga : null,
               regionalCouncils: selectedRegionalCouncils,
               role: selectedRole,
               settlementIds: selectedSettlementIds,

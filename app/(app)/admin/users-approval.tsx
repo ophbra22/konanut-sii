@@ -18,6 +18,7 @@ import {
   useRejectPendingUserMutation,
 } from '@/src/features/auth/hooks/use-user-approval-mutations';
 import { useSettlementsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
+import { PLAGA_VALUES } from '@/src/lib/plaga';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
@@ -148,8 +149,14 @@ export default function UsersApprovalScreen() {
                   key={user.id}
                   isApproving={approvingUserId === user.id}
                   isRejecting={rejectingUserId === user.id}
-                  onApprove={({ regionalCouncils, role: selectedRole, settlementIds }) => {
+                  onApprove={({
+                    assignedPlaga,
+                    regionalCouncils,
+                    role: selectedRole,
+                    settlementIds,
+                  }) => {
                     void approveMutation.mutateAsync({
+                      assignedPlaga,
                       regionalCouncils,
                       role: selectedRole,
                       settlementIds,
@@ -172,6 +179,7 @@ export default function UsersApprovalScreen() {
                       ]
                     );
                   }}
+                  plagaOptions={PLAGA_VALUES}
                   regionalCouncilOptions={regionalCouncilOptions}
                   settlementOptions={settlementOptions}
                   user={user}

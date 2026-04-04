@@ -98,7 +98,7 @@ export function SettlementListCard({ settlement }: SettlementListCardProps) {
         !settlement.is_active && styles.cardInactive,
       ]}
       statusDotColor={dotColor}
-      subtitle={getMetaLabel(settlement) || 'מועצה ואזור לא הוגדרו'}
+      subtitle={getMetaLabel(settlement) || 'מועצה ופלגה לא הוגדרו'}
       footer={
         <View style={styles.complianceRow}>
           <ComplianceIndicator

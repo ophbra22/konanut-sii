@@ -18,6 +18,7 @@ begin
     public.alerts,
     public.settlement_rankings,
     public.trainings,
+    public.regional_councils,
     public.user_regional_councils,
     public.user_settlements,
     public.settlements
@@ -222,7 +223,7 @@ begin
       settlement_1_id,
       'קדמת הגליל',
       'גליל עליון',
-      'צפון',
+      'פלגת לכיש',
       'אורי כהן',
       '050-1230001',
       true
@@ -231,7 +232,7 @@ begin
       settlement_2_id,
       'נווה רימון',
       'בקעת הירדן',
-      'בקעה',
+      'פלגת לכיש',
       'שחר לוי',
       '050-1230002',
       true
@@ -240,7 +241,7 @@ begin
       settlement_3_id,
       'גבעות כרמל',
       'חוף הכרמל',
-      'מרכז',
+      'פלגת נגב',
       'מאיה אביטל',
       '050-1230003',
       true
@@ -249,7 +250,7 @@ begin
       settlement_4_id,
       'נחל צורים',
       'מטה בנימין',
-      'יהודה ושומרון',
+      'פלגת נגב',
       'רועי הדר',
       '050-1230004',
       false

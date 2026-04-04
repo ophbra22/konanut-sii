@@ -402,7 +402,7 @@ export default function CalendarScreen() {
               </View>
 
               <View style={styles.filterGroup}>
-                <Text style={styles.filterTitle}>אזור</Text>
+                <Text style={styles.filterTitle}>פלגה</Text>
                 <View style={styles.filterChips}>
                   <AppChip
                     label="הכול"

@@ -14,6 +14,7 @@ import { canManageUserApprovals } from '@/src/features/auth/lib/permissions';
 import { useManagedUsersQuery } from '@/src/features/auth/hooks/use-managed-users-query';
 import { useUpdateManagedUserAccessMutation } from '@/src/features/auth/hooks/use-user-approval-mutations';
 import { useSettlementsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
+import { PLAGA_VALUES } from '@/src/lib/plaga';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
@@ -149,14 +150,21 @@ export default function UsersManagementScreen() {
                 <ManagedUserAccessCard
                   key={user.id}
                   isSaving={savingUserId === user.id}
-                  onSave={({ regionalCouncils, role: selectedRole, settlementIds }) => {
+                  onSave={({
+                    assignedPlaga,
+                    regionalCouncils,
+                    role: selectedRole,
+                    settlementIds,
+                  }) => {
                     void updateMutation.mutateAsync({
+                      assignedPlaga,
                       regionalCouncils,
                       role: selectedRole,
                       settlementIds,
                       userId: user.id,
                     });
                   }}
+                  plagaOptions={PLAGA_VALUES}
                   regionalCouncilOptions={regionalCouncilOptions}
                   settlementOptions={settlementOptions}
                   user={user}

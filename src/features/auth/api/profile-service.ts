@@ -7,7 +7,7 @@ import type {
 } from '@/src/types/database';
 
 const fullProfileSelect =
-  'id, full_name, email, phone, requested_role, requested_area, role, is_active, created_at';
+  'id, full_name, email, phone, requested_role, requested_area, assigned_plaga, role, is_active, created_at';
 const legacyProfileSelect = 'id, full_name, email, phone, role, is_active, created_at';
 const settlementLinksSelect = `
   user_id,
@@ -26,6 +26,7 @@ function shouldFallbackToLegacyProfileSelect(error: unknown) {
   return (
     message.includes('requested_role') ||
     message.includes('requested_area') ||
+    message.includes('assigned_plaga') ||
     message.includes('column') ||
     message.includes('schema cache')
   );
@@ -52,6 +53,7 @@ function normalizeLegacyProfile<T extends {
 }>(profile: T): UserProfile {
   return {
     ...profile,
+    assigned_plaga: null,
     requested_area: null,
     requested_role: null,
   };
@@ -80,6 +82,7 @@ function getAuthErrorMessage(message: string) {
   if (
     message.includes('users_profile_role_check') ||
     message.includes('users_profile_requested_role_check') ||
+    message.includes('users_profile_assigned_plaga_check') ||
     message.includes('user_regional_councils')
   ) {
     return 'נדרש לעדכן את סכמת ההרשאות ב-Supabase לפני השלמת הפעולה';

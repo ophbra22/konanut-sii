@@ -6,11 +6,13 @@ import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppChip } from '@/src/components/ui/app-chip';
 import { DataRow } from '@/src/components/ui/data-row';
+import { UserPlagaAssignmentField } from '@/src/features/auth/components/user-plaga-assignment-field';
 import { UserRegionalCouncilAssignmentField } from '@/src/features/auth/components/user-regional-council-assignment-field';
 import { UserSettlementAssignmentField } from '@/src/features/auth/components/user-settlement-assignment-field';
 import {
   assignableRoleOptions,
   getRoleLabel,
+  requiresPlagaAssignment,
   requiresRegionalCouncilAssignment,
   requiresSettlementAssignment,
 } from '@/src/features/auth/lib/permissions';
@@ -22,10 +24,12 @@ import type { LinkedSettlement, UserRole } from '@/src/types/database';
 type ManagedUserAccessCardProps = {
   isSaving?: boolean;
   onSave: (payload: {
+    assignedPlaga: string | null;
     regionalCouncils: string[];
     role: UserRole;
     settlementIds: string[];
   }) => void;
+  plagaOptions: readonly string[];
   regionalCouncilOptions: string[];
   settlementOptions: LinkedSettlement[];
   user: ManagedUserProfile;
@@ -34,11 +38,15 @@ type ManagedUserAccessCardProps = {
 export function ManagedUserAccessCard({
   isSaving = false,
   onSave,
+  plagaOptions,
   regionalCouncilOptions,
   settlementOptions,
   user,
 }: ManagedUserAccessCardProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole>(user.role);
+  const [selectedPlaga, setSelectedPlaga] = useState<string | null>(
+    user.assigned_plaga ?? null
+  );
   const [selectedRegionalCouncils, setSelectedRegionalCouncils] = useState<string[]>(
     user.linkedRegionalCouncils
   );
@@ -49,6 +57,7 @@ export function ManagedUserAccessCard({
 
   useEffect(() => {
     setSelectedRole(user.role);
+    setSelectedPlaga(user.assigned_plaga ?? null);
     setSelectedRegionalCouncils(user.linkedRegionalCouncils);
     setSelectedSettlementIds(user.linkedSettlementIds);
     setAssignmentError(null);
@@ -56,6 +65,7 @@ export function ManagedUserAccessCard({
 
   useEffect(() => {
     if (
+      !requiresPlagaAssignment(selectedRole) &&
       !requiresSettlementAssignment(selectedRole) &&
       !requiresRegionalCouncilAssignment(selectedRole)
     ) {
@@ -69,6 +79,9 @@ export function ManagedUserAccessCard({
         <View style={styles.badges}>
           <AppBadge label={user.is_active ? 'פעיל' : 'לא פעיל'} size="sm" tone="success" />
           <AppBadge label={getRoleLabel(user.role)} size="sm" tone="info" />
+          {user.assigned_plaga ? (
+            <AppBadge label={`פלגה: ${user.assigned_plaga}`} size="sm" tone="neutral" />
+          ) : null}
         </View>
 
         <Text numberOfLines={1} style={styles.title}>
@@ -79,6 +92,7 @@ export function ManagedUserAccessCard({
       <View style={styles.details}>
         <DataRow label="דוא״ל" value={user.email?.trim() || 'לא הוגדר'} />
         <DataRow label="טלפון" value={user.phone?.trim() || 'לא הוגדר'} />
+        {user.assigned_plaga ? <DataRow label="פלגה" value={user.assigned_plaga} /> : null}
         <DataRow label="נוצר" value={formatDisplayDate(user.created_at)} />
       </View>
 
@@ -117,6 +131,19 @@ export function ManagedUserAccessCard({
         />
       ) : null}
 
+      {requiresPlagaAssignment(selectedRole) ? (
+        <UserPlagaAssignmentField
+          errorMessage={assignmentError ?? undefined}
+          helperText="למפל״ג ולסמפל״ג חייבת להיות פלגה משויכת אחת."
+          onSelectPlaga={(plaga) => {
+            setAssignmentError(null);
+            setSelectedPlaga(plaga);
+          }}
+          plagaOptions={plagaOptions}
+          selectedPlaga={selectedPlaga}
+        />
+      ) : null}
+
       {requiresRegionalCouncilAssignment(selectedRole) ? (
         <UserRegionalCouncilAssignmentField
           errorMessage={assignmentError ?? undefined}
@@ -135,10 +162,19 @@ export function ManagedUserAccessCard({
       ) : null}
 
       {!requiresSettlementAssignment(selectedRole) &&
+      !requiresPlagaAssignment(selectedRole) &&
       !requiresRegionalCouncilAssignment(selectedRole) &&
-      (user.linkedSettlements.length || user.linkedRegionalCouncils.length) ? (
+      (user.linkedSettlements.length ||
+        user.linkedRegionalCouncils.length ||
+        Boolean(user.assigned_plaga)) ? (
         <View style={styles.roleSection}>
           <Text style={styles.sectionLabel}>שיוכים קיימים</Text>
+
+          {user.assigned_plaga ? (
+            <View style={styles.roleChips}>
+              <AppChip label={user.assigned_plaga} selected tone="accent" />
+            </View>
+          ) : null}
 
           {user.linkedRegionalCouncils.length ? (
             <View style={styles.roleChips}>
@@ -164,6 +200,14 @@ export function ManagedUserAccessCard({
         loading={isSaving}
         onPress={() => {
           if (
+            requiresPlagaAssignment(selectedRole) &&
+            !selectedPlaga
+          ) {
+            setAssignmentError('יש לבחור פלגה עבור מפל״ג או סמפל״ג');
+            return;
+          }
+
+          if (
             requiresSettlementAssignment(selectedRole) &&
             selectedSettlementIds.length === 0
           ) {
@@ -180,6 +224,7 @@ export function ManagedUserAccessCard({
           }
 
           onSave({
+            assignedPlaga: requiresPlagaAssignment(selectedRole) ? selectedPlaga : null,
             regionalCouncils: selectedRegionalCouncils,
             role: selectedRole,
             settlementIds: selectedSettlementIds,

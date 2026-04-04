@@ -273,8 +273,8 @@ export function RegisterForm() {
                 })}
               </View>
               <Text style={styles.roleHint}>
-                התפקיד המבוקש ייבדק ידנית, ושיוך ליישובים או למועצות יוגדר רק לאחר אישור
-                מנהל.
+                התפקיד המבוקש ייבדק ידנית, ושיוך לפלגה, למועצות או ליישובים יוגדר רק לאחר
+                אישור מנהל.
               </Text>
             </View>
           )}
@@ -315,7 +315,7 @@ export function RegisterForm() {
               errorMessage={errors.settlement_area?.message}
               hint="אופציונלי"
               icon={<MapPinned />}
-              label="יישוב / אזור"
+              label="יישוב / פלגה"
               onBlur={onBlur}
               onChangeText={(text) => {
                 clearError();
@@ -324,7 +324,7 @@ export function RegisterForm() {
               onSubmitEditing={() => {
                 void onSubmit();
               }}
-              placeholder="לדוגמה: שדרות / עוטף עזה"
+              placeholder="לדוגמה: שדרות / פלגת לכיש"
               returnKeyType="done"
               value={value ?? ''}
             />

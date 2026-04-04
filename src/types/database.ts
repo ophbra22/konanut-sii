@@ -186,6 +186,24 @@ export type Database = {
         };
         Relationships: [];
       };
+      regional_councils: {
+        Row: {
+          created_at: string;
+          name: string;
+          plaga_name: 'פלגת לכיש' | 'פלגת נגב';
+        };
+        Insert: {
+          created_at?: string;
+          name: string;
+          plaga_name: 'פלגת לכיש' | 'פלגת נגב';
+        };
+        Update: {
+          created_at?: string;
+          name?: string;
+          plaga_name?: 'פלגת לכיש' | 'פלגת נגב';
+        };
+        Relationships: [];
+      };
       training_settlements: {
         Row: {
           created_at: string;
@@ -351,6 +369,7 @@ export type Database = {
       };
       users_profile: {
         Row: {
+          assigned_plaga: 'פלגת לכיש' | 'פלגת נגב' | null;
           created_at: string;
           email: string | null;
           full_name: string;
@@ -364,6 +383,8 @@ export type Database = {
             | 'machbal'
             | 'eshkol_officer'
             | 'mashkabat'
+            | 'mepag'
+            | 'samepag'
             | 'razar'
             | 'sarazar'
             | null;
@@ -373,10 +394,13 @@ export type Database = {
             | 'machbal'
             | 'eshkol_officer'
             | 'mashkabat'
+            | 'mepag'
+            | 'samepag'
             | 'razar'
             | 'sarazar';
         };
         Insert: {
+          assigned_plaga?: 'פלגת לכיש' | 'פלגת נגב' | null;
           created_at?: string;
           email?: string | null;
           full_name: string;
@@ -390,6 +414,8 @@ export type Database = {
             | 'machbal'
             | 'eshkol_officer'
             | 'mashkabat'
+            | 'mepag'
+            | 'samepag'
             | 'razar'
             | 'sarazar'
             | null;
@@ -399,10 +425,13 @@ export type Database = {
             | 'machbal'
             | 'eshkol_officer'
             | 'mashkabat'
+            | 'mepag'
+            | 'samepag'
             | 'razar'
             | 'sarazar';
         };
         Update: {
+          assigned_plaga?: 'פלגת לכיש' | 'פלגת נגב' | null;
           created_at?: string;
           email?: string | null;
           full_name?: string;
@@ -416,6 +445,8 @@ export type Database = {
             | 'machbal'
             | 'eshkol_officer'
             | 'mashkabat'
+            | 'mepag'
+            | 'samepag'
             | 'razar'
             | 'sarazar'
             | null;
@@ -425,6 +456,8 @@ export type Database = {
             | 'machbal'
             | 'eshkol_officer'
             | 'mashkabat'
+            | 'mepag'
+            | 'samepag'
             | 'razar'
             | 'sarazar';
         };
@@ -455,9 +488,34 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: string | null;
       };
+      list_global_settlement_rankings: {
+        Args: {
+          period_key: string;
+        };
+        Returns: {
+          calculated_at: string;
+          defense_completed: boolean;
+          feedback_score: number;
+          final_score: number;
+          half_year_period: string;
+          plaga_name: string | null;
+          ranking_level: string;
+          regional_council: string | null;
+          settlement_id: string;
+          settlement_name: string;
+          shooting_completed: boolean;
+          training_score: number;
+        }[];
+      };
       has_any_role: {
         Args: {
           allowed_roles: string[];
+        };
+        Returns: boolean;
+      };
+      has_plaga_access: {
+        Args: {
+          target_plaga: string;
         };
         Returns: boolean;
       };
@@ -517,6 +575,7 @@ export type TablesUpdate<
 
 export type Alert = Tables<'alerts'>;
 export type Feedback = Tables<'feedbacks'>;
+export type RegionalCouncil = Tables<'regional_councils'>;
 export type Settlement = Tables<'settlements'>;
 export type SettlementRanking = Tables<'settlement_rankings'>;
 export type Training = Tables<'trainings'>;
@@ -534,7 +593,9 @@ export type AlertStatus = Alert['status'];
 export type LinkedSettlement = Pick<
   Settlement,
   'area' | 'id' | 'name' | 'regional_council'
->;
+> & {
+  plaga_name?: string | null;
+};
 
 export type AuthProfile = UserProfile & {
   linkedRegionalCouncils: string[];

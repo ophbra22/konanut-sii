@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 
 import {
   isCouncilScopedRole,
+  isPlagaScopedRole,
   isSettlementScopedRole,
 } from '@/src/features/auth/lib/permissions';
 import { createDataAccessError } from '@/src/lib/error-utils';
@@ -46,12 +47,12 @@ export type DashboardUpcomingTraining = Pick<
 
 type DashboardScope = Pick<
   AuthProfile,
-  'linkedRegionalCouncils' | 'linkedSettlementIds'
+  'assigned_plaga' | 'linkedRegionalCouncils' | 'linkedSettlementIds'
 > & {
   role: UserRole | null;
 };
 
-type ScopedSettlement = Pick<Settlement, 'id' | 'regional_council'>;
+type ScopedSettlement = Pick<Settlement, 'area' | 'id' | 'regional_council'>;
 
 export type DashboardOverview = {
   alertsSummary: DashboardAlertItem[];
@@ -73,6 +74,18 @@ function getScopedSettlements(
   settlements: ScopedSettlement[],
   scope: DashboardScope
 ) {
+  if (isPlagaScopedRole(scope.role)) {
+    const assignedPlaga = scope.assigned_plaga?.trim().toLowerCase();
+
+    if (!assignedPlaga) {
+      return [];
+    }
+
+    return settlements.filter(
+      (settlement) => settlement.area.trim().toLowerCase() === assignedPlaga
+    );
+  }
+
   if (isSettlementScopedRole(scope.role)) {
     const linkedSettlementIds = new Set(scope.linkedSettlementIds);
 
@@ -115,7 +128,7 @@ export async function getDashboardOverview(
   ] = await Promise.all([
     supabase
       .from('settlements')
-      .select('id, regional_council'),
+      .select('id, regional_council, area'),
     supabase
       .from('trainings')
       .select('id', { count: 'exact', head: true })

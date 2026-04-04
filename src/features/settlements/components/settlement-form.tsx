@@ -4,12 +4,15 @@ import { Controller, useForm } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/src/components/ui/app-button';
+import { AppChip } from '@/src/components/ui/app-chip';
 import { AppSwitchField } from '@/src/components/ui/app-switch-field';
 import { AppTextField } from '@/src/components/ui/app-text-field';
+import { SectionBlock } from '@/src/components/ui/section-block';
 import {
   settlementFormSchema,
   type SettlementFormValues,
 } from '@/src/features/settlements/schemas/settlement-form-schema';
+import { PLAGA_VALUES } from '@/src/lib/plaga';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type SettlementFormProps = {
@@ -20,7 +23,7 @@ type SettlementFormProps = {
 };
 
 const defaultValues: SettlementFormValues = {
-  area: '',
+  area: PLAGA_VALUES[0],
   coordinator_name: '',
   coordinator_phone: '',
   is_active: true,
@@ -90,15 +93,25 @@ export function SettlementForm({
       <Controller
         control={control}
         name="area"
-        render={({ field: { onBlur, onChange, value } }) => (
-          <AppTextField
-            errorMessage={errors.area?.message}
-            label="אזור"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            placeholder="צפון / מרכז / דרום"
-            value={value}
-          />
+        render={({ field: { onChange, value } }) => (
+          <SectionBlock
+            description="כל יישוב משויך לאחת משתי הפלגות במערכת."
+            title="פלגה"
+          >
+            <View style={styles.plagaChips}>
+              {PLAGA_VALUES.map((plaga) => (
+                <AppChip
+                  key={plaga}
+                  label={plaga}
+                  onPress={() => {
+                    onChange(plaga);
+                  }}
+                  selected={value === plaga}
+                  tone={value === plaga ? 'accent' : 'neutral'}
+                />
+              ))}
+            </View>
+          </SectionBlock>
         )}
       />
 
@@ -165,5 +178,10 @@ export function SettlementForm({
 const styles = createThemedStyles((theme: AppTheme) => ({
   form: {
     gap: theme.spacing.md,
+  },
+  plagaChips: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: theme.spacing.xs,
   },
 }));

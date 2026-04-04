@@ -18,6 +18,7 @@ import {
   getRoleLabel,
   getRoleShortLabel,
   isCouncilScopedRole,
+  isPlagaScopedRole,
   isSettlementScopedRole,
 } from '@/src/features/auth/lib/permissions';
 import { useAuthStore } from '@/src/stores/auth-store';
@@ -62,14 +63,20 @@ export default function ProfileScreen() {
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const signOut = useAuthStore((state) => state.signOut);
   const canApproveUsers = canManageUserApprovals(role);
+  const isPlagaScoped = isPlagaScopedRole(role);
   const isCouncilScoped = isCouncilScopedRole(role);
-  const linkedScopeCount = isCouncilScoped
-    ? profile?.linkedRegionalCouncils.length ?? 0
-    : profile?.linkedSettlementIds.length ?? 0;
+  const linkedScopeCount = isPlagaScoped
+    ? profile?.assigned_plaga
+      ? 1
+      : 0
+    : isCouncilScoped
+      ? profile?.linkedRegionalCouncils.length ?? 0
+      : profile?.linkedSettlementIds.length ?? 0;
   const showSettlementAssignments =
     Boolean(profile?.linkedSettlements.length) || isSettlementScopedRole(role);
   const showRegionalCouncilAssignments =
     Boolean(profile?.linkedRegionalCouncils.length) || isCouncilScoped;
+  const showPlagaAssignment = Boolean(profile?.assigned_plaga) || isPlagaScoped;
   const primaryAction = canApproveUsers
     ? {
         label: 'אישור משתמשים',
@@ -105,9 +112,13 @@ export default function ProfileScreen() {
               <ProfileStatTile label="סטטוס" tone="accent" value="מחובר" />
               <ProfileStatTile label="תפקיד" tone="info" value={getRoleShortLabel(role)} />
               <ProfileStatTile
-                label={isCouncilScoped ? 'מועצות' : 'יישובים'}
+                label={isPlagaScoped ? 'פלגה' : isCouncilScoped ? 'מועצות' : 'יישובים'}
                 tone={linkedScopeCount ? 'accent' : 'warning'}
-                value={String(linkedScopeCount)}
+                value={
+                  isPlagaScoped
+                    ? profile?.assigned_plaga?.trim() || 'לא הוגדר'
+                    : String(linkedScopeCount)
+                }
               />
             </View>
           </AppRevealView>
@@ -129,6 +140,9 @@ export default function ProfileScreen() {
                   size="sm"
                   tone={profile.is_active ? 'success' : 'warning'}
                 />
+                {profile.assigned_plaga ? (
+                  <AppBadge label={`פלגה: ${profile.assigned_plaga}`} size="sm" tone="neutral" />
+                ) : null}
                 {profile.requested_role ? (
                   <AppBadge
                     label={`בקשה: ${getRoleLabel(profile.requested_role)}`}
@@ -141,7 +155,26 @@ export default function ProfileScreen() {
               <View style={styles.identityDetails}>
                 <DataRow label="דוא״ל" value={profile.email?.trim() || 'לא הוגדר'} />
                 <DataRow label="טלפון" value={profile.phone?.trim() || 'לא הוגדר'} />
+                {profile.assigned_plaga ? (
+                  <DataRow label="פלגה" value={profile.assigned_plaga} />
+                ) : null}
               </View>
+
+              {showPlagaAssignment ? (
+                <View style={styles.assignmentSection}>
+                  <Text style={styles.assignmentLabel}>פלגה משויכת</Text>
+
+                  {profile.assigned_plaga ? (
+                    <View style={styles.badgesRow}>
+                      <AppBadge label={profile.assigned_plaga} size="sm" tone="info" />
+                    </View>
+                  ) : (
+                    <Text style={styles.assignmentEmpty}>
+                      עדיין לא הוגדרה פלגה משויכת לחשבון הזה.
+                    </Text>
+                  )}
+                </View>
+              ) : null}
 
               {showRegionalCouncilAssignments ? (
                 <View style={styles.assignmentSection}>

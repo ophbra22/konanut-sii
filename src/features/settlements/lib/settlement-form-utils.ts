@@ -1,4 +1,5 @@
 import type { SettlementFormValues } from '@/src/features/settlements/schemas/settlement-form-schema';
+import { PLAGA_VALUES } from '@/src/lib/plaga';
 import type { Settlement, TablesInsert, TablesUpdate } from '@/src/types/database';
 
 function toOptionalText(value: string | undefined) {
@@ -10,7 +11,7 @@ export function getSettlementFormValues(
   settlement?: Partial<Settlement>
 ): SettlementFormValues {
   return {
-    area: settlement?.area ?? '',
+    area: (settlement?.area as SettlementFormValues['area'] | undefined) ?? PLAGA_VALUES[0],
     coordinator_name: settlement?.coordinator_name ?? '',
     coordinator_phone: settlement?.coordinator_phone ?? '',
     is_active: settlement?.is_active ?? true,

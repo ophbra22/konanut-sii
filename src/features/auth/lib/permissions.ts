@@ -1,6 +1,6 @@
 import type { UserRole } from '@/src/types/database';
 
-type RoleScope = 'global' | 'regional_councils' | 'settlements';
+type RoleScope = 'global' | 'plaga' | 'regional_councils' | 'settlements';
 
 type RoleDefinition = {
   description: string;
@@ -45,6 +45,20 @@ const roleDefinitions: Record<UserRole, RoleDefinition> = {
     shortLabel: 'משקב״ט',
     scope: 'settlements',
   },
+  mepag: {
+    description:
+      'צפייה בנתוני הפלגה המשויכת בלבד, ללא הרשאות עריכה, ניהול משתמשים או ניהול יישובים.',
+    label: 'מפל״ג',
+    shortLabel: 'מפל״ג',
+    scope: 'plaga',
+  },
+  samepag: {
+    description:
+      'צפייה בנתוני הפלגה המשויכת בלבד, ללא הרשאות עריכה, ניהול משתמשים או ניהול יישובים.',
+    label: 'סמפל״ג',
+    shortLabel: 'סמפל״ג',
+    scope: 'plaga',
+  },
   razar: {
     description: 'צפייה מלאה ביישובים, דירוגים, אימונים ומשובים, ללא הרשאות עריכה.',
     label: 'רז״ר',
@@ -65,6 +79,8 @@ export const allUserRoles: UserRole[] = [
   'machbal',
   'eshkol_officer',
   'mashkabat',
+  'mepag',
+  'samepag',
   'razar',
   'sarazar',
 ];
@@ -108,6 +124,18 @@ export function isSarazar(role: UserRole | null) {
   return role === 'sarazar';
 }
 
+export function isMepag(role: UserRole | null) {
+  return role === 'mepag';
+}
+
+export function isSamepag(role: UserRole | null) {
+  return role === 'samepag';
+}
+
+export function isPlagaScopedRole(role: UserRole | null) {
+  return isMepag(role) || isSamepag(role);
+}
+
 export function isCouncilScopedRole(role: UserRole | null) {
   return isMachbal(role) || isEshkolOfficer(role);
 }
@@ -122,6 +150,10 @@ export function requiresRegionalCouncilAssignment(role: UserRole | null) {
 
 export function requiresSettlementAssignment(role: UserRole | null) {
   return isSettlementScopedRole(role);
+}
+
+export function requiresPlagaAssignment(role: UserRole | null) {
+  return isPlagaScopedRole(role);
 }
 
 export function canManageOperationalData(role: UserRole | null) {

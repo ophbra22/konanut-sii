@@ -12,6 +12,7 @@ export function useDashboardQuery() {
     enabled: Boolean(role),
     queryFn: () =>
       getDashboardOverview({
+        assigned_plaga: profile?.assigned_plaga ?? null,
         linkedRegionalCouncils: profile?.linkedRegionalCouncils ?? [],
         linkedSettlementIds: profile?.linkedSettlementIds ?? [],
         role,
@@ -19,6 +20,7 @@ export function useDashboardQuery() {
     queryKey: [
       ...queryKeys.dashboard.overview,
       role ?? 'no-role',
+      profile?.assigned_plaga ?? 'no-plaga',
       (profile?.linkedRegionalCouncils ?? []).join('|'),
       (profile?.linkedSettlementIds ?? []).join('|'),
     ],

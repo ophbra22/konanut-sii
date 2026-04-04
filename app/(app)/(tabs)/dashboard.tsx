@@ -146,7 +146,7 @@ export default function DashboardScreen() {
     <AppScreen contentContainerStyle={styles.screenContent}>
       <AppRevealView delay={20}>
         <View style={styles.hero}>
-          <Text style={styles.heroEyebrow}>מרכז שליטה מבצעי</Text>
+          
           <Text style={styles.heroTitle}>זרוע יישובים מג״ב דרום</Text>
           <View style={styles.heroMetaRow}>
             <Text style={styles.heroDate}>{todayLabel}</Text>

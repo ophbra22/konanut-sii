@@ -20,6 +20,8 @@ export const registerSchema = z
       'machbal',
       'eshkol_officer',
       'mashkabat',
+      'mepag',
+      'samepag',
       'razar',
       'sarazar',
     ]),

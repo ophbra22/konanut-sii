@@ -1,11 +1,12 @@
 import { useMutation } from '@tanstack/react-query';
 
-import { createDataAccessError } from '@/src/lib/error-utils';
+import { createDataAccessError, getErrorMessage } from '@/src/lib/error-utils';
 import { queryClient } from '@/src/lib/query-client';
 import { queryKeys } from '@/src/lib/query-keys';
 import { supabase } from '@/src/lib/supabase';
 import { useFeedbackStore } from '@/src/stores/feedback-store';
 import type {
+  Database,
   Feedback,
   Settlement,
   SettlementRanking,
@@ -32,6 +33,9 @@ type SettlementRankingQueryRow = SettlementRanking & {
   settlement: Pick<Settlement, 'area' | 'id' | 'name' | 'regional_council'> | null;
 };
 
+type GlobalSettlementRankingRow =
+  Database['public']['Functions']['list_global_settlement_rankings']['Returns'][number];
+
 export type SettlementRankingListItem = {
   area: string;
   averageRating: number | null;
@@ -47,6 +51,47 @@ export type SettlementRankingListItem = {
   shootingCompleted: boolean;
   trainingScore: number;
 };
+
+function shouldFallbackToLegacyRankingQuery(error: unknown) {
+  const message = getErrorMessage(error, '');
+
+  return (
+    message.includes('list_global_settlement_rankings') &&
+    (message.includes('function') || message.includes('schema cache'))
+  );
+}
+
+function mapSettlementRankingRow(item: {
+  calculated_at: string;
+  defense_completed: boolean;
+  feedback_score: number;
+  final_score: number;
+  half_year_period: string;
+  ranking_level: string;
+  regional_council: string | null;
+  settlement_id: string;
+  settlement_name: string;
+  shooting_completed: boolean;
+  training_score: number;
+  area?: string | null;
+  plaga_name?: string | null;
+}) {
+  return {
+    area: item.plaga_name ?? item.area ?? '',
+    averageRating: item.feedback_score ? Number((item.feedback_score / 10).toFixed(1)) : null,
+    calculatedAt: item.calculated_at,
+    defenseCompleted: item.defense_completed,
+    feedbackScore: item.feedback_score,
+    finalScore: item.final_score,
+    halfYearPeriod: item.half_year_period as HalfYearPeriod,
+    rankingLevel: item.ranking_level as ComputedSettlementRanking['rankingLevel'],
+    regionalCouncil: item.regional_council,
+    settlementId: item.settlement_id,
+    settlementName: item.settlement_name,
+    shootingCompleted: item.shooting_completed,
+    trainingScore: item.training_score,
+  };
+}
 
 export async function listComputedSettlementRankings(
   period: HalfYearPeriod = getCurrentRankingPeriod()
@@ -109,6 +154,29 @@ export async function listComputedSettlementRankings(
 export async function listSettlementRankings(
   period: HalfYearPeriod = getCurrentRankingPeriod()
 ): Promise<SettlementRankingListItem[]> {
+  const { data: rpcData, error: rpcError } = await supabase.rpc(
+    'list_global_settlement_rankings',
+    {
+      period_key: period,
+    }
+  );
+
+  if (!rpcError) {
+    return ((rpcData ?? []) as GlobalSettlementRankingRow[])
+      .map((item) => mapSettlementRankingRow(item))
+      .sort((left, right) => {
+        if (right.finalScore !== left.finalScore) {
+          return right.finalScore - left.finalScore;
+        }
+
+        return left.settlementName.localeCompare(right.settlementName, 'he');
+      });
+  }
+
+  if (!shouldFallbackToLegacyRankingQuery(rpcError)) {
+    throw createDataAccessError(rpcError, 'לא ניתן לטעון את דירוגי היישובים');
+  }
+
   const { data, error } = await supabase
     .from('settlement_rankings')
     .select(
@@ -144,21 +212,22 @@ export async function listSettlementRankings(
         settlement: NonNullable<SettlementRankingQueryRow['settlement']>;
       } => Boolean(item.settlement)
     )
-    .map((item) => ({
-      area: item.settlement.area,
-      averageRating: item.feedback_score ? Number((item.feedback_score / 10).toFixed(1)) : null,
-      calculatedAt: item.calculated_at,
-      defenseCompleted: item.defense_completed,
-      feedbackScore: item.feedback_score,
-      finalScore: item.final_score,
-      halfYearPeriod: item.half_year_period as HalfYearPeriod,
-      rankingLevel: item.ranking_level as ComputedSettlementRanking['rankingLevel'],
-      regionalCouncil: item.settlement.regional_council,
-      settlementId: item.settlement_id,
-      settlementName: item.settlement.name,
-      shootingCompleted: item.shooting_completed,
-      trainingScore: item.training_score,
-    }))
+    .map((item) =>
+      mapSettlementRankingRow({
+        area: item.settlement.area,
+        calculated_at: item.calculated_at,
+        defense_completed: item.defense_completed,
+        feedback_score: item.feedback_score,
+        final_score: item.final_score,
+        half_year_period: item.half_year_period,
+        ranking_level: item.ranking_level,
+        regional_council: item.settlement.regional_council,
+        settlement_id: item.settlement_id,
+        settlement_name: item.settlement.name,
+        shooting_completed: item.shooting_completed,
+        training_score: item.training_score,
+      })
+    )
     .sort((left, right) => {
       if (right.finalScore !== left.finalScore) {
         return right.finalScore - left.finalScore;

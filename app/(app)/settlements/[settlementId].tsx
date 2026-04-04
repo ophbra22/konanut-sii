@@ -84,7 +84,7 @@ export default function SettlementDetailsScreen() {
       </View>
 
       <AppCard description="נתוני הליבה של היישוב במערכת." title="פרטים כלליים">
-        <DataRow label="אזור" value={data.area} />
+        <DataRow label="פלגה" value={data.area} />
         <DataRow
           label="מועצה אזורית"
           value={data.regional_council?.trim() || 'לא הוגדר'}

@@ -1,4 +1,4 @@
-import { createDataAccessError } from '@/src/lib/error-utils';
+import { createDataAccessError, getErrorMessage } from '@/src/lib/error-utils';
 import { supabase } from '@/src/lib/supabase';
 import {
   calculateSettlementRanking,
@@ -14,6 +14,7 @@ import {
 import type {
   Alert,
   Feedback,
+  RegionalCouncil,
   Settlement,
   SettlementRanking,
   TablesInsert,
@@ -57,6 +58,41 @@ export type SettlementDetails = Settlement & {
   rankings: SettlementRanking[];
   trainings: SettlementTrainingSummary[];
 };
+
+function shouldIgnoreRegionalCouncilSyncError(error: unknown) {
+  const message = getErrorMessage(error, '');
+
+  return (
+    message.includes('regional_councils') &&
+    (message.includes('relation') || message.includes('schema cache') || message.includes('column'))
+  );
+}
+
+async function syncRegionalCouncilPlaga(
+  regionalCouncil: string | null | undefined,
+  area: string | null | undefined
+) {
+  const normalizedRegionalCouncil = regionalCouncil?.trim();
+  const normalizedPlaga = area?.trim();
+
+  if (!normalizedRegionalCouncil || !normalizedPlaga) {
+    return;
+  }
+
+  const { error } = await supabase.from('regional_councils').upsert(
+    {
+      name: normalizedRegionalCouncil,
+      plaga_name: normalizedPlaga as RegionalCouncil['plaga_name'],
+    },
+    {
+      onConflict: 'name',
+    }
+  );
+
+  if (error && !shouldIgnoreRegionalCouncilSyncError(error)) {
+    throw createDataAccessError(error, 'לא ניתן לעדכן את שיוך המועצה לפלגה');
+  }
+}
 
 export async function listSettlements(): Promise<SettlementListItem[]> {
   const currentHalfYear = getCurrentHalfYearPeriod();
@@ -316,6 +352,8 @@ export async function createSettlement(
     throw createDataAccessError(error, 'לא ניתן ליצור יישוב חדש');
   }
 
+  await syncRegionalCouncilPlaga(values.regional_council, values.area);
+
   return data;
 }
 
@@ -333,6 +371,8 @@ export async function updateSettlement(
   if (error) {
     throw createDataAccessError(error, 'לא ניתן לעדכן את פרטי היישוב');
   }
+
+  await syncRegionalCouncilPlaga(values.regional_council, values.area);
 
   return data;
 }

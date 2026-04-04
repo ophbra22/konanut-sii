@@ -1,9 +1,11 @@
 import { supabase } from '@/src/lib/supabase';
 import {
+  requiresPlagaAssignment,
   requiresRegionalCouncilAssignment,
   requiresSettlementAssignment,
 } from '@/src/features/auth/lib/permissions';
 import { createDataAccessError, getErrorMessage } from '@/src/lib/error-utils';
+import { isPlagaName, normalizePlagaName } from '@/src/lib/plaga';
 import type {
   LinkedSettlement,
   UserProfile,
@@ -18,7 +20,7 @@ export type ManagedUserProfile = UserProfile & {
 };
 
 const fullProfileSelect =
-  'id, full_name, email, phone, requested_role, requested_area, role, is_active, created_at';
+  'id, full_name, email, phone, requested_role, requested_area, assigned_plaga, role, is_active, created_at';
 const legacyProfileSelect = 'id, full_name, email, phone, role, is_active, created_at';
 const settlementLinksSelect = `
   user_id,
@@ -37,6 +39,7 @@ function shouldFallbackToLegacyProfileSelect(error: unknown) {
   return (
     message.includes('requested_role') ||
     message.includes('requested_area') ||
+    message.includes('assigned_plaga') ||
     message.includes('column') ||
     message.includes('schema cache')
   );
@@ -63,6 +66,7 @@ function normalizeLegacyProfile<T extends {
 }>(profile: T): PendingUserProfile {
   return {
     ...profile,
+    assigned_plaga: null,
     requested_area: null,
     requested_role: null,
   };
@@ -93,6 +97,7 @@ function normalizeRegionalCouncilNames(regionalCouncils: string[] | undefined) {
 }
 
 function assertAccessScopeSelection(params: {
+  assignedPlaga: string | null;
   regionalCouncils: string[];
   role: UserRole;
   settlementIds: string[];
@@ -107,6 +112,16 @@ function assertAccessScopeSelection(params: {
   ) {
     throw new Error('יש לבחור לפחות מועצה אזורית אחת עבור מחב״ל או מש״ק אשכול');
   }
+
+  if (requiresPlagaAssignment(params.role) && !params.assignedPlaga) {
+    throw new Error('יש לבחור פלגה עבור מפל״ג או סמפל״ג');
+  }
+}
+
+function normalizeAssignedPlaga(assignedPlaga: string | null | undefined) {
+  const normalizedPlaga = normalizePlagaName(assignedPlaga);
+
+  return isPlagaName(normalizedPlaga) ? normalizedPlaga : null;
 }
 
 function groupSettlementLinksByUserId(links: SettlementLinkRow[] | null | undefined) {
@@ -251,6 +266,7 @@ export async function listPendingUsers(): Promise<PendingUserProfile[]> {
 }
 
 export async function approvePendingUser(params: {
+  assignedPlaga?: string | null;
   regionalCouncils?: string[];
   role: UserRole;
   settlementIds?: string[];
@@ -262,8 +278,12 @@ export async function approvePendingUser(params: {
   const regionalCouncils = requiresRegionalCouncilAssignment(params.role)
     ? normalizeRegionalCouncilNames(params.regionalCouncils)
     : [];
+  const assignedPlaga = requiresPlagaAssignment(params.role)
+    ? normalizeAssignedPlaga(params.assignedPlaga)
+    : null;
 
   assertAccessScopeSelection({
+    assignedPlaga,
     regionalCouncils,
     role: params.role,
     settlementIds,
@@ -272,6 +292,7 @@ export async function approvePendingUser(params: {
   const { error } = await supabase
     .from('users_profile')
     .update({
+      assigned_plaga: assignedPlaga,
       is_active: true,
       requested_area: null,
       requested_role: null,
@@ -293,6 +314,7 @@ export async function rejectPendingUser(userId: string) {
   const { error } = await supabase
     .from('users_profile')
     .update({
+      assigned_plaga: null,
       is_active: false,
       requested_area: null,
       requested_role: null,
@@ -394,6 +416,7 @@ export async function listManagedUsers(): Promise<ManagedUserProfile[]> {
 }
 
 export async function updateManagedUserAccess(params: {
+  assignedPlaga?: string | null;
   regionalCouncils?: string[];
   role: UserRole;
   settlementIds?: string[];
@@ -405,8 +428,12 @@ export async function updateManagedUserAccess(params: {
   const regionalCouncils = requiresRegionalCouncilAssignment(params.role)
     ? normalizeRegionalCouncilNames(params.regionalCouncils)
     : [];
+  const assignedPlaga = requiresPlagaAssignment(params.role)
+    ? normalizeAssignedPlaga(params.assignedPlaga)
+    : null;
 
   assertAccessScopeSelection({
+    assignedPlaga,
     regionalCouncils,
     role: params.role,
     settlementIds,
@@ -415,6 +442,7 @@ export async function updateManagedUserAccess(params: {
   const { error } = await supabase
     .from('users_profile')
     .update({
+      assigned_plaga: assignedPlaga,
       role: params.role,
     })
     .eq('id', params.userId);
