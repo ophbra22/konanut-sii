@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
 import { ArrowRight, Lock, Mail, Shield } from 'lucide-react-native';
 import { Controller, useForm } from 'react-hook-form';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { AppTextField } from '@/src/components/ui/app-text-field';
 import { AuthScreenShell } from '@/src/features/auth/components/auth-screen-shell';
@@ -12,9 +12,11 @@ import {
   type LoginFormValues,
 } from '@/src/features/auth/schemas/login-schema';
 import { useAuthStore } from '@/src/stores/auth-store';
-import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
-
-const LOGIN_BANNER = require('../../../../assets/images/login-mgdb-darom.jpeg');
+import {
+  createThemedStyles,
+  theme,
+  type AppTheme,
+} from '@/src/theme';
 
 export function LoginForm() {
   const router = useRouter();
@@ -62,28 +64,33 @@ export function LoginForm() {
   );
 
   const hero = (
-    <View style={styles.heroCard}>
-      <Image resizeMode="cover" source={LOGIN_BANNER} style={styles.heroImage} />
-      <View pointerEvents="none" style={styles.heroImageGlow} />
-      <View pointerEvents="none" style={styles.heroOverlay} />
-      <View style={styles.heroCaption}>
-        <Text style={styles.heroKicker}>זרוע יישובים מג"ב דרום</Text>
-        <Text style={styles.heroCaptionTitle}>מערכת אימונים וגישה מבצעית</Text>
-        <Text style={styles.heroCaptionText}>סביבת התחברות מאובטחת לכוחות וגורמי ניהול</Text>
+    <View style={styles.brandHeader}>
+      <View pointerEvents="none" style={styles.brandGlowPrimary} />
+      <View pointerEvents="none" style={styles.brandGlowSecondary} />
+
+      <View style={styles.brandContent}>
+        <Text style={styles.brandLinePrimary}>זרוע יישובים מג״ב דרום</Text>
+        <Text style={styles.brandLineSecondary}>מערכת אימונים וניהול</Text>
+        <Text style={styles.brandSubtitle}>
+          סביבת התחברות מאובטחת לכוחות וגורמי ניהול
+        </Text>
       </View>
     </View>
   );
 
   return (
     <AuthScreenShell
+      badgeCaption="גישה מבוקרת"
       badgeLabel="מערכת מאובטחת"
-      cardDescription="גישה לחשבון הארגוני המאושר במערכת."
+      cardDescription="יש להזין פרטי גישה לחשבון מאושר במערכת."
       cardTitle="פרטי הזדהות"
       compact
+      eyebrow={null}
+      headerAlign="center"
       footer={footer}
       hero={hero}
-      subtitle="הזינו את פרטי הגישה למערכת."
-      title="כניסה למערכת אימונים"
+      subtitle="גישה למשתמשים מורשים בלבד"
+      title="כניסה למערכת"
     >
       <View style={styles.form}>
         <Controller
@@ -91,6 +98,7 @@ export function LoginForm() {
           name="email"
           render={({ field: { onBlur, onChange, value } }) => (
             <AppTextField
+              appearance="auth"
               autoCapitalize="none"
               autoComplete="email"
               autoCorrect={false}
@@ -103,7 +111,7 @@ export function LoginForm() {
                 clearError();
                 onChange(text);
               }}
-              placeholder="name@example.com"
+              placeholder='הזינו דוא"ל'
               returnKeyType="next"
               textAlign="left"
               textContentType="username"
@@ -118,6 +126,7 @@ export function LoginForm() {
           name="password"
           render={({ field: { onBlur, onChange, value } }) => (
             <AppTextField
+              appearance="auth"
               autoCapitalize="none"
               autoComplete="current-password"
               autoCorrect={false}
@@ -132,7 +141,7 @@ export function LoginForm() {
               onSubmitEditing={() => {
                 void onSubmit();
               }}
-              placeholder="הזינו סיסמה"
+              placeholder="סיסמה"
               returnKeyType="done"
               secureTextEntry
               textAlign="left"
@@ -165,58 +174,72 @@ export function LoginForm() {
 
 const styles = createThemedStyles((theme: AppTheme) => ({
   actions: {
-    gap: theme.spacing.sm,
+    gap: theme.spacing.md,
     marginTop: theme.spacing.xs,
   },
-  form: {
-    gap: theme.spacing.lg,
+  brandContent: {
+    alignItems: 'center',
+    gap: 7,
+    maxWidth: 360,
   },
-  heroCaption: {
-    bottom: theme.spacing.lg,
-    gap: 3,
-    left: theme.spacing.lg,
+  brandGlowPrimary: {
+    backgroundColor: theme.colors.infoSurface,
+    borderRadius: 180,
+    height: 160,
+    opacity: 0.72,
     position: 'absolute',
-    right: theme.spacing.lg,
+    right: 34,
+    top: -26,
+    width: 160,
   },
-  heroCaptionText: {
-    ...theme.typography.caption,
-    color: theme.colors.textOnMediaSecondary,
-    textAlign: 'right',
+  brandGlowSecondary: {
+    backgroundColor: theme.colors.glowStrong,
+    borderRadius: 160,
+    bottom: -18,
+    height: 124,
+    left: 48,
+    opacity: 0.44,
+    position: 'absolute',
+    width: 124,
   },
-  heroCaptionTitle: {
-    ...theme.typography.cardTitle,
-    color: theme.colors.textPrimary,
-    textAlign: 'right',
-  },
-  heroCard: {
-    ...theme.elevation.hero,
-    backgroundColor: theme.colors.surfaceStrong,
-    borderColor: theme.colors.accentBorder,
-    borderRadius: 26,
-    borderWidth: 1,
-    minHeight: 124,
+  brandHeader: {
+    alignItems: 'center',
+    borderBottomColor: theme.colors.separator,
+    borderBottomWidth: 1,
+    justifyContent: 'center',
+    minHeight: 154,
     overflow: 'hidden',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     position: 'relative',
   },
-  heroImage: {
-    height: 126,
-    width: '100%',
-  },
-  heroImageGlow: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.mediaGlow,
-  },
-  heroKicker: {
-    ...theme.typography.meta,
+  brandLinePrimary: {
+    ...theme.typography.eyebrow,
     color: theme.colors.accentStrong,
-    textAlign: 'right',
+    fontSize: 12,
+    letterSpacing: 1,
+    lineHeight: 16,
+    textAlign: 'center',
   },
-  heroOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.heroOverlay,
+  brandLineSecondary: {
+    ...theme.typography.display,
+    color: theme.colors.textPrimary,
+    fontSize: 30,
+    lineHeight: 34,
+    textAlign: 'center',
+  },
+  brandSubtitle: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+    lineHeight: 19,
+    maxWidth: 310,
+    textAlign: 'center',
+  },
+  form: {
+    gap: 16,
   },
   linkPressed: {
-    opacity: 0.82,
+    opacity: 0.76,
   },
   linkRow: {
     alignItems: 'center',
@@ -226,7 +249,9 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   linkText: {
     ...theme.typography.caption,
-    color: theme.colors.info,
+    color: theme.colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
     textAlign: 'center',
   },
   securityRow: {
@@ -238,6 +263,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   securityText: {
     ...theme.typography.caption,
     color: theme.colors.textMuted,
+    letterSpacing: 0.1,
     textAlign: 'center',
   },
 }));

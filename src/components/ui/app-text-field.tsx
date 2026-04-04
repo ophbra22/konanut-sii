@@ -6,7 +6,7 @@ import {
   type ReactElement,
 } from 'react';
 import type { TextInputProps } from 'react-native';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
@@ -17,6 +17,7 @@ type FieldIconElement = ReactElement<{
 }>;
 
 type AppTextFieldProps = TextInputProps & {
+  appearance?: 'auth' | 'default';
   errorMessage?: string;
   hint?: string;
   icon?: FieldIconElement;
@@ -26,6 +27,7 @@ type AppTextFieldProps = TextInputProps & {
 };
 
 export function AppTextField({
+  appearance = 'default',
   errorMessage,
   hint,
   icon,
@@ -53,10 +55,11 @@ export function AppTextField({
         })
       : null;
   const isEditable = props.editable !== false;
+  const isAuthAppearance = appearance === 'auth';
 
   return (
     <View style={styles.wrapper}>
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, isAuthAppearance ? styles.labelAuth : null]}>{label}</Text>
       <Pressable
         accessible={false}
         disabled={!isEditable}
@@ -65,8 +68,10 @@ export function AppTextField({
         }}
         style={[
           styles.field,
+          isAuthAppearance ? styles.fieldAuth : null,
           errorMessage ? styles.fieldError : null,
           isFocused ? styles.fieldFocused : null,
+          isFocused && isAuthAppearance ? styles.fieldFocusedAuth : null,
           !isEditable ? styles.fieldDisabled : null,
         ]}
       >
@@ -75,6 +80,7 @@ export function AppTextField({
             pointerEvents="none"
             style={[
               styles.iconSlot,
+              isAuthAppearance ? styles.iconSlotAuth : null,
               errorMessage && !isFocused ? styles.iconSlotError : null,
               isFocused ? styles.iconSlotFocused : null,
             ]}
@@ -101,6 +107,7 @@ export function AppTextField({
           selectionColor={theme.colors.info}
           style={[
             styles.input,
+            isAuthAppearance ? styles.inputAuth : null,
             {
               textAlign,
               writingDirection,
@@ -120,6 +127,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   error: {
     ...theme.typography.caption,
     color: theme.colors.danger,
+    lineHeight: 17,
     textAlign: 'right',
   },
   field: {
@@ -133,6 +141,13 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     minHeight: 56,
     paddingHorizontal: theme.spacing.md,
   },
+  fieldAuth: {
+    backgroundColor: theme.colors.inputBackground,
+    borderColor: theme.colors.borderSoft,
+    borderRadius: 20,
+    minHeight: 60,
+    paddingHorizontal: 16,
+  },
   fieldDisabled: {
     opacity: 0.58,
   },
@@ -143,6 +158,11 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     ...theme.elevation.focus,
     backgroundColor: theme.colors.surface,
     borderColor: theme.colors.info,
+  },
+  fieldFocusedAuth: {
+    backgroundColor: theme.colors.surfaceElevated,
+    borderColor: theme.colors.info,
+    shadowOpacity: 0.18,
   },
   hint: {
     ...theme.typography.caption,
@@ -156,6 +176,14 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     height: 34,
     justifyContent: 'center',
     width: 34,
+  },
+  iconSlotAuth: {
+    backgroundColor: theme.colors.glassSurface,
+    borderColor: theme.colors.borderSoft,
+    borderRadius: 12,
+    borderWidth: 1,
+    height: 38,
+    width: 38,
   },
   iconSlotError: {
     backgroundColor: theme.colors.dangerSurface,
@@ -172,12 +200,22 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     paddingHorizontal: 0,
     paddingVertical: 0,
   },
+  inputAuth: {
+    fontSize: 15,
+    fontWeight: '600',
+    minHeight: 58,
+  },
   label: {
     ...theme.typography.caption,
     color: theme.colors.textPrimary,
     textAlign: 'right',
   },
+  labelAuth: {
+    color: theme.colors.textSecondary,
+    fontSize: 11,
+    lineHeight: 14,
+  },
   wrapper: {
-    gap: theme.spacing.xs,
+    gap: 8,
   },
 }));
