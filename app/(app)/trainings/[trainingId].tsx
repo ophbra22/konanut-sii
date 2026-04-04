@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
   Check,
@@ -182,7 +182,10 @@ function getStatusLabelValue(status: TrainingStatus) {
 }
 
 export default function TrainingDetailsScreen() {
-  const { trainingId } = useLocalSearchParams<{ trainingId: string }>();
+  const { openFeedback, trainingId } = useLocalSearchParams<{
+    openFeedback?: string;
+    trainingId: string;
+  }>();
   const profile = useAuthStore((state) => state.profile);
   const role = useAuthStore((state) => state.role);
   const router = useRouter();
@@ -192,6 +195,15 @@ export default function TrainingDetailsScreen() {
   const { data, error, isLoading } = useTrainingDetailsQuery(trainingId);
   const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(null);
   const [isFeedbackFormVisible, setIsFeedbackFormVisible] = useState(false);
+  const canManageFeedback = canCreateFeedbacks(role);
+  const canEditTraining = canManageTrainings(role);
+
+  useEffect(() => {
+    if (openFeedback === '1' && canManageFeedback && profile) {
+      setEditingFeedbackId(null);
+      setIsFeedbackFormVisible(true);
+    }
+  }, [canManageFeedback, openFeedback, profile]);
 
   if (isLoading) {
     return <AppLoader label="טוען את פרטי האימון..." />;
@@ -218,8 +230,6 @@ export default function TrainingDetailsScreen() {
     );
   }
 
-  const canManageFeedback = canCreateFeedbacks(role);
-  const canEditTraining = canManageTrainings(role);
   const editingFeedback =
     data.feedbacks.find((feedback) => feedback.id === editingFeedbackId) ?? null;
   const hasScoreData = data.averageFeedbackRating !== null;

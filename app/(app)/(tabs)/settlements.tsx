@@ -1,11 +1,13 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Plus, Trophy } from 'lucide-react-native';
+import { Plus, SlidersHorizontal, Trophy } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import { AppLoader } from '@/src/components/feedback/app-loader';
 import { StateCard } from '@/src/components/feedback/state-card';
-import { FilterChip } from '@/src/components/ui/filter-chip';
+import { AppButton } from '@/src/components/ui/app-button';
+import { AppChip } from '@/src/components/ui/app-chip';
+import { FilterBottomSheet } from '@/src/components/ui/filter-bottom-sheet';
 import { OpsIconButton } from '@/src/components/ui/ops-icon-button';
 import { OpsListHeader } from '@/src/components/ui/ops-list-header';
 import { OpsSearchBar } from '@/src/components/ui/ops-search-bar';
@@ -29,7 +31,7 @@ import {
 } from '@/src/lib/date-utils';
 import { matchesSearchQuery } from '@/src/lib/search-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
-import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
+import { createThemedStyles, type AppTheme } from '@/src/theme';
 
 export default function SettlementsScreen() {
   const router = useRouter();
@@ -47,11 +49,16 @@ export default function SettlementsScreen() {
     : incomingRequestParam;
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<ComplianceFilterKey>(initialFilter);
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const lastAppliedShortcutKeyRef = useRef<string | null>(initialRequestKey ?? null);
   const { data, error, isLoading, refetch } = useSettlementsQuery();
   const settlements = data ?? [];
   const currentHalfYear = getCurrentHalfYearPeriod();
   const currentYear = getCurrentYear();
+  const activeFilterLabel =
+    COMPLIANCE_FILTERS.find((filterOption) => filterOption.key === activeFilter)?.label ??
+    'כל היישובים';
+  const hasActiveFilter = activeFilter !== 'all';
 
   useEffect(() => {
     const nextRequestKey = Array.isArray(incomingRequestParam)
@@ -104,116 +111,157 @@ export default function SettlementsScreen() {
   }
 
   return (
-    <AppScreen contentContainerStyle={styles.screenContent} scroll={false}>
-      <View style={styles.container}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <OpsListHeader
-            actions={
-              <>
-                <OpsIconButton
-                  accessibilityLabel="מעבר לדירוג יישובים"
-                  icon={Trophy}
-                  onPress={() => {
-                    router.push('/settlement-rankings' as never);
-                  }}
-                />
-                {canCreateSettlement ? (
+    <>
+      <AppScreen contentContainerStyle={styles.screenContent} scroll={false}>
+        <View style={styles.container}>
+          <ScrollView
+            contentContainerStyle={styles.content}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <OpsListHeader
+              actions={
+                <>
                   <OpsIconButton
-                    accessibilityLabel="הוספת יישוב"
-                    accent
-                    icon={Plus}
+                    accessibilityLabel="סינון יישובים"
+                    accent={hasActiveFilter}
+                    icon={SlidersHorizontal}
                     onPress={() => {
-                      router.push('/settlements/create' as never);
+                      setIsFilterSheetOpen(true);
+                    }}
+                    showIndicator={hasActiveFilter}
+                  />
+                  <OpsIconButton
+                    accessibilityLabel="מעבר לדירוג יישובים"
+                    icon={Trophy}
+                    onPress={() => {
+                      router.push('/settlement-rankings' as never);
                     }}
                   />
-                ) : null}
-              </>
-            }
-            subtitle={`${settlements.length} יישובים פעילים`}
-            title="יישובים"
-          />
+                  {canCreateSettlement ? (
+                    <OpsIconButton
+                      accessibilityLabel="הוספת יישוב"
+                      accent
+                      icon={Plus}
+                      onPress={() => {
+                        router.push('/settlements/create' as never);
+                      }}
+                    />
+                  ) : null}
+                </>
+              }
+              subtitle={
+                hasActiveFilter
+                  ? `${settlements.length} יישובים פעילים • מסונן: ${activeFilterLabel}`
+                  : `${settlements.length} יישובים פעילים`
+              }
+              title="יישובים"
+            />
 
-          <OpsSearchBar
-            onChangeText={setSearchTerm}
-            placeholder="חיפוש יישוב..."
-            value={searchTerm}
-          />
+            <OpsSearchBar
+              onChangeText={setSearchTerm}
+              placeholder="חיפוש יישוב..."
+              value={searchTerm}
+            />
 
-          {!error && settlements.length ? (
-            <View style={styles.filtersSection}>
-              <Text style={styles.filtersTitle}>עמידה בדרישות אימון</Text>
-              <Text style={styles.filtersHint}>
-                מטווח: {getHalfYearLabel(currentHalfYear)} • הגנת יישוב: {currentYear}
-              </Text>
+            {error ? (
+              <StateCard
+                actionLabel="נסו שוב"
+                description={error.message}
+                onAction={() => {
+                  void refetch();
+                }}
+                title="לא הצלחנו לטעון את היישובים"
+                variant="warning"
+              />
+            ) : null}
 
-              <View style={styles.filtersRow}>
-                {COMPLIANCE_FILTERS.map((filterOption) => (
-                  <FilterChip
-                    key={filterOption.key}
-                    count={filterCounts[filterOption.key]}
-                    label={filterOption.label}
-                    onPress={() => {
-                      setActiveFilter(filterOption.key);
-                    }}
-                    selected={activeFilter === filterOption.key}
-                    tone={filterOption.tone}
-                  />
+            {!error && !settlements.length ? (
+              <StateCard
+                actionLabel="רענון"
+                description="כרגע אין יישובים נגישים לחשבון המחובר. אפשר לבדוק שיוכים או לנסות שוב."
+                onAction={() => {
+                  void refetch();
+                }}
+                title="אין יישובים להצגה"
+              />
+            ) : null}
+
+            {!error && settlements.length && !searchedSettlements.length ? (
+              <StateCard
+                description="לא נמצאו יישובים שתואמים לחיפוש הנוכחי."
+                title="לא נמצאו תוצאות"
+              />
+            ) : null}
+
+            {!error && searchedSettlements.length && !filteredSettlements.length ? (
+              <StateCard
+                description={getEmptyFilterDescription(activeFilter)}
+                title="אין יישובים בפילטר הנבחר"
+              />
+            ) : null}
+
+            {!error && filteredSettlements.length ? (
+              <View style={styles.list}>
+                {filteredSettlements.map((settlement) => (
+                  <SettlementListCard key={settlement.id} settlement={settlement} />
                 ))}
               </View>
-            </View>
-          ) : null}
+            ) : null}
+          </ScrollView>
+        </View>
+      </AppScreen>
 
-          {error ? (
-            <StateCard
-              actionLabel="נסו שוב"
-              description={error.message}
-              onAction={() => {
-                void refetch();
+      <FilterBottomSheet
+        actions={
+          <>
+            <AppButton
+              disabled={!hasActiveFilter}
+              fullWidth={false}
+              label="איפוס"
+              onPress={() => {
+                setActiveFilter('all');
               }}
-              title="לא הצלחנו לטעון את היישובים"
-              variant="warning"
+              size="sm"
+              style={styles.modalAction}
+              variant="ghost"
             />
-          ) : null}
-
-          {!error && !settlements.length ? (
-            <StateCard
-              actionLabel="רענון"
-              description="כרגע אין יישובים נגישים לחשבון המחובר. אפשר לבדוק שיוכים או לנסות שוב."
-              onAction={() => {
-                void refetch();
+            <AppButton
+              fullWidth={false}
+              label="סגירה"
+              onPress={() => {
+                setIsFilterSheetOpen(false);
               }}
-              title="אין יישובים להצגה"
+              size="sm"
+              style={styles.modalAction}
+              variant="secondary"
             />
-          ) : null}
-
-          {!error && settlements.length && !searchedSettlements.length ? (
-            <StateCard
-              description="לא נמצאו יישובים שתואמים לחיפוש הנוכחי."
-              title="לא נמצאו תוצאות"
+          </>
+        }
+        description={`מטווח: ${getHalfYearLabel(currentHalfYear)} • הגנת יישוב: ${currentYear}`}
+        onClose={() => {
+          setIsFilterSheetOpen(false);
+        }}
+        title="סינון יישובים"
+        visible={isFilterSheetOpen}
+      >
+        <View style={styles.modalChips}>
+          {COMPLIANCE_FILTERS.map((filterOption) => (
+            <AppChip
+              key={filterOption.key}
+              count={filterCounts[filterOption.key]}
+              label={filterOption.label}
+              onPress={() => {
+                setActiveFilter(filterOption.key);
+                setIsFilterSheetOpen(false);
+              }}
+              selected={activeFilter === filterOption.key}
+              tone={activeFilter === filterOption.key ? 'accent' : filterOption.tone}
             />
-          ) : null}
-
-          {!error && searchedSettlements.length && !filteredSettlements.length ? (
-            <StateCard
-              description={getEmptyFilterDescription(activeFilter)}
-              title="אין יישובים בפילטר הנבחר"
-            />
-          ) : null}
-
-          {!error && filteredSettlements.length ? (
-            <View style={styles.list}>
-              {filteredSettlements.map((settlement) => (
-                <SettlementListCard key={settlement.id} settlement={settlement} />
-              ))}
-            </View>
-          ) : null}
-        </ScrollView>
-      </View>
-    </AppScreen>
+          ))}
+        </View>
+      </FilterBottomSheet>
+    </>
   );
 }
 
@@ -225,25 +273,15 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     gap: theme.spacing.section,
     paddingBottom: theme.spacing.xl,
   },
-  filtersHint: {
-    ...theme.typography.meta,
-    color: theme.colors.textMuted,
-    textAlign: 'right',
+  list: {
+    gap: theme.spacing.sm,
   },
-  filtersRow: {
+  modalAction: {
+    flex: 1,
+  },
+  modalChips: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: theme.spacing.xs,
-  },
-  filtersSection: {
-    gap: theme.spacing.xs,
-  },
-  filtersTitle: {
-    ...theme.typography.caption,
-    color: theme.colors.textPrimary,
-    textAlign: 'right',
-  },
-  list: {
     gap: theme.spacing.sm,
   },
   screenContent: {

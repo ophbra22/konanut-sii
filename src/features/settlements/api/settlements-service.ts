@@ -36,6 +36,7 @@ export type SettlementTrainingSummary = Pick<
   'id' | 'status' | 'title' | 'training_date' | 'training_time' | 'training_type'
 > & {
   location: string | null;
+  settlements: Array<Pick<Settlement, 'id' | 'name'>>;
 };
 
 export type SettlementFeedbackSummary = Pick<
@@ -229,7 +230,13 @@ export async function getSettlementDetails(
               location,
               training_date,
               training_time,
-              status
+              status,
+              training_settlements (
+                settlement:settlements (
+                  id,
+                  name
+                )
+              )
             )
           `
         )
@@ -290,10 +297,35 @@ export async function getSettlementDetails(
   const trainings = (
     (trainingLinks ?? []) as Array<{
       settlement_id: string;
-      training: SettlementTrainingSummary | null;
+      training:
+        | (Omit<SettlementTrainingSummary, 'settlements'> & {
+            training_settlements: Array<{
+              settlement: Pick<Settlement, 'id' | 'name'> | null;
+            }>;
+          })
+        | null;
     }>
   )
-    .map((item) => item.training)
+    .map((item) => {
+      if (!item.training) {
+        return null;
+      }
+
+      const settlements = (item.training.training_settlements ?? [])
+        .map((link) => link.settlement)
+        .filter((settlement): settlement is Pick<Settlement, 'id' | 'name'> => Boolean(settlement));
+
+      return {
+        id: item.training.id,
+        location: item.training.location,
+        settlements,
+        status: item.training.status,
+        title: item.training.title,
+        training_date: item.training.training_date,
+        training_time: item.training.training_time,
+        training_type: item.training.training_type,
+      } satisfies SettlementTrainingSummary;
+    })
     .filter((training): training is SettlementTrainingSummary => Boolean(training))
     .sort((left, right) =>
       `${right.training_date}${right.training_time ?? ''}`.localeCompare(
@@ -309,23 +341,18 @@ export async function getSettlementDetails(
         created_at: feedback.created_at,
         rating: feedback.rating,
         settlement_id: settlementId,
-      })),
+    })),
     period,
     settlement,
-    trainings: ((trainingLinks ?? []) as Array<{
-      settlement_id: string;
-      training: SettlementTrainingSummary | null;
-    }>).map((item) => ({
-      settlement_id: item.settlement_id,
-      training: item.training
-        ? {
-            id: item.training.id,
-            status: item.training.status,
-            title: item.training.title,
-            training_date: item.training.training_date,
-            training_type: item.training.training_type,
-          }
-        : null,
+    trainings: trainings.map((training) => ({
+      settlement_id: settlementId,
+      training: {
+        id: training.id,
+        status: training.status,
+        title: training.title,
+        training_date: training.training_date,
+        training_type: training.training_type,
+      },
     })),
   });
 

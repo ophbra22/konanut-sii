@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
@@ -8,6 +8,7 @@ type OpsIconButtonProps = {
   accent?: boolean;
   icon: ComponentType<{ color: string; size: number }>;
   onPress: () => void;
+  showIndicator?: boolean;
 };
 
 export function OpsIconButton({
@@ -15,6 +16,7 @@ export function OpsIconButton({
   accent = false,
   icon: Icon,
   onPress,
+  showIndicator = false,
 }: OpsIconButtonProps) {
   return (
     <Pressable
@@ -27,6 +29,7 @@ export function OpsIconButton({
         pressed && styles.pressed,
       ]}
     >
+      {showIndicator ? <View style={styles.indicator} /> : null}
       <Icon
         color={accent ? theme.colors.info : theme.colors.textPrimary}
         size={17}
@@ -51,6 +54,17 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     backgroundColor: theme.colors.surfaceInfo,
     borderColor: theme.colors.infoBorder,
     ...theme.elevation.focus,
+  },
+  indicator: {
+    backgroundColor: theme.colors.accentStrong,
+    borderColor: theme.colors.background,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1.5,
+    height: 8,
+    position: 'absolute',
+    right: 8,
+    top: 8,
+    width: 8,
   },
   pressed: {
     opacity: 0.92,

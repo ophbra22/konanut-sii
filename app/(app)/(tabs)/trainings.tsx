@@ -2,18 +2,15 @@ import { useRouter } from 'expo-router';
 import { Plus, SlidersHorizontal } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import {
-  Modal,
-  Pressable,
   ScrollView,
-  StyleSheet,
   View,
 } from 'react-native';
 
 import { AppLoader } from '@/src/components/feedback/app-loader';
 import { StateCard } from '@/src/components/feedback/state-card';
 import { AppButton } from '@/src/components/ui/app-button';
-import { AppCard } from '@/src/components/ui/app-card';
 import { AppChip } from '@/src/components/ui/app-chip';
+import { FilterBottomSheet } from '@/src/components/ui/filter-bottom-sheet';
 import { OpsIconButton } from '@/src/components/ui/ops-icon-button';
 import { OpsListHeader } from '@/src/components/ui/ops-list-header';
 import { OpsSearchBar } from '@/src/components/ui/ops-search-bar';
@@ -63,6 +60,9 @@ export default function TrainingsScreen() {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const { data, error, isLoading, refetch } = useTrainingsQuery();
   const trainings = data ?? [];
+  const activeStatusFilterLabel =
+    statusFilterOptions.find((option) => option.key === statusFilter)?.label ?? 'הכל';
+  const hasActiveStatusFilter = statusFilter !== 'all';
 
   const searchedTrainings = useMemo(
     () => trainings.filter((training) => matchesSearch(training, searchTerm)),
@@ -105,10 +105,12 @@ export default function TrainingsScreen() {
                 <>
                   <OpsIconButton
                     accessibilityLabel="פתיחת מסנני אימונים"
+                    accent={hasActiveStatusFilter}
                     icon={SlidersHorizontal}
                     onPress={() => {
                       setIsFilterSheetOpen(true);
                     }}
+                    showIndicator={hasActiveStatusFilter}
                   />
                   {canCreate ? (
                     <OpsIconButton
@@ -122,7 +124,11 @@ export default function TrainingsScreen() {
                   ) : null}
                 </>
               }
-              subtitle={`${trainings.length} אימונים זמינים`}
+              subtitle={
+                hasActiveStatusFilter
+                  ? `${trainings.length} אימונים זמינים • מסונן: ${activeStatusFilterLabel}`
+                  : `${trainings.length} אימונים זמינים`
+              }
               title="אימונים"
             />
 
@@ -131,33 +137,6 @@ export default function TrainingsScreen() {
               placeholder="חיפוש אימון..."
               value={searchTerm}
             />
-
-            <ScrollView
-              contentContainerStyle={styles.chipsContent}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-            >
-              <View style={styles.chipsRow}>
-                {statusFilterOptions.map((option) => {
-                  const count =
-                    option.key === 'all' ? chipCounts.all : chipCounts[option.key];
-                  const isSelected = statusFilter === option.key;
-
-                  return (
-                    <AppChip
-                      key={option.key}
-                      count={count}
-                      label={option.label}
-                      onPress={() => {
-                        setStatusFilter(option.key);
-                      }}
-                      selected={isSelected}
-                      tone={isSelected ? 'accent' : 'neutral'}
-                    />
-                  );
-                })}
-              </View>
-            </ScrollView>
 
             {error ? (
               <StateCard
@@ -201,84 +180,66 @@ export default function TrainingsScreen() {
         </View>
       </AppScreen>
 
-      <Modal
-        animationType="fade"
-        onRequestClose={() => {
+      <FilterBottomSheet
+        actions={
+          <>
+            <AppButton
+              disabled={!hasActiveStatusFilter}
+              fullWidth={false}
+              label="איפוס"
+              onPress={() => {
+                setStatusFilter('all');
+              }}
+              size="sm"
+              style={styles.modalAction}
+              variant="ghost"
+            />
+            <AppButton
+              fullWidth={false}
+              label="סגירה"
+              onPress={() => {
+                setIsFilterSheetOpen(false);
+              }}
+              size="sm"
+              style={styles.modalAction}
+              variant="secondary"
+            />
+          </>
+        }
+        description="בחרו אילו סטטוסים להציג ברשימת האימונים."
+        onClose={() => {
           setIsFilterSheetOpen(false);
         }}
-        transparent
+        title="סינון אימונים"
         visible={isFilterSheetOpen}
       >
-        <View style={styles.modalBackdrop}>
-          <Pressable
-            onPress={() => {
-              setIsFilterSheetOpen(false);
-            }}
-            style={StyleSheet.absoluteFill}
-          />
+        <View style={styles.modalChips}>
+          {statusFilterOptions.map((option) => {
+            const count =
+              option.key === 'all' ? chipCounts.all : chipCounts[option.key];
+            const isSelected = statusFilter === option.key;
 
-          <View style={styles.modalSheet}>
-            <AppCard description="בחרו אילו סטטוסים להציג." title="סינון אימונים">
-              <View style={styles.modalChips}>
-                {statusFilterOptions.map((option) => {
-                  const count =
-                    option.key === 'all' ? chipCounts.all : chipCounts[option.key];
-                  const isSelected = statusFilter === option.key;
-
-                  return (
-                    <AppChip
-                      key={option.key}
-                      count={count}
-                      label={option.label}
-                      onPress={() => {
-                        setStatusFilter(option.key);
-                        setIsFilterSheetOpen(false);
-                      }}
-                      selected={isSelected}
-                      tone={isSelected ? 'accent' : 'neutral'}
-                    />
-                  );
-                })}
-              </View>
-
-              <View style={styles.modalActions}>
-                <AppButton
-                  fullWidth={false}
-                  label="איפוס"
-                  onPress={() => {
-                    setSearchTerm('');
-                    setStatusFilter('all');
-                  }}
-                  style={styles.modalAction}
-                  variant="ghost"
-                />
-                <AppButton
-                  fullWidth={false}
-                  label="סגירה"
-                  onPress={() => {
-                    setIsFilterSheetOpen(false);
-                  }}
-                  style={styles.modalAction}
-                  variant="secondary"
-                />
-              </View>
-            </AppCard>
-          </View>
+            return (
+              <AppChip
+                key={option.key}
+                count={count}
+                label={option.label}
+                onPress={() => {
+                  setStatusFilter(option.key);
+                  setIsFilterSheetOpen(false);
+                }}
+                selected={isSelected}
+                tone={isSelected ? 'accent' : 'neutral'}
+              />
+            );
+          })}
         </View>
-      </Modal>
+      </FilterBottomSheet>
     </>
   );
 }
 
 const styles = createThemedStyles((theme: AppTheme) => ({
-  chipsContent: {
-    paddingLeft: theme.spacing.lg,
-    paddingRight: theme.spacing.lg,
-  },
-  chipsRow: {
-    flexDirection: 'row-reverse',
-    gap: theme.spacing.sm,
-  },
   container: {
     flex: 1,
   },
@@ -292,23 +253,10 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   modalAction: {
     flex: 1,
   },
-  modalActions: {
-    flexDirection: 'row-reverse',
-    gap: theme.spacing.sm,
-  },
-  modalBackdrop: {
-    backgroundColor: theme.colors.glassSurface,
-    flex: 1,
-    justifyContent: 'flex-end',
-    padding: theme.spacing.lg,
-  },
   modalChips: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
     gap: theme.spacing.sm,
-  },
-  modalSheet: {
-    marginTop: 'auto',
   },
   screenContent: {
     flex: 1,

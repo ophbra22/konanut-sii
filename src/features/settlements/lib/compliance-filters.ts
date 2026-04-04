@@ -30,22 +30,22 @@ export const COMPLIANCE_FILTERS: ComplianceFilterOption[] = [
   },
   {
     key: 'shooting-completed',
-    label: 'מטווח בוצע',
+    label: 'ביצעו מטווח',
     tone: 'accent',
   },
   {
     key: 'shooting-missing',
-    label: 'מטווח חסר',
+    label: 'חסרי מטווח בחציון',
     tone: 'warning',
   },
   {
     key: 'defense-completed',
-    label: 'הגנת יישוב בוצעה',
+    label: 'ביצעו הגנת יישוב',
     tone: 'accent',
   },
   {
     key: 'defense-missing',
-    label: 'הגנת יישוב חסרה',
+    label: 'חסרי הגנת יישוב',
     tone: 'warning',
   },
 ];
