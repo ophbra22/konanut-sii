@@ -13,7 +13,7 @@ import {
   type TrainingFeedbackFormValues,
 } from '@/src/features/trainings/schemas/training-feedback-form-schema';
 import type { Settlement } from '@/src/types/database';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type SettlementOption = Pick<Settlement, 'area' | 'id' | 'name'>;
 
@@ -196,7 +196,7 @@ export function TrainingFeedbackForm({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   actionButton: {
     flex: 1,
   },
@@ -237,4 +237,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'right',
   },
-});
+}));

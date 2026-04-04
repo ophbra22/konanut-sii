@@ -15,7 +15,7 @@ import {
   requiresSettlementAssignment,
 } from '@/src/features/auth/lib/permissions';
 import { formatDisplayDate } from '@/src/lib/date-utils';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 import type { PendingUserProfile } from '@/src/features/auth/api/user-approval-service';
 import type { LinkedSettlement, UserRole } from '@/src/types/database';
 
@@ -210,7 +210,7 @@ export function PendingUserApprovalCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   actionButton: {
     flex: 1,
   },
@@ -256,4 +256,4 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'right',
   },
-});
+}));

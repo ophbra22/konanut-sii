@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type ListCardProps = {
   badge?: ReactNode;
@@ -62,7 +62,7 @@ export function ListCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   card: {
     ...theme.elevation.card,
     backgroundColor: theme.colors.surfaceElevated,
@@ -110,4 +110,4 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
     justifyContent: 'space-between',
   },
-});
+}));

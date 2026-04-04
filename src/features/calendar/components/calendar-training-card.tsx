@@ -6,7 +6,7 @@ import { AppBadge } from '@/src/components/ui/app-badge';
 import type { CalendarTrainingItem } from '@/src/features/calendar/api/calendar-service';
 import { getTrainingStatusTone } from '@/src/features/trainings/lib/training-presenters';
 import { formatDisplayTime } from '@/src/lib/date-utils';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type CalendarTrainingCardProps = {
   training: CalendarTrainingItem;
@@ -76,7 +76,7 @@ export function CalendarTrainingCard({ training }: CalendarTrainingCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   card: {
     backgroundColor: theme.colors.surfaceElevated,
     borderColor: theme.colors.borderStrong,
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 15,
     paddingVertical: 13,
-    shadowColor: '#000000',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.08,
     shadowRadius: 14,
@@ -144,4 +144,4 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'right',
   },
-});
+}));

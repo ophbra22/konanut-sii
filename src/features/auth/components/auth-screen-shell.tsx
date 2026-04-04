@@ -4,7 +4,7 @@ import { Shield } from 'lucide-react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppScreen } from '@/src/components/ui/app-screen';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type AuthScreenShellProps = PropsWithChildren<{
   badgeLabel: string;
@@ -48,9 +48,9 @@ export function AuthScreenShell({
         <View style={[styles.card, compact ? styles.cardCompact : null]}>
           <LinearGradient
             colors={[
-              'rgba(141, 168, 255, 0.18)',
-              'rgba(141, 168, 255, 0.05)',
-              'rgba(141, 168, 255, 0)',
+              theme.colors.infoSurface,
+              theme.colors.mediaGlow,
+              'transparent',
             ]}
             end={{ x: 0.15, y: 1 }}
             pointerEvents="none"
@@ -79,10 +79,10 @@ export function AuthScreenShell({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   card: {
     ...theme.elevation.card,
-    backgroundColor: 'rgba(13, 19, 24, 0.94)',
+    backgroundColor: theme.colors.glassSurfaceStrong,
     borderColor: theme.colors.borderSoft,
     borderRadius: 28,
     borderWidth: 1,
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-end',
     backgroundColor: theme.colors.infoSurface,
-    borderColor: 'rgba(141, 168, 255, 0.22)',
+    borderColor: theme.colors.infoBorder,
     borderRadius: theme.radius.pill,
     borderWidth: 1,
     flexDirection: 'row-reverse',
@@ -197,4 +197,4 @@ const styles = StyleSheet.create({
   wrapperCentered: {
     justifyContent: 'center',
   },
-});
+}));

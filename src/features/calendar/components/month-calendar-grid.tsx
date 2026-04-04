@@ -9,7 +9,7 @@ import {
   isSameCalendarMonth,
 } from '@/src/features/calendar/lib/calendar-utils';
 import type { TrainingStatus } from '@/src/types/database';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type DayStatusMap = Record<string, TrainingStatus[]>;
 
@@ -104,7 +104,7 @@ export function MonthCalendarGrid({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   dayButton: {
     width: '14.285%',
   },
@@ -131,8 +131,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
   },
   dayCellToday: {
-    backgroundColor: 'rgba(108, 143, 255, 0.08)',
-    borderColor: 'rgba(108, 143, 255, 0.45)',
+    backgroundColor: theme.colors.infoSurface,
+    borderColor: theme.colors.infoBorder,
     borderWidth: 1,
   },
   dayLabel: {
@@ -180,4 +180,4 @@ const styles = StyleSheet.create({
   wrapper: {
     gap: 0,
   },
-});
+}));

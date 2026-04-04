@@ -5,7 +5,7 @@ import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import type { TrainingFeedbackItem } from '@/src/features/trainings/api/trainings-service';
 import { formatDisplayDate } from '@/src/lib/date-utils';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type TrainingFeedbackCardProps = {
   canDelete?: boolean;
@@ -80,7 +80,7 @@ export function TrainingFeedbackCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   actionButton: {
     flex: 1,
   },
@@ -134,4 +134,4 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: 'space-between',
   },
-});
+}));

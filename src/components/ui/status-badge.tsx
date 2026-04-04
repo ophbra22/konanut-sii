@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 export type StatusBadgeTone =
   | 'accent'
@@ -32,7 +32,7 @@ export function StatusBadge({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   base: {
     alignItems: 'center',
     alignSelf: 'flex-start',
@@ -44,9 +44,9 @@ const styles = StyleSheet.create({
     ...theme.typography.badge,
     textAlign: 'center',
   },
-});
+}));
 
-const sizeStyles = StyleSheet.create({
+const sizeStyles = createThemedStyles((theme: AppTheme) => ({
   md: {
     minHeight: 24,
     paddingHorizontal: 10,
@@ -57,9 +57,9 @@ const sizeStyles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-});
+}));
 
-const labelSizeStyles = StyleSheet.create({
+const labelSizeStyles = createThemedStyles((theme: AppTheme) => ({
   md: {
     fontSize: theme.typography.badge.fontSize,
   },
@@ -67,20 +67,20 @@ const labelSizeStyles = StyleSheet.create({
     fontSize: 10,
     lineHeight: 11,
   },
-});
+}));
 
-const toneStyles = StyleSheet.create({
+const toneStyles = createThemedStyles((theme: AppTheme) => ({
   accent: {
     backgroundColor: theme.colors.overlay,
-    borderColor: 'rgba(199, 243, 107, 0.20)',
+    borderColor: theme.colors.accentBorder,
   },
   danger: {
     backgroundColor: theme.colors.dangerSurface,
-    borderColor: 'rgba(255, 114, 87, 0.22)',
+    borderColor: theme.colors.dangerBorder,
   },
   info: {
     backgroundColor: theme.colors.infoSurface,
-    borderColor: 'rgba(108, 143, 255, 0.28)',
+    borderColor: theme.colors.infoBorder,
   },
   neutral: {
     backgroundColor: theme.colors.surface,
@@ -88,19 +88,19 @@ const toneStyles = StyleSheet.create({
   },
   success: {
     backgroundColor: theme.colors.successSurface,
-    borderColor: 'rgba(199, 243, 107, 0.22)',
+    borderColor: theme.colors.accentBorder,
   },
   teal: {
     backgroundColor: theme.colors.surfaceTeal,
-    borderColor: 'rgba(77, 195, 178, 0.26)',
+    borderColor: theme.colors.tealBorder,
   },
   warning: {
     backgroundColor: theme.colors.warningSurface,
-    borderColor: 'rgba(245, 178, 75, 0.24)',
+    borderColor: theme.colors.warningBorder,
   },
-});
+}));
 
-const labelToneStyles = StyleSheet.create({
+const labelToneStyles = createThemedStyles((theme: AppTheme) => ({
   accent: {
     color: theme.colors.accentStrong,
   },
@@ -122,4 +122,4 @@ const labelToneStyles = StyleSheet.create({
   warning: {
     color: theme.colors.warning,
   },
-});
+}));

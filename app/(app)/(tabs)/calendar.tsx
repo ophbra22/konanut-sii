@@ -27,7 +27,7 @@ import {
 import { canCreateTrainings } from '@/src/features/auth/lib/permissions';
 import { trainingStatuses } from '@/src/features/trainings/constants';
 import { useAuthStore } from '@/src/stores/auth-store';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 const allFilterValue = 'all';
 
@@ -189,7 +189,7 @@ export default function CalendarScreen() {
   };
 
   if (isLoading && !data) {
-    return <AppLoader label="טוען את היומן המבצעי..." />;
+    return <AppLoader label="טוען את היומן..." />;
   }
 
   return (
@@ -214,7 +214,7 @@ export default function CalendarScreen() {
             )}
 
             <View style={styles.titleBlock}>
-              <Text style={styles.eyebrow}>חמ״ל מבצעי</Text>
+              <Text style={styles.eyebrow}>חמ״ל אימונים</Text>
               <Text style={styles.title}>לוח שנה</Text>
             </View>
           </View>
@@ -507,7 +507,7 @@ export default function CalendarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   addAction: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
   },
   calendarShell: {
     ...theme.elevation.card,
-    backgroundColor: 'rgba(13, 19, 24, 0.96)',
+    backgroundColor: theme.colors.glassSurfaceStrong,
     borderColor: theme.colors.borderStrong,
     borderRadius: theme.radius.xl,
     borderWidth: 1,
@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   modalBackdrop: {
-    backgroundColor: 'rgba(5, 8, 11, 0.72)',
+    backgroundColor: theme.colors.glassSurface,
     flex: 1,
     justifyContent: 'flex-end',
     padding: theme.spacing.lg,
@@ -736,4 +736,4 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 2,
   },
-});
+}));

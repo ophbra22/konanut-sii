@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type OpsListCardProps = PropsWithChildren<{
   disabled?: boolean;
@@ -30,7 +30,7 @@ export function OpsListCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   card: {
     ...theme.elevation.card,
     backgroundColor: theme.colors.surfaceElevated,
@@ -47,4 +47,4 @@ const styles = StyleSheet.create({
     opacity: 0.95,
     transform: [{ scale: 0.988 }],
   },
-});
+}));

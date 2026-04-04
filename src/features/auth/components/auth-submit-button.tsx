@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type AuthSubmitButtonProps = {
   disabled?: boolean;
@@ -52,7 +52,7 @@ export function AuthSubmitButton({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   button: {
     ...theme.elevation.hero,
     borderRadius: 18,
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     alignItems: 'center',
-    borderColor: 'rgba(141, 168, 255, 0.32)',
+    borderColor: theme.colors.infoBorder,
     borderRadius: 18,
     borderWidth: 1,
     justifyContent: 'center',
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   highlight: {
-    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    backgroundColor: theme.colors.highlightOverlay,
     borderRadius: 999,
     height: 38,
     left: 14,
@@ -97,4 +97,4 @@ const styles = StyleSheet.create({
     flexDirection: 'row-reverse',
     gap: theme.spacing.xs,
   },
-});
+}));

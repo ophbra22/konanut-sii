@@ -14,7 +14,7 @@ import {
   type TrainingFormValues,
 } from '@/src/features/trainings/schemas/training-form-schema';
 import type { Settlement, UserProfile } from '@/src/types/database';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type TrainingFormProps = {
   allowEmptyInstructor?: boolean;
@@ -293,7 +293,7 @@ export function TrainingForm({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   chips: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
@@ -317,4 +317,4 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: theme.spacing.md,
   },
-});
+}));

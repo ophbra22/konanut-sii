@@ -12,7 +12,7 @@ import { ListCard } from '@/src/components/ui/list-card';
 import type { TrainingListItem } from '@/src/features/trainings/api/trainings-service';
 import { getTrainingStatusTone } from '@/src/features/trainings/lib/training-presenters';
 import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type TrainingListCardProps = {
   training: TrainingListItem;
@@ -78,7 +78,7 @@ export function TrainingListCard({ training }: TrainingListCardProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   card: {
     minHeight: 62,
   },
@@ -102,4 +102,4 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'right',
   },
-});
+}));

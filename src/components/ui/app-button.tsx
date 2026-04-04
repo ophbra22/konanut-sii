@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router/build/hooks';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 export type AppButtonVariant = 'danger' | 'ghost' | 'primary' | 'secondary';
 export type AppButtonSize = 'md' | 'sm';
@@ -71,7 +71,7 @@ export function AppButton({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   base: {
     alignItems: 'center',
     borderRadius: theme.radius.lg,
@@ -94,9 +94,9 @@ const styles = StyleSheet.create({
     opacity: 0.92,
     transform: [{ scale: 0.985 }],
   },
-});
+}));
 
-const sizeStyles = StyleSheet.create({
+const sizeStyles = createThemedStyles((theme: AppTheme) => ({
   md: {
     minHeight: 42,
     paddingHorizontal: 14,
@@ -105,9 +105,9 @@ const sizeStyles = StyleSheet.create({
     minHeight: 38,
     paddingHorizontal: 12,
   },
-});
+}));
 
-const variantStyles = StyleSheet.create({
+const variantStyles = createThemedStyles((theme: AppTheme) => ({
   danger: {
     backgroundColor: theme.colors.danger,
     borderColor: theme.colors.danger,
@@ -115,7 +115,7 @@ const variantStyles = StyleSheet.create({
     ...theme.elevation.card,
   },
   ghost: {
-    backgroundColor: 'rgba(13, 19, 24, 0.6)',
+    backgroundColor: theme.colors.glassSurface,
     borderColor: theme.colors.border,
     borderWidth: 1,
   },
@@ -130,19 +130,19 @@ const variantStyles = StyleSheet.create({
     borderColor: theme.colors.borderStrong,
     borderWidth: 1,
   },
-});
+}));
 
-const labelStyles = StyleSheet.create({
+const labelStyles = createThemedStyles((theme: AppTheme) => ({
   danger: {
-    color: theme.colors.background,
+    color: theme.colors.inverseText,
   },
   ghost: {
     color: theme.colors.textSecondary,
   },
   primary: {
-    color: theme.colors.background,
+    color: theme.colors.inverseText,
   },
   secondary: {
     color: theme.colors.textPrimary,
   },
-});
+}));

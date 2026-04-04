@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { SurfaceCard } from '@/src/components/ui/surface-card';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type KpiCardTone = 'accent' | 'default' | 'info' | 'warning';
 
@@ -84,7 +84,7 @@ export function KpiCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   card: {
     justifyContent: 'center',
     minHeight: 76,
@@ -122,9 +122,9 @@ const styles = StyleSheet.create({
     letterSpacing: -0.6,
     textAlign: 'right',
   },
-});
+}));
 
-const valueToneStyles = StyleSheet.create({
+const valueToneStyles = createThemedStyles((theme: AppTheme) => ({
   accent: {
     color: theme.colors.accentStrong,
   },
@@ -137,4 +137,4 @@ const valueToneStyles = StyleSheet.create({
   warning: {
     color: theme.colors.warning,
   },
-});
+}));

@@ -25,7 +25,7 @@ import {
 import { getHalfYearLabel } from '@/src/lib/date-utils';
 import { matchesSearchQuery } from '@/src/lib/search-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type LevelFilter = 'all' | RankingLevel;
 
@@ -228,7 +228,7 @@ export default function SettlementRankingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   chipsContent: {
     paddingLeft: theme.spacing.lg,
     paddingRight: theme.spacing.lg,
@@ -251,4 +251,4 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: theme.spacing.xxs,
   },
-});
+}));

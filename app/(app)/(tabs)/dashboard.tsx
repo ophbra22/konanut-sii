@@ -16,12 +16,13 @@ import {
   type DashboardOverview,
 } from '@/src/features/dashboard/api/dashboard-service';
 import { useDashboardQuery } from '@/src/features/dashboard/hooks/use-dashboard-query';
+import { type ComplianceFilterKey } from '@/src/features/settlements/lib/compliance-filters';
 import {
   formatDisplayDate,
   getHalfYearLabel,
 } from '@/src/lib/date-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 function getAlertColor(severity: 'high' | 'low' | 'medium') {
   switch (severity) {
@@ -135,6 +136,12 @@ export default function DashboardScreen() {
   const heroGreeting = `${getGreetingLabel()}, ${greetingName}`;
   const todayLabel = formatDisplayDate(dayjs().format('YYYY-MM-DD'));
 
+  const navigateToComplianceFilter = (filter: ComplianceFilterKey) => {
+    router.push(
+      `/settlements?complianceFilter=${filter}&filterRequestAt=${Date.now()}` as never
+    );
+  };
+
   return (
     <AppScreen contentContainerStyle={styles.screenContent}>
       <AppRevealView delay={20}>
@@ -173,21 +180,37 @@ export default function DashboardScreen() {
           />
           <DashboardMetricCard
             errorMessage={error?.message}
-            isEmpty={!isLoading && !error && (data?.activeSettlementsCount ?? 0) === 0}
+            emptyLabel="ללא חוסרים"
+            isEmpty={!isLoading && !error && (data?.missingShootingSettlementsCount ?? 0) === 0}
             isLoading={isLoading}
-            label="יישובים פעילים"
+            label="חסרי מטווח בחציון"
+            onPress={
+              !isLoading && !error
+                ? () => {
+                    navigateToComplianceFilter('shooting-missing');
+                  }
+                : undefined
+            }
             style={styles.metricCard}
-            value={String(data?.activeSettlementsCount ?? 0)}
+            tone="warning"
+            value={String(data?.missingShootingSettlementsCount ?? 0)}
           />
           <DashboardMetricCard
             emptyLabel="ללא חוסרים"
             errorMessage={error?.message}
-            isEmpty={!isLoading && !error && (data?.settlementsMissingFeedbackCount ?? 0) === 0}
+            isEmpty={!isLoading && !error && (data?.missingDefenseSettlementsCount ?? 0) === 0}
             isLoading={isLoading}
-            label="חוסרי משוב"
+            label="חסרי הגנת יישוב"
+            onPress={
+              !isLoading && !error
+                ? () => {
+                    navigateToComplianceFilter('defense-missing');
+                  }
+                : undefined
+            }
             style={styles.metricCard}
             tone="warning"
-            value={String(data?.settlementsMissingFeedbackCount ?? 0)}
+            value={String(data?.missingDefenseSettlementsCount ?? 0)}
           />
         </View>
       </AppRevealView>
@@ -295,7 +318,7 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   alertContent: {
     flex: 1,
     gap: 6,
@@ -328,7 +351,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   alertRowBorder: {
-    borderBottomColor: 'rgba(56, 73, 84, 0.42)',
+    borderBottomColor: theme.colors.separatorStrong,
     borderBottomWidth: 1,
   },
   alertStatusPill: {
@@ -337,10 +360,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   alertStatusPillOpen: {
-    backgroundColor: 'rgba(245, 178, 75, 0.12)',
+    backgroundColor: theme.colors.statusOpenSurface,
   },
   alertStatusPillResolved: {
-    backgroundColor: 'rgba(199, 243, 107, 0.10)',
+    backgroundColor: theme.colors.statusResolvedSurface,
   },
   alertStatusText: {
     ...theme.typography.badge,
@@ -395,13 +418,13 @@ const styles = StyleSheet.create({
   },
   featuredCard: {
     backgroundColor: theme.colors.surfaceStrong,
-    borderColor: 'rgba(94, 114, 126, 0.18)',
+    borderColor: theme.colors.cardOutline,
     borderRadius: 16,
     borderWidth: 1,
     gap: 10,
     paddingHorizontal: 16,
     paddingVertical: 16,
-    shadowColor: '#000000',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.08,
     shadowRadius: 18,
@@ -518,4 +541,4 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
     justifyContent: 'space-between',
   },
-});
+}));

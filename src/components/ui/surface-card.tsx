@@ -2,7 +2,7 @@ import type { PropsWithChildren } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { StyleSheet, View } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 export type SurfaceCardTone =
   | 'accent'
@@ -38,7 +38,7 @@ export function SurfaceCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   base: {
     ...theme.elevation.card,
     backgroundColor: theme.colors.surfaceElevated,
@@ -55,16 +55,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.md,
   },
-});
+}));
 
-const toneStyles = StyleSheet.create({
+const toneStyles = createThemedStyles((theme: AppTheme) => ({
   accent: {
     backgroundColor: theme.colors.surfaceAccent,
-    borderColor: 'rgba(199, 243, 107, 0.16)',
+    borderColor: theme.colors.accentBorder,
   },
   danger: {
     backgroundColor: theme.colors.surfaceDanger,
-    borderColor: 'rgba(255, 114, 87, 0.26)',
+    borderColor: theme.colors.dangerBorder,
   },
   default: {
     backgroundColor: theme.colors.surfaceElevated,
@@ -72,7 +72,7 @@ const toneStyles = StyleSheet.create({
   },
   info: {
     backgroundColor: theme.colors.surface,
-    borderColor: 'rgba(108, 143, 255, 0.34)',
+    borderColor: theme.colors.infoBorder,
   },
   neutral: {
     backgroundColor: theme.colors.surface,
@@ -80,6 +80,6 @@ const toneStyles = StyleSheet.create({
   },
   warning: {
     backgroundColor: theme.colors.surfaceWarning,
-    borderColor: 'rgba(245, 178, 75, 0.24)',
+    borderColor: theme.colors.warningBorder,
   },
-});
+}));

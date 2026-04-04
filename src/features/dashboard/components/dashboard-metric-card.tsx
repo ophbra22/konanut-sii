@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import {
   Animated,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -8,7 +9,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type DashboardMetricTone = 'accent' | 'default' | 'warning';
 
@@ -18,6 +19,7 @@ type DashboardMetricCardProps = {
   isEmpty?: boolean;
   isLoading?: boolean;
   label: string;
+  onPress?: () => void;
   style?: StyleProp<ViewStyle>;
   tone?: DashboardMetricTone;
   value: string;
@@ -29,11 +31,13 @@ export function DashboardMetricCard({
   isEmpty = false,
   isLoading = false,
   label,
+  onPress,
   style,
   tone = 'default',
   value,
 }: DashboardMetricCardProps) {
   const shimmer = useRef(new Animated.Value(0.38)).current;
+  const isInteractive = Boolean(onPress);
   const helperText = errorMessage
     ? 'שגיאה בטעינת הנתון'
     : isEmpty
@@ -68,38 +72,58 @@ export function DashboardMetricCard({
     };
   }, [isLoading, shimmer]);
 
+  const cardContent = isLoading ? (
+    <View style={styles.skeleton}>
+      <Animated.View style={[styles.skeletonValue, { opacity: shimmer }]} />
+      <Animated.View style={[styles.skeletonLabel, { opacity: shimmer }]} />
+    </View>
+  ) : (
+    <>
+      <Text
+        adjustsFontSizeToFit
+        minimumFontScale={0.84}
+        numberOfLines={1}
+        style={[styles.value, valueToneStyles[errorMessage ? 'warning' : tone]]}
+      >
+        {errorMessage ? 'שגיאה' : value}
+      </Text>
+      <Text numberOfLines={1} style={styles.label}>
+        {label}
+      </Text>
+      {helperText ? (
+        <Text numberOfLines={1} style={styles.helper}>
+          {helperText}
+        </Text>
+      ) : null}
+    </>
+  );
+
+  if (isInteractive) {
+    return (
+      <Pressable
+        accessibilityLabel={label}
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.card,
+          cardToneStyles[errorMessage ? 'warning' : tone],
+          style,
+          pressed ? styles.cardPressed : null,
+        ]}
+      >
+        {cardContent}
+      </Pressable>
+    );
+  }
+
   return (
     <View style={[styles.card, cardToneStyles[errorMessage ? 'warning' : tone], style]}>
-      {isLoading ? (
-        <View style={styles.skeleton}>
-          <Animated.View style={[styles.skeletonValue, { opacity: shimmer }]} />
-          <Animated.View style={[styles.skeletonLabel, { opacity: shimmer }]} />
-        </View>
-      ) : (
-        <>
-          <Text
-            adjustsFontSizeToFit
-            minimumFontScale={0.84}
-            numberOfLines={1}
-            style={[styles.value, valueToneStyles[errorMessage ? 'warning' : tone]]}
-          >
-            {errorMessage ? 'שגיאה' : value}
-          </Text>
-          <Text numberOfLines={1} style={styles.label}>
-            {label}
-          </Text>
-          {helperText ? (
-            <Text numberOfLines={1} style={styles.helper}>
-              {helperText}
-            </Text>
-          ) : null}
-        </>
-      )}
+      {cardContent}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   card: {
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
@@ -109,6 +133,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 12,
+  },
+  cardPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.985 }],
   },
   helper: {
     ...theme.typography.badge,
@@ -146,21 +174,21 @@ const styles = StyleSheet.create({
     lineHeight: 30,
     textAlign: 'right',
   },
-});
+}));
 
-const cardToneStyles = StyleSheet.create({
+const cardToneStyles = createThemedStyles((theme: AppTheme) => ({
   accent: {
-    backgroundColor: 'rgba(143, 175, 84, 0.08)',
+    backgroundColor: theme.colors.overlay,
   },
   default: {
     backgroundColor: theme.colors.surface,
   },
   warning: {
-    backgroundColor: 'rgba(245, 178, 75, 0.10)',
+    backgroundColor: theme.colors.warningSurface,
   },
-});
+}));
 
-const valueToneStyles = StyleSheet.create({
+const valueToneStyles = createThemedStyles((theme: AppTheme) => ({
   accent: {
     color: theme.colors.accentStrong,
   },
@@ -170,4 +198,4 @@ const valueToneStyles = StyleSheet.create({
   warning: {
     color: theme.colors.warning,
   },
-});
+}));

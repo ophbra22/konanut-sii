@@ -13,6 +13,10 @@ export function getHalfYearPeriod(dateInput: string | Date | Dayjs = dayjs()) {
   return `${date.year()}-${half}` as HalfYearPeriod;
 }
 
+export function getCurrentHalfYearPeriod(referenceDate: string | Date | Dayjs = dayjs()) {
+  return getHalfYearPeriod(referenceDate);
+}
+
 export function getPreviousHalfYearPeriod(period: HalfYearPeriod) {
   const [yearValue, half] = period.split('-') as [string, 'H1' | 'H2'];
   const year = Number(yearValue);
@@ -107,6 +111,19 @@ export function getMonthDateRange(referenceDate = dayjs()) {
   return {
     end: referenceDate.endOf('month'),
     start: referenceDate.startOf('month'),
+  };
+}
+
+export function getCurrentYear(referenceDate: string | Date | Dayjs = dayjs()) {
+  return dayjs(referenceDate).year();
+}
+
+export function getYearDateRange(referenceDate: string | Date | Dayjs = dayjs()) {
+  const date = dayjs(referenceDate);
+
+  return {
+    end: date.endOf('year'),
+    start: date.startOf('year'),
   };
 }
 

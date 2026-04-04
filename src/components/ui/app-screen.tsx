@@ -3,7 +3,7 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, type AppTheme, useThemeMode } from '@/src/theme';
 
 type AppScreenProps = PropsWithChildren<{
   contentContainerStyle?: StyleProp<ViewStyle>;
@@ -15,8 +15,10 @@ export function AppScreen({
   contentContainerStyle,
   scroll = true,
 }: AppScreenProps) {
+  const themeMode = useThemeMode();
   const content = scroll ? (
     <ScrollView
+      key={themeMode}
       contentContainerStyle={[styles.content, contentContainerStyle]}
       keyboardShouldPersistTaps="always"
       showsVerticalScrollIndicator={false}
@@ -24,7 +26,9 @@ export function AppScreen({
       {children}
     </ScrollView>
   ) : (
-    <View style={[styles.content, styles.fill, contentContainerStyle]}>{children}</View>
+    <View key={themeMode} style={[styles.content, styles.fill, contentContainerStyle]}>
+      {children}
+    </View>
   );
 
   return (
@@ -40,7 +44,7 @@ export function AppScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   bottomGlow: {
     backgroundColor: theme.colors.glowMuted,
     borderRadius: 220,
@@ -96,4 +100,4 @@ const styles = StyleSheet.create({
     top: -140,
     width: 284,
   },
-});
+}));

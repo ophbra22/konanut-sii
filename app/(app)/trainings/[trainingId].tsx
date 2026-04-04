@@ -42,7 +42,7 @@ import { getTrainingStatusTone } from '@/src/features/trainings/lib/training-pre
 import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 import type { TrainingStatus } from '@/src/types/database';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type ActionButtonProps = {
   disabled?: boolean;
@@ -580,7 +580,7 @@ export default function TrainingDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   actionButtonBase: {
     alignItems: 'center',
     borderRadius: theme.radius.lg,
@@ -659,8 +659,8 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.border,
   },
   compactChipWarning: {
-    backgroundColor: 'rgba(245, 178, 75, 0.10)',
-    borderColor: 'rgba(245, 178, 75, 0.26)',
+    backgroundColor: theme.colors.warningSurface,
+    borderColor: theme.colors.warningBorder,
   },
   completeFeedbackRow: {
     alignItems: 'center',
@@ -839,9 +839,9 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: 'right',
   },
-});
+}));
 
-const scoreValueStyles = StyleSheet.create({
+const scoreValueStyles = createThemedStyles((theme: AppTheme) => ({
   accent: {
     color: theme.colors.accentStrong,
   },
@@ -854,4 +854,4 @@ const scoreValueStyles = StyleSheet.create({
   warning: {
     color: theme.colors.warning,
   },
-});
+}));

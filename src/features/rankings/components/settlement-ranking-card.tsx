@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AppBadge } from '@/src/components/ui/app-badge';
 import { ListCard } from '@/src/components/ui/list-card';
 import type { SettlementRankingListItem } from '@/src/features/rankings/api/rankings-service';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type SettlementRankingCardProps = {
   ranking: SettlementRankingListItem;
@@ -87,7 +87,7 @@ export function SettlementRankingCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   bottomRow: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
@@ -129,4 +129,4 @@ const styles = StyleSheet.create({
   positive: {
     color: theme.colors.accentStrong,
   },
-});
+}));

@@ -1,7 +1,7 @@
 import { Plus } from 'lucide-react-native';
 import { Pressable, StyleSheet } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type OpsFabProps = {
   onPress: () => void;
@@ -21,7 +21,7 @@ export function OpsFab({ onPress }: OpsFabProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   fab: {
     alignItems: 'center',
     backgroundColor: theme.colors.info,
@@ -40,4 +40,4 @@ const styles = StyleSheet.create({
   pressed: {
     transform: [{ scale: 0.98 }],
   },
-});
+}));

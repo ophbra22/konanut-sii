@@ -9,19 +9,23 @@ import {
 import { Tabs } from 'expo-router/tabs';
 
 import { TabBarIcon } from '@/src/components/ui/tab-bar-icon';
-import { theme } from '@/src/theme';
+import { useAppTheme, useThemeMode } from '@/src/theme';
 
 export default function TabsLayout() {
+  const theme = useAppTheme();
+  const themeMode = useThemeMode();
+
   return (
     <Tabs
+      key={themeMode}
       initialRouteName="dashboard"
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.accentStrong,
-        tabBarInactiveTintColor: theme.colors.textMuted,
+        tabBarActiveTintColor: theme.colors.tabBarActive,
+        tabBarInactiveTintColor: theme.colors.tabBarInactive,
         tabBarStyle: {
-          backgroundColor: theme.colors.surfaceStrong,
-          borderTopColor: theme.colors.border,
+          backgroundColor: theme.colors.tabBarBackground,
+          borderTopColor: theme.colors.tabBarBorder,
           height: 78,
           paddingTop: 10,
           paddingBottom: 12,

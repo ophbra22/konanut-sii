@@ -8,7 +8,7 @@ import {
 import type { TextInputProps } from 'react-native';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type FieldIconElement = ReactElement<{
   color?: string;
@@ -116,7 +116,7 @@ export function AppTextField({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   error: {
     ...theme.typography.caption,
     color: theme.colors.danger,
@@ -180,4 +180,4 @@ const styles = StyleSheet.create({
   wrapper: {
     gap: theme.spacing.xs,
   },
-});
+}));

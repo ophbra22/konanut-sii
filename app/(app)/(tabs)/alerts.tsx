@@ -9,7 +9,7 @@ import { SectionBlock } from '@/src/components/ui/section-block';
 import type { DashboardAlertItem } from '@/src/features/dashboard/api/dashboard-service';
 import { useDashboardQuery } from '@/src/features/dashboard/hooks/use-dashboard-query';
 import { formatDisplayDate } from '@/src/lib/date-utils';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 function getSeverityColor(severity: 'high' | 'low' | 'medium') {
   switch (severity) {
@@ -173,7 +173,7 @@ export default function AlertsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   alertContent: {
     flex: 1,
     gap: 6,
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   alertRowBorder: {
-    borderBottomColor: 'rgba(56, 73, 84, 0.40)',
+    borderBottomColor: theme.colors.separatorStrong,
     borderBottomWidth: 1,
   },
   description: {
@@ -216,10 +216,10 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   statusBadgeOpen: {
-    backgroundColor: 'rgba(245, 178, 75, 0.12)',
+    backgroundColor: theme.colors.statusOpenSurface,
   },
   statusBadgeResolved: {
-    backgroundColor: 'rgba(199, 243, 107, 0.10)',
+    backgroundColor: theme.colors.statusResolvedSurface,
   },
   statusBadgeText: {
     ...theme.typography.badge,
@@ -271,9 +271,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     textAlign: 'right',
   },
-});
+}));
 
-const summaryToneStyles = StyleSheet.create({
+const summaryToneStyles = createThemedStyles((theme: AppTheme) => ({
   danger: {
     backgroundColor: theme.colors.surfaceDanger,
   },
@@ -283,4 +283,4 @@ const summaryToneStyles = StyleSheet.create({
   warning: {
     backgroundColor: theme.colors.surfaceWarning,
   },
-});
+}));

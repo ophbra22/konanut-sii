@@ -3,7 +3,7 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { SurfaceCard, type SurfaceCardTone } from '@/src/components/ui/surface-card';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type AppCardProps = PropsWithChildren<{
   description?: string;
@@ -32,7 +32,7 @@ export function AppCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   description: {
     ...theme.typography.caption,
     color: theme.colors.textDim,
@@ -46,4 +46,4 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     textAlign: 'right',
   },
-});
+}));

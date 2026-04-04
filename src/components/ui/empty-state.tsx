@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { AppButton } from '@/src/components/ui/app-button';
 import { SurfaceCard, type SurfaceCardTone } from '@/src/components/ui/surface-card';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type EmptyStateProps = {
   actionLabel?: string;
@@ -39,7 +39,7 @@ export function EmptyState({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   action: {
     alignSelf: 'flex-start',
     minWidth: 96,
@@ -60,4 +60,4 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     textAlign: 'right',
   },
-});
+}));

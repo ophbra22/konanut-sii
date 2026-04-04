@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useFeedbackStore } from '@/src/stores/feedback-store';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 export function AppToast() {
   const isVisible = useFeedbackStore((state) => state.isVisible);
@@ -21,7 +21,7 @@ export function AppToast() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   message: {
     ...theme.typography.caption,
     color: theme.colors.textPrimary,
@@ -44,11 +44,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: theme.spacing.lg,
   },
-});
+}));
 
-const toneStyles = StyleSheet.create({
+const toneStyles = createThemedStyles((theme: AppTheme) => ({
   error: {
-    backgroundColor: '#321814',
+    backgroundColor: theme.colors.surfaceDanger,
   },
   info: {
     backgroundColor: theme.colors.surfaceStrong,
@@ -56,4 +56,4 @@ const toneStyles = StyleSheet.create({
   success: {
     backgroundColor: theme.colors.surfaceAccent,
   },
-});
+}));

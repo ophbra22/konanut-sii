@@ -15,7 +15,7 @@ import {
   requiresSettlementAssignment,
 } from '@/src/features/auth/lib/permissions';
 import { formatDisplayDate } from '@/src/lib/date-utils';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 import type { ManagedUserProfile } from '@/src/features/auth/api/user-approval-service';
 import type { LinkedSettlement, UserRole } from '@/src/types/database';
 
@@ -191,7 +191,7 @@ export function ManagedUserAccessCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   badges: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
@@ -228,4 +228,4 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'right',
   },
-});
+}));

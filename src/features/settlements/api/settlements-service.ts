@@ -5,7 +5,12 @@ import {
   getCurrentRankingPeriod,
   type ComputedSettlementRanking,
 } from '@/src/features/rankings/utils/ranking-calculator';
-import type { HalfYearPeriod } from '@/src/lib/date-utils';
+import {
+  getCurrentHalfYearPeriod,
+  getYearDateRange,
+  isDateInHalfYear,
+  type HalfYearPeriod,
+} from '@/src/lib/date-utils';
 import type {
   Alert,
   Feedback,
@@ -18,9 +23,11 @@ import type {
 } from '@/src/types/database';
 
 export type SettlementListItem = Settlement & {
+  defenseCompletedCurrentYear: boolean;
   readinessCalculatedAt: string | null;
   readinessLevel: string | null;
   readinessScore: number | null;
+  shootingCompletedCurrentHalfYear: boolean;
 };
 
 export type SettlementTrainingSummary = Pick<
@@ -52,9 +59,13 @@ export type SettlementDetails = Settlement & {
 };
 
 export async function listSettlements(): Promise<SettlementListItem[]> {
+  const currentHalfYear = getCurrentHalfYearPeriod();
+  const currentYearRange = getYearDateRange();
+
   const [
     { data: settlements, error: settlementsError },
     { data: rankings, error: rankingsError },
+    { data: completedTrainings, error: completedTrainingsError },
   ] = await Promise.all([
     supabase
       .from('settlements')
@@ -65,6 +76,21 @@ export async function listSettlements(): Promise<SettlementListItem[]> {
       .from('settlement_rankings')
       .select('settlement_id, final_score, ranking_level, calculated_at')
       .order('calculated_at', { ascending: false }),
+    supabase
+      .from('trainings')
+      .select(
+        `
+          training_date,
+          training_type,
+          training_settlements (
+            settlement_id
+          )
+        `
+      )
+      .eq('status', 'הושלם')
+      .in('training_type', ['מטווח', 'הגנת יישוב'])
+      .gte('training_date', currentYearRange.start.format('YYYY-MM-DD'))
+      .lte('training_date', currentYearRange.end.format('YYYY-MM-DD')),
   ]);
 
   if (settlementsError) {
@@ -73,6 +99,13 @@ export async function listSettlements(): Promise<SettlementListItem[]> {
 
   if (rankingsError) {
     throw createDataAccessError(rankingsError, 'לא ניתן לטעון את נתוני המוכנות של היישובים');
+  }
+
+  if (completedTrainingsError) {
+    throw createDataAccessError(
+      completedTrainingsError,
+      'לא ניתן לטעון את נתוני העמידה בדרישות האימונים'
+    );
   }
 
   const latestRankingBySettlement = new Map<
@@ -89,14 +122,40 @@ export async function listSettlements(): Promise<SettlementListItem[]> {
     }
   });
 
+  const shootingCompletedSettlementIds = new Set<string>();
+  const defenseCompletedSettlementIds = new Set<string>();
+
+  (
+    (completedTrainings ?? []) as Array<
+      Pick<Training, 'training_date' | 'training_type'> & {
+        training_settlements: Array<Pick<TablesInsert<'training_settlements'>, 'settlement_id'>>;
+      }
+    >
+  ).forEach((training) => {
+    training.training_settlements.forEach((link) => {
+      if (
+        training.training_type === 'מטווח' &&
+        isDateInHalfYear(training.training_date, currentHalfYear)
+      ) {
+        shootingCompletedSettlementIds.add(link.settlement_id);
+      }
+
+      if (training.training_type === 'הגנת יישוב') {
+        defenseCompletedSettlementIds.add(link.settlement_id);
+      }
+    });
+  });
+
   return (settlements ?? []).map((settlement) => {
     const ranking = latestRankingBySettlement.get(settlement.id);
 
     return {
+      defenseCompletedCurrentYear: defenseCompletedSettlementIds.has(settlement.id),
       ...settlement,
       readinessCalculatedAt: ranking?.calculated_at ?? null,
       readinessLevel: ranking?.ranking_level ?? null,
       readinessScore: ranking?.final_score ?? null,
+      shootingCompletedCurrentHalfYear: shootingCompletedSettlementIds.has(settlement.id),
     };
   });
 }

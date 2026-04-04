@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 
 import { AppButton } from '@/src/components/ui/app-button';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type AppDateFieldProps = {
   disabled?: boolean;
@@ -198,7 +198,7 @@ export function AppDateField({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   error: {
     ...theme.typography.caption,
     color: theme.colors.danger,
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     alignItems: 'center',
-    backgroundColor: 'rgba(7, 11, 13, 0.72)',
+    backgroundColor: theme.colors.glassSurface,
     flex: 1,
     justifyContent: 'center',
     padding: theme.spacing.lg,
@@ -278,4 +278,4 @@ const styles = StyleSheet.create({
   wrapper: {
     gap: theme.spacing.xs,
   },
-});
+}));

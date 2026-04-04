@@ -24,7 +24,7 @@ import { TrainingListCard } from '@/src/features/trainings/components/training-l
 import { useTrainingsQuery } from '@/src/features/trainings/hooks/use-trainings-query';
 import { matchesSearchQuery } from '@/src/lib/search-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type StatusFilter = 'all' | 'בוטל' | 'הושלם' | 'מתוכנן';
 
@@ -270,7 +270,7 @@ export default function TrainingsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   chipsContent: {
     paddingLeft: theme.spacing.lg,
     paddingRight: theme.spacing.lg,
@@ -297,7 +297,7 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
   },
   modalBackdrop: {
-    backgroundColor: 'rgba(5, 8, 11, 0.72)',
+    backgroundColor: theme.colors.glassSurface,
     flex: 1,
     justifyContent: 'flex-end',
     padding: theme.spacing.lg,
@@ -314,4 +314,4 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: theme.spacing.xxs,
   },
-});
+}));

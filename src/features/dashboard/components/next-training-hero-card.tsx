@@ -9,7 +9,7 @@ import { AppCard } from '@/src/components/ui/app-card';
 import type { DashboardUpcomingTraining } from '@/src/features/dashboard/api/dashboard-service';
 import { getTrainingStatusTone } from '@/src/features/trainings/lib/training-presenters';
 import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type HeroStatusTone = 'accent' | 'danger' | 'info' | 'neutral' | 'warning';
 
@@ -146,17 +146,17 @@ export function NextTrainingHeroCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   card: {
     backgroundColor: theme.colors.surfaceStrong,
-    borderColor: 'rgba(94, 114, 126, 0.18)',
+    borderColor: theme.colors.cardOutline,
     borderRadius: 16,
     borderWidth: 1,
     overflow: 'hidden',
     paddingHorizontal: 16,
     paddingVertical: 16,
     position: 'relative',
-    shadowColor: '#000000',
+    shadowColor: theme.colors.shadow,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.08,
     shadowRadius: 18,
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   countdownBand: {
     alignItems: 'center',
     alignSelf: 'stretch',
-    backgroundColor: 'rgba(108, 143, 255, 0.12)',
+    backgroundColor: theme.colors.infoSurface,
     borderRadius: 14,
     flexDirection: 'row-reverse',
     justifyContent: 'center',
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   topWash: {
-    backgroundColor: 'rgba(108, 143, 255, 0.07)',
+    backgroundColor: theme.colors.mediaGlow,
     borderRadius: 999,
     height: 120,
     opacity: 0.8,
@@ -235,4 +235,4 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xs,
     justifyContent: 'space-between',
   },
-});
+}));

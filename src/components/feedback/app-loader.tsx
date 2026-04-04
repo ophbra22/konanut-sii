@@ -2,7 +2,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppScreen } from '@/src/components/ui/app-screen';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type AppLoaderProps = {
   label: string;
@@ -19,7 +19,7 @@ export function AppLoader({ label }: AppLoaderProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   content: {
     alignItems: 'center',
     flex: 1,
@@ -36,4 +36,4 @@ const styles = StyleSheet.create({
     maxWidth: 260,
     minWidth: 220,
   },
-});
+}));

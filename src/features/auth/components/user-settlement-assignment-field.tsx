@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppChip } from '@/src/components/ui/app-chip';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 import type { LinkedSettlement } from '@/src/types/database';
 
 type UserSettlementAssignmentFieldProps = {
@@ -53,7 +53,7 @@ export function UserSettlementAssignmentField({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   chips: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
@@ -87,4 +87,4 @@ const styles = StyleSheet.create({
   section: {
     gap: theme.spacing.xs,
   },
-});
+}));

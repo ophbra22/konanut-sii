@@ -1,3 +1,4 @@
+import { MoonStar, SunMedium } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -9,6 +10,7 @@ import { AppRevealView } from '@/src/components/ui/app-reveal-view';
 import { AppScreen } from '@/src/components/ui/app-screen';
 import { DataRow } from '@/src/components/ui/data-row';
 import { PageHeader } from '@/src/components/ui/page-header';
+import { SegmentedControl } from '@/src/components/ui/segmented-control';
 import { SectionBlock } from '@/src/components/ui/section-block';
 import {
   canManageUserApprovals,
@@ -19,9 +21,19 @@ import {
   isSettlementScopedRole,
 } from '@/src/features/auth/lib/permissions';
 import { useAuthStore } from '@/src/stores/auth-store';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, useThemeController, type AppTheme } from '@/src/theme';
 
 type ProfileStatTone = 'accent' | 'info' | 'warning';
+const THEME_OPTIONS = [
+  {
+    label: 'כהה',
+    value: 'dark',
+  },
+  {
+    label: 'בהיר',
+    value: 'light',
+  },
+] as const;
 
 function ProfileStatTile({
   label,
@@ -44,6 +56,7 @@ function ProfileStatTile({
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { mode, setMode } = useThemeController();
   const profile = useAuthStore((state) => state.profile);
   const role = useAuthStore((state) => state.role);
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
@@ -180,6 +193,42 @@ export default function ProfileScreen() {
 
           <AppRevealView delay={90}>
             <SectionBlock
+              description="הבחירה תחול על כל המערכת ותישמר למכשיר הזה"
+              title="ערכת נושא"
+            >
+              <SegmentedControl
+                onValueChange={setMode}
+                options={[
+                  {
+                    icon: (
+                      <MoonStar
+                        color={mode === 'dark' ? theme.colors.textPrimary : theme.colors.textMuted}
+                        size={14}
+                        strokeWidth={2.1}
+                      />
+                    ),
+                    label: THEME_OPTIONS[0].label,
+                    value: THEME_OPTIONS[0].value,
+                  },
+                  {
+                    icon: (
+                      <SunMedium
+                        color={mode === 'light' ? theme.colors.textPrimary : theme.colors.textMuted}
+                        size={14}
+                        strokeWidth={2.1}
+                      />
+                    ),
+                    label: THEME_OPTIONS[1].label,
+                    value: THEME_OPTIONS[1].value,
+                  },
+                ]}
+                value={mode}
+              />
+            </SectionBlock>
+          </AppRevealView>
+
+          <AppRevealView delay={110}>
+            <SectionBlock
               description="פעולות מהירות לחשבון ולהרשאות"
               title="פעולות חשבון"
             >
@@ -235,7 +284,7 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   assignmentEmpty: {
     ...theme.typography.caption,
     color: theme.colors.textMuted,
@@ -248,7 +297,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   assignmentSection: {
-    borderTopColor: 'rgba(56, 73, 84, 0.34)',
+    borderTopColor: theme.colors.separator,
     borderTopWidth: 1,
     gap: theme.spacing.xs,
     marginTop: theme.spacing.xxs,
@@ -261,7 +310,7 @@ const styles = StyleSheet.create({
   },
   identityCard: {
     backgroundColor: theme.colors.surfaceStrong,
-    borderColor: 'rgba(56, 73, 84, 0.54)',
+    borderColor: theme.colors.cardOutlineStrong,
     borderRadius: 16,
     gap: theme.spacing.sm,
     paddingHorizontal: 16,
@@ -296,7 +345,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
   logoutSection: {
-    borderTopColor: 'rgba(56, 73, 84, 0.34)',
+    borderTopColor: theme.colors.separator,
     borderTopWidth: 1,
     marginTop: 4,
     paddingTop: 12,
@@ -343,9 +392,9 @@ const styles = StyleSheet.create({
   actionsStack: {
     gap: 10,
   },
-});
+}));
 
-const statToneStyles = StyleSheet.create({
+const statToneStyles = createThemedStyles((theme: AppTheme) => ({
   accent: {
     backgroundColor: theme.colors.surfaceAccent,
   },
@@ -355,4 +404,4 @@ const statToneStyles = StyleSheet.create({
   warning: {
     backgroundColor: theme.colors.surfaceWarning,
   },
-});
+}));

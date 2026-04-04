@@ -9,7 +9,7 @@ import {
 } from '@/src/components/ui/app-button';
 import { AppScreen } from '@/src/components/ui/app-screen';
 import { PageHeader } from '@/src/components/ui/page-header';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type MetricTone = 'accent' | 'danger' | 'default' | 'warning';
 
@@ -91,7 +91,7 @@ export function FeatureShellScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   actions: {
     gap: theme.spacing.md,
   },
@@ -137,9 +137,9 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: theme.spacing.md,
   },
-});
+}));
 
-const metricToneStyles = StyleSheet.create({
+const metricToneStyles = createThemedStyles((theme: AppTheme) => ({
   accent: {
     color: theme.colors.accentStrong,
   },
@@ -152,4 +152,4 @@ const metricToneStyles = StyleSheet.create({
   warning: {
     color: theme.colors.warning,
   },
-});
+}));

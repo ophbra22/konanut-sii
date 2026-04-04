@@ -1,6 +1,6 @@
 import { StyleSheet, Switch, Text, View } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type AppSwitchFieldProps = {
   description?: string;
@@ -38,7 +38,7 @@ export function AppSwitchField({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   description: {
     ...theme.typography.caption,
     color: theme.colors.textMuted,
@@ -65,4 +65,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.md,
     paddingVertical: theme.spacing.sm,
   },
-});
+}));

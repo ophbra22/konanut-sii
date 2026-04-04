@@ -3,7 +3,7 @@ import { Search } from 'lucide-react-native';
 import type { TextInputProps } from 'react-native';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type SearchBarProps = TextInputProps & {
   placeholder: string;
@@ -63,7 +63,7 @@ export function SearchBar({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   iconSlot: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -98,4 +98,4 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     borderColor: theme.colors.info,
   },
-});
+}));

@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppToast } from '@/src/components/feedback/app-toast';
 import { queryClient } from '@/src/lib/query-client';
 import { useAuthStore } from '@/src/stores/auth-store';
+import { AppThemeProvider } from '@/src/theme';
 
 function AuthBootstrap({ children }: PropsWithChildren) {
   const initialize = useAuthStore((state) => state.initialize);
@@ -22,12 +23,14 @@ export function AppProviders({ children }: PropsWithChildren) {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <AuthBootstrap>
-            {children}
-            <AppToast />
-          </AuthBootstrap>
-        </QueryClientProvider>
+        <AppThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <AuthBootstrap>
+              {children}
+              <AppToast />
+            </AuthBootstrap>
+          </QueryClientProvider>
+        </AppThemeProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

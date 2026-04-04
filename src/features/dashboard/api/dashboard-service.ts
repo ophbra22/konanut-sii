@@ -1,25 +1,28 @@
 import dayjs from 'dayjs';
 
+import {
+  isCouncilScopedRole,
+  isSettlementScopedRole,
+} from '@/src/features/auth/lib/permissions';
 import { createDataAccessError } from '@/src/lib/error-utils';
 import {
+  getCurrentHalfYearPeriod,
   getHalfYearPeriod,
   getMonthDateRange,
   getWeekDateRange,
+  getYearDateRange,
+  isDateInHalfYear,
   type HalfYearPeriod,
 } from '@/src/lib/date-utils';
 import { supabase } from '@/src/lib/supabase';
 import type {
   Alert,
-  Feedback,
+  AuthProfile,
+  Settlement,
   SettlementRanking,
   Training,
-  TrainingSettlement,
+  UserRole,
 } from '@/src/types/database';
-
-type TrainingLinkRow = {
-  settlement_id: string;
-  training_id: string;
-};
 
 export type DashboardAlertItem = Pick<
   Alert,
@@ -41,38 +44,78 @@ export type DashboardUpcomingTraining = Pick<
   settlements: string[];
 };
 
+type DashboardScope = Pick<
+  AuthProfile,
+  'linkedRegionalCouncils' | 'linkedSettlementIds'
+> & {
+  role: UserRole | null;
+};
+
+type ScopedSettlement = Pick<Settlement, 'id' | 'regional_council'>;
+
 export type DashboardOverview = {
-  activeSettlementsCount: number;
   alertsSummary: DashboardAlertItem[];
   averageSettlementScore: number | null;
   currentRankingPeriod: HalfYearPeriod;
+  missingDefenseSettlementsCount: number;
+  missingShootingSettlementsCount: number;
   monthlyTrainingsCount: number;
-  settlementsMissingFeedbackCount: number;
   systemStatus: 'מבצעי';
   weeklyTrainingsCount: number;
   upcomingTrainings: DashboardUpcomingTraining[];
 };
 
-export async function getDashboardOverview(): Promise<DashboardOverview> {
+function normalizeRegionalCouncil(value: string | null | undefined) {
+  return value?.trim().toLowerCase() ?? '';
+}
+
+function getScopedSettlements(
+  settlements: ScopedSettlement[],
+  scope: DashboardScope
+) {
+  if (isSettlementScopedRole(scope.role)) {
+    const linkedSettlementIds = new Set(scope.linkedSettlementIds);
+
+    return settlements.filter((settlement) => linkedSettlementIds.has(settlement.id));
+  }
+
+  if (isCouncilScopedRole(scope.role)) {
+    const linkedRegionalCouncils = new Set(
+      scope.linkedRegionalCouncils.map((regionalCouncil) =>
+        normalizeRegionalCouncil(regionalCouncil)
+      )
+    );
+
+    return settlements.filter((settlement) =>
+      linkedRegionalCouncils.has(normalizeRegionalCouncil(settlement.regional_council))
+    );
+  }
+
+  return settlements;
+}
+
+export async function getDashboardOverview(
+  scope: DashboardScope
+): Promise<DashboardOverview> {
   const monthRange = getMonthDateRange();
   const weekRange = getWeekDateRange();
   const today = dayjs().format('YYYY-MM-DD');
+  const currentHalfYear = getCurrentHalfYearPeriod();
   const currentRankingPeriod = getHalfYearPeriod();
+  const currentYearRange = getYearDateRange();
 
   const [
-    { count: activeSettlementsCount, error: settlementsError },
+    { data: settlements, error: settlementsError },
     { count: weeklyTrainingsCount, error: weeklyTrainingsError },
     { count: monthlyTrainingsCount, error: monthlyTrainingsError },
     { data: rankingRows, error: rankingsError },
     { data: alerts, error: alertsError },
     { data: upcomingTrainings, error: upcomingTrainingsError },
-    { data: completedTrainings, error: completedTrainingsError },
-    { data: feedbacks, error: feedbacksError },
+    { data: complianceTrainings, error: complianceTrainingsError },
   ] = await Promise.all([
     supabase
       .from('settlements')
-      .select('id', { count: 'exact', head: true })
-      .eq('is_active', true),
+      .select('id, regional_council'),
     supabase
       .from('trainings')
       .select('id', { count: 'exact', head: true })
@@ -113,12 +156,25 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
       .order('training_date', { ascending: true })
       .order('training_time', { ascending: true, nullsFirst: false })
       .limit(3),
-    supabase.from('trainings').select('id').eq('status', 'הושלם'),
-    supabase.from('feedbacks').select('training_id, settlement_id'),
+    supabase
+      .from('trainings')
+      .select(
+        `
+          training_date,
+          training_type,
+          training_settlements (
+            settlement_id
+          )
+        `
+      )
+      .eq('status', 'הושלם')
+      .in('training_type', ['מטווח', 'הגנת יישוב'])
+      .gte('training_date', currentYearRange.start.format('YYYY-MM-DD'))
+      .lte('training_date', currentYearRange.end.format('YYYY-MM-DD')),
   ]);
 
   if (settlementsError) {
-    throw createDataAccessError(settlementsError, 'לא ניתן לטעון את מספר היישובים הפעילים');
+    throw createDataAccessError(settlementsError, 'לא ניתן לטעון את רשימת היישובים');
   }
 
   if (weeklyTrainingsError) {
@@ -141,28 +197,16 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
     throw createDataAccessError(upcomingTrainingsError, 'לא ניתן לטעון את רשימת האימונים הקרובים');
   }
 
-  if (completedTrainingsError) {
-    throw createDataAccessError(completedTrainingsError, 'לא ניתן לטעון את האימונים שהושלמו');
+  if (complianceTrainingsError) {
+    throw createDataAccessError(
+      complianceTrainingsError,
+      'לא ניתן לטעון את נתוני עמידת היישובים בדרישות האימון'
+    );
   }
 
-  if (feedbacksError) {
-    throw createDataAccessError(feedbacksError, 'לא ניתן לטעון את נתוני המשובים');
-  }
-
-  const completedTrainingIds = (completedTrainings ?? []).map((training) => training.id);
-
-  const [{ data: completedTrainingLinks, error: completedTrainingLinksError }, {
-    data: upcomingTrainingLinks,
-    error: upcomingTrainingLinksError,
-  }] = await Promise.all([
-    completedTrainingIds.length
-      ? supabase
-          .from('training_settlements')
-          .select('training_id, settlement_id')
-          .in('training_id', completedTrainingIds)
-      : Promise.resolve({ data: [], error: null }),
+  const { data: upcomingTrainingLinks, error: upcomingTrainingLinksError } =
     (upcomingTrainings ?? []).length
-      ? supabase
+      ? await supabase
           .from('training_settlements')
           .select(
             `
@@ -177,26 +221,11 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
             'training_id',
             (upcomingTrainings ?? []).map((training) => training.id)
           )
-      : Promise.resolve({ data: [], error: null }),
-  ]);
-
-  if (completedTrainingLinksError) {
-    throw createDataAccessError(completedTrainingLinksError, 'לא ניתן לטעון את שיוכי האימונים שהושלמו');
-  }
+      : { data: [], error: null };
 
   if (upcomingTrainingLinksError) {
     throw createDataAccessError(upcomingTrainingLinksError, 'לא ניתן לטעון את שיוכי האימונים הקרובים');
   }
-
-  const feedbackPairs = new Set(
-    (feedbacks ?? []).map((feedback) => `${feedback.training_id}:${feedback.settlement_id}`)
-  );
-
-  const settlementsMissingFeedbackCount = new Set(
-    ((completedTrainingLinks ?? []) as TrainingLinkRow[])
-      .filter((link) => !feedbackPairs.has(`${link.training_id}:${link.settlement_id}`))
-      .map((link) => link.settlement_id)
-  ).size;
 
   const settlementLinksByTraining = new Map<string, string[]>();
 
@@ -229,8 +258,47 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
       )
     : null;
 
+  const scopedSettlements = getScopedSettlements(
+    ((settlements ?? []) as ScopedSettlement[]),
+    scope
+  );
+  const scopedSettlementIds = new Set(scopedSettlements.map((settlement) => settlement.id));
+  const settlementsWithShootingCompleted = new Set<string>();
+  const settlementsWithDefenseCompleted = new Set<string>();
+
+  (
+    (complianceTrainings ?? []) as Array<
+      Pick<Training, 'training_date' | 'training_type'> & {
+        training_settlements: Array<{ settlement_id: string }>;
+      }
+    >
+  ).forEach((training) => {
+    training.training_settlements.forEach((link) => {
+      if (!scopedSettlementIds.has(link.settlement_id)) {
+        return;
+      }
+
+      if (
+        training.training_type === 'מטווח' &&
+        isDateInHalfYear(training.training_date, currentHalfYear)
+      ) {
+        settlementsWithShootingCompleted.add(link.settlement_id);
+      }
+
+      if (training.training_type === 'הגנת יישוב') {
+        settlementsWithDefenseCompleted.add(link.settlement_id);
+      }
+    });
+  });
+
+  const missingShootingSettlementsCount = scopedSettlements.filter(
+    (settlement) => !settlementsWithShootingCompleted.has(settlement.id)
+  ).length;
+  const missingDefenseSettlementsCount = scopedSettlements.filter(
+    (settlement) => !settlementsWithDefenseCompleted.has(settlement.id)
+  ).length;
+
   return {
-    activeSettlementsCount: activeSettlementsCount ?? 0,
     alertsSummary: ((alerts ?? []) as Array<
       DashboardAlertItem & {
         settlement?: { name: string } | null;
@@ -247,8 +315,9 @@ export async function getDashboardOverview(): Promise<DashboardOverview> {
     })),
     averageSettlementScore,
     currentRankingPeriod,
+    missingDefenseSettlementsCount,
+    missingShootingSettlementsCount,
     monthlyTrainingsCount: monthlyTrainingsCount ?? 0,
-    settlementsMissingFeedbackCount,
     systemStatus: 'מבצעי',
     upcomingTrainings: (upcomingTrainings ?? []).map((training) => ({
       ...training,

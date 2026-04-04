@@ -10,7 +10,7 @@ import {
   settlementFormSchema,
   type SettlementFormValues,
 } from '@/src/features/settlements/schemas/settlement-form-schema';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type SettlementFormProps = {
   initialValues?: Partial<SettlementFormValues>;
@@ -162,8 +162,8 @@ export function SettlementForm({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   form: {
     gap: theme.spacing.md,
   },
-});
+}));

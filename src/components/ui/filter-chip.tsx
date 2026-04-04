@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 export type FilterChipTone = 'accent' | 'neutral' | 'warning';
 
@@ -51,7 +51,7 @@ export function FilterChip({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   base: {
     alignItems: 'center',
     alignSelf: 'flex-start',
@@ -74,9 +74,9 @@ const styles = StyleSheet.create({
     opacity: 0.94,
     transform: [{ scale: 0.976 }],
   },
-});
+}));
 
-const toneStyles = StyleSheet.create({
+const toneStyles = createThemedStyles((theme: AppTheme) => ({
   accent: {
     backgroundColor: theme.colors.surface,
   },
@@ -86,9 +86,9 @@ const toneStyles = StyleSheet.create({
   warning: {
     backgroundColor: theme.colors.surfaceWarning,
   },
-});
+}));
 
-const selectedToneStyles = StyleSheet.create({
+const selectedToneStyles = createThemedStyles((theme: AppTheme) => ({
   accent: {
     ...theme.elevation.focus,
     backgroundColor: theme.colors.infoSurface,
@@ -103,9 +103,9 @@ const selectedToneStyles = StyleSheet.create({
     backgroundColor: theme.colors.warningSurface,
     borderColor: theme.colors.warning,
   },
-});
+}));
 
-const labelToneStyles = StyleSheet.create({
+const labelToneStyles = createThemedStyles((theme: AppTheme) => ({
   accent: {
     color: theme.colors.textSecondary,
   },
@@ -115,9 +115,9 @@ const labelToneStyles = StyleSheet.create({
   warning: {
     color: theme.colors.warning,
   },
-});
+}));
 
-const selectedLabelToneStyles = StyleSheet.create({
+const selectedLabelToneStyles = createThemedStyles((theme: AppTheme) => ({
   accent: {
     color: theme.colors.info,
   },
@@ -127,4 +127,4 @@ const selectedLabelToneStyles = StyleSheet.create({
   warning: {
     color: theme.colors.warning,
   },
-});
+}));

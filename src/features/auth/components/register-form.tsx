@@ -22,7 +22,7 @@ import {
   type RegisterFormValues,
 } from '@/src/features/auth/schemas/register-schema';
 import { useAuthStore } from '@/src/stores/auth-store';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 export function RegisterForm() {
   const router = useRouter();
@@ -356,10 +356,10 @@ export function RegisterForm() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   errorBanner: {
     backgroundColor: theme.colors.dangerSurface,
-    borderColor: 'rgba(255, 114, 87, 0.22)',
+    borderColor: theme.colors.dangerBorder,
     borderRadius: theme.radius.lg,
     borderWidth: 1,
     paddingHorizontal: theme.spacing.md,
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
   successIcon: {
     alignItems: 'center',
     backgroundColor: theme.colors.overlay,
-    borderColor: 'rgba(199, 243, 107, 0.22)',
+    borderColor: theme.colors.accentBorder,
     borderRadius: 22,
     borderWidth: 1,
     height: 64,
@@ -473,4 +473,4 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     textAlign: 'center',
   },
-});
+}));

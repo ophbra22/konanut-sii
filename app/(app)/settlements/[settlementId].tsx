@@ -17,7 +17,7 @@ import { useDeleteSettlementMutation } from '@/src/features/settlements/hooks/us
 import { useSettlementDetailsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
 import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 function getAlertTone(severity: 'high' | 'low' | 'medium') {
   switch (severity) {
@@ -323,7 +323,7 @@ export default function SettlementDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   actionButton: {
     flex: 1,
   },
@@ -348,4 +348,4 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: theme.spacing.md,
   },
-});
+}));

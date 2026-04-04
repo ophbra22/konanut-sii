@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type SectionBlockProps = PropsWithChildren<{
   description?: string;
@@ -24,7 +24,7 @@ export function SectionBlock({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   description: {
     ...theme.typography.caption,
     color: theme.colors.textMuted,
@@ -41,4 +41,4 @@ const styles = StyleSheet.create({
   wrapper: {
     gap: theme.spacing.sm,
   },
-});
+}));

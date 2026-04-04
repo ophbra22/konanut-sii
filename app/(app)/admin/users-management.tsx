@@ -15,7 +15,7 @@ import { useManagedUsersQuery } from '@/src/features/auth/hooks/use-managed-user
 import { useUpdateManagedUserAccessMutation } from '@/src/features/auth/hooks/use-user-approval-mutations';
 import { useSettlementsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
 import { useAuthStore } from '@/src/stores/auth-store';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 export default function UsersManagementScreen() {
   const router = useRouter();
@@ -170,7 +170,7 @@ export default function UsersManagementScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   content: {
     gap: theme.spacing.section,
     paddingBottom: theme.spacing.xl,
@@ -182,4 +182,4 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingTop: theme.spacing.xxs,
   },
-});
+}));

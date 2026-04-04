@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type DataRowProps = {
   label: string;
@@ -16,7 +16,7 @@ export function DataRow({ label, value }: DataRowProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   label: {
     ...theme.typography.meta,
     color: theme.colors.textMuted,
@@ -34,4 +34,4 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'left',
   },
-});
+}));

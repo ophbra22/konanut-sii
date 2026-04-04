@@ -3,20 +3,29 @@ import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router/stack';
 
 import { AppProviders } from '@/src/providers/app-providers';
-import { navigationTheme } from '@/src/theme';
+import { useNavigationTheme, useThemeMode } from '@/src/theme';
+
+function RootNavigator() {
+  const navigationTheme = useNavigationTheme();
+  const themeMode = useThemeMode();
+
+  return (
+    <ThemeProvider value={navigationTheme}>
+      <StatusBar style={themeMode === 'dark' ? 'light' : 'dark'} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(app)" />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+    </ThemeProvider>
+  );
+}
 
 export default function RootLayout() {
   return (
     <AppProviders>
-      <ThemeProvider value={navigationTheme}>
-        <StatusBar style="light" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(app)" />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-      </ThemeProvider>
+      <RootNavigator />
     </AppProviders>
   );
 }

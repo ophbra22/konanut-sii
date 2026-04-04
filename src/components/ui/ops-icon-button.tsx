@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type OpsIconButtonProps = {
   accessibilityLabel?: string;
@@ -35,7 +35,7 @@ export function OpsIconButton({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   button: {
     alignItems: 'center',
     backgroundColor: theme.colors.surface,
@@ -49,11 +49,11 @@ const styles = StyleSheet.create({
   },
   buttonAccent: {
     backgroundColor: theme.colors.surfaceInfo,
-    borderColor: 'rgba(108, 143, 255, 0.45)',
+    borderColor: theme.colors.infoBorder,
     ...theme.elevation.focus,
   },
   pressed: {
     opacity: 0.92,
     transform: [{ scale: 0.975 }],
   },
-});
+}));

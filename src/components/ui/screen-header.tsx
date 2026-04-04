@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type ScreenHeaderProps = {
   actions?: ReactNode;
@@ -31,7 +31,7 @@ export function ScreenHeader({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   actions: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
@@ -67,4 +67,4 @@ const styles = StyleSheet.create({
   wrapper: {
     gap: theme.spacing.xxs,
   },
-});
+}));

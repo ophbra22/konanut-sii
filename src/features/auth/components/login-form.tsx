@@ -12,7 +12,7 @@ import {
   type LoginFormValues,
 } from '@/src/features/auth/schemas/login-schema';
 import { useAuthStore } from '@/src/stores/auth-store';
-import { theme } from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 const LOGIN_BANNER = require('../../../../assets/images/login-mgdb-darom.jpeg');
 
@@ -163,7 +163,7 @@ export function LoginForm() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((theme: AppTheme) => ({
   actions: {
     gap: theme.spacing.sm,
     marginTop: theme.spacing.xs,
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   },
   heroCaptionText: {
     ...theme.typography.caption,
-    color: 'rgba(244, 247, 239, 0.8)',
+    color: theme.colors.textOnMediaSecondary,
     textAlign: 'right',
   },
   heroCaptionTitle: {
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   heroCard: {
     ...theme.elevation.hero,
     backgroundColor: theme.colors.surfaceStrong,
-    borderColor: 'rgba(143, 175, 84, 0.18)',
+    borderColor: theme.colors.accentBorder,
     borderRadius: 26,
     borderWidth: 1,
     minHeight: 124,
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   },
   heroImageGlow: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(108, 143, 255, 0.08)',
+    backgroundColor: theme.colors.mediaGlow,
   },
   heroKicker: {
     ...theme.typography.meta,
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(7, 11, 13, 0.24)',
+    backgroundColor: theme.colors.heroOverlay,
   },
   linkPressed: {
     opacity: 0.82,
@@ -240,4 +240,4 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     textAlign: 'center',
   },
-});
+}));
