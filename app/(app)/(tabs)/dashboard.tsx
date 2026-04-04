@@ -12,6 +12,7 @@ import { getRoleLabel } from '@/src/features/auth/lib/permissions';
 import { DashboardMetricCard } from '@/src/features/dashboard/components/dashboard-metric-card';
 import { NextTrainingHeroCard } from '@/src/features/dashboard/components/next-training-hero-card';
 import {
+  type DashboardAlertItem,
   type DashboardOverview,
 } from '@/src/features/dashboard/api/dashboard-service';
 import { useDashboardQuery } from '@/src/features/dashboard/hooks/use-dashboard-query';
@@ -35,6 +36,61 @@ function getAlertColor(severity: 'high' | 'low' | 'medium') {
 
 function getAlertStatusLabel(status: 'open' | 'resolved') {
   return status === 'resolved' ? 'טופל' : 'ללא טיפול';
+}
+
+function DashboardAlertStatusPill({
+  status,
+}: {
+  status: DashboardAlertItem['status'];
+}) {
+  const isResolved = status === 'resolved';
+
+  return (
+    <View
+      style={[
+        styles.alertStatusPill,
+        isResolved ? styles.alertStatusPillResolved : styles.alertStatusPillOpen,
+      ]}
+    >
+      <Text
+        style={[
+          styles.alertStatusText,
+          isResolved ? styles.alertStatusTextResolved : styles.alertStatusTextOpen,
+        ]}
+      >
+        {getAlertStatusLabel(status)}
+      </Text>
+    </View>
+  );
+}
+
+function DashboardAlertPreviewItem({
+  alertItem,
+  isLast,
+}: {
+  alertItem: DashboardAlertItem;
+  isLast: boolean;
+}) {
+  return (
+    <View style={[styles.alertRow, !isLast ? styles.alertRowBorder : null]}>
+      <View style={[styles.alertDot, { backgroundColor: getAlertColor(alertItem.severity) }]} />
+
+      <View style={styles.alertContent}>
+        <View style={styles.alertTitleRow}>
+          <DashboardAlertStatusPill status={alertItem.status} />
+          <Text numberOfLines={1} style={styles.alertTitle}>
+            {alertItem.related_settlement_name
+              ? `${alertItem.title} – ${alertItem.related_settlement_name}`
+              : alertItem.title}
+          </Text>
+        </View>
+
+        <Text numberOfLines={2} style={styles.alertSubtitle}>
+          {formatDisplayDate(alertItem.created_at)} • {alertItem.type}
+        </Text>
+      </View>
+    </View>
+  );
 }
 
 function getSystemSupportLine(data: DashboardOverview | undefined) {
@@ -179,22 +235,22 @@ export default function DashboardScreen() {
             variant="warning"
           />
         ) : (
-          <AppCard style={styles.systemCard}>
+          <View style={styles.systemCard}>
             <View style={styles.systemTopRow}>
               <AppBadge label={data?.systemStatus ?? 'מבצעי'} size="sm" tone="accent" />
               <Text style={styles.systemTitle}>סטטוס מערכת</Text>
             </View>
             <Text style={styles.systemText}>{getSystemSupportLine(data)}</Text>
-          </AppCard>
+          </View>
         )}
       </AppRevealView>
 
       <AppRevealView delay={120}>
         <SectionBlock title="התראות">
           {isLoading ? (
-            <AppCard style={styles.alertsCard}>
+            <View style={styles.alertsList}>
               <Text style={styles.alertsPlaceholder}>טוען את ההתראות האחרונות...</Text>
-            </AppCard>
+            </View>
           ) : error ? (
             <StateCard
               actionLabel="נסו שוב"
@@ -206,34 +262,13 @@ export default function DashboardScreen() {
               variant="warning"
             />
           ) : alerts.length ? (
-            <AppCard style={styles.alertsCard}>
+            <View style={styles.alertsList}>
               {alerts.map((alertItem, index) => (
-                <View
+                <DashboardAlertPreviewItem
                   key={alertItem.id}
-                  style={[
-                    styles.alertRow,
-                    index < alerts.length - 1 && styles.alertRowBorder,
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.alertDot,
-                      { backgroundColor: getAlertColor(alertItem.severity) },
-                    ]}
-                  />
-
-                  <View style={styles.alertContent}>
-                    <Text numberOfLines={1} style={styles.alertTitle}>
-                      {alertItem.related_settlement_name
-                        ? `${alertItem.title} – ${alertItem.related_settlement_name}`
-                        : alertItem.title}
-                    </Text>
-                    <Text numberOfLines={1} style={styles.alertSubtitle}>
-                      {formatDisplayDate(alertItem.created_at)} •{' '}
-                      {getAlertStatusLabel(alertItem.status)}
-                    </Text>
-                  </View>
-                </View>
+                  alertItem={alertItem}
+                  isLast={index === alerts.length - 1}
+                />
               ))}
 
               <Pressable
@@ -247,12 +282,12 @@ export default function DashboardScreen() {
               >
                 <Text style={styles.alertsCtaText}>לכל ההתראות →</Text>
               </Pressable>
-            </AppCard>
+            </View>
           ) : (
-            <AppCard style={styles.alertsCard}>
+            <View style={styles.alertsList}>
               <Text style={styles.emptyTitle}>אין התראות חדשות</Text>
               <Text style={styles.emptyDescription}>לא זוהו חריגים להצגה כרגע.</Text>
-            </AppCard>
+            </View>
           )}
         </SectionBlock>
       </AppRevealView>
@@ -263,11 +298,11 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   alertContent: {
     flex: 1,
-    gap: 1,
+    gap: 6,
   },
   alertsCta: {
     alignSelf: 'flex-start',
-    marginTop: 2,
+    marginTop: 12,
     paddingVertical: 2,
   },
   alertsCtaPressed: {
@@ -281,49 +316,76 @@ const styles = StyleSheet.create({
   },
   alertDot: {
     borderRadius: 999,
-    height: 8,
-    marginTop: 4,
-    width: 8,
+    height: 7,
+    marginTop: 7,
+    width: 7,
   },
   alertRow: {
     alignItems: 'flex-start',
     flexDirection: 'row-reverse',
-    gap: 8,
-    minHeight: 40,
-    paddingVertical: 6,
+    gap: 12,
+    minHeight: 54,
+    paddingVertical: 12,
   },
   alertRowBorder: {
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: 'rgba(56, 73, 84, 0.42)',
     borderBottomWidth: 1,
+  },
+  alertStatusPill: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  alertStatusPillOpen: {
+    backgroundColor: 'rgba(245, 178, 75, 0.12)',
+  },
+  alertStatusPillResolved: {
+    backgroundColor: 'rgba(199, 243, 107, 0.10)',
+  },
+  alertStatusText: {
+    ...theme.typography.badge,
+    textAlign: 'center',
+  },
+  alertStatusTextOpen: {
+    color: theme.colors.warning,
+  },
+  alertStatusTextResolved: {
+    color: theme.colors.accentStrong,
   },
   alertSubtitle: {
     color: theme.colors.textMuted,
-    fontSize: 10,
-    fontWeight: '700',
-    lineHeight: 13,
+    fontSize: 11,
+    fontWeight: '600',
+    lineHeight: 15,
     textAlign: 'right',
   },
   alertTitle: {
     color: theme.colors.textPrimary,
-    fontSize: 12,
+    flex: 1,
+    fontSize: 13,
     fontWeight: '800',
-    lineHeight: 15,
+    lineHeight: 17,
     textAlign: 'right',
   },
-  alertsCard: {
+  alertTitleRow: {
+    alignItems: 'center',
+    flexDirection: 'row-reverse',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  alertsList: {
     gap: 0,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 6,
   },
   alertsPlaceholder: {
     ...theme.typography.caption,
     color: theme.colors.textMuted,
-    paddingVertical: 10,
+    paddingVertical: 8,
     textAlign: 'right',
   },
   emptyDescription: {
     ...theme.typography.caption,
     color: theme.colors.textMuted,
+    marginTop: 6,
     textAlign: 'right',
   },
   emptyTitle: {
@@ -333,16 +395,22 @@ const styles = StyleSheet.create({
   },
   featuredCard: {
     backgroundColor: theme.colors.surfaceStrong,
-    borderColor: theme.colors.info,
-    gap: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    ...theme.elevation.hero,
+    borderColor: 'rgba(94, 114, 126, 0.18)',
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
   },
   featuredEmptyCard: {
-    gap: theme.spacing.xs,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    borderRadius: 16,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   featuredEyebrow: {
     color: theme.colors.textMuted,
@@ -351,7 +419,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   featuredSkeleton: {
-    gap: 8,
+    gap: 10,
   },
   featuredSkeletonButton: {
     height: 38,
@@ -363,19 +431,18 @@ const styles = StyleSheet.create({
     height: 12,
   },
   featuredSkeletonMeta: {
-    height: 14,
-    width: '82%',
+    height: 12,
+    width: '74%',
   },
   featuredSkeletonTitle: {
-    height: 28,
-    width: '64%',
+    height: 22,
+    width: '58%',
   },
   featuredSkeletonTop: {
-    width: '24%',
+    width: '22%',
   },
   hero: {
-    gap: 3,
-    paddingBottom: 2,
+    gap: 8,
   },
   heroEyebrow: {
     ...theme.typography.eyebrow,
@@ -398,7 +465,7 @@ const styles = StyleSheet.create({
   heroMetaRow: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
-    gap: theme.spacing.xs,
+    gap: 10,
     justifyContent: 'space-between',
   },
   heroSubtitle: {
@@ -416,21 +483,24 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     minWidth: 0,
-    width: '48.6%',
+    width: '48.4%',
   },
   metricsGrid: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 12,
     justifyContent: 'space-between',
   },
   screenContent: {
-    gap: 10,
+    gap: theme.spacing.xl,
+    paddingBottom: theme.spacing.xl,
   },
   systemCard: {
-    gap: 3,
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 9,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 16,
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
   systemText: {
     ...theme.typography.meta,

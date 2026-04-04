@@ -8,16 +8,39 @@ import { AppCard } from '@/src/components/ui/app-card';
 import { AppRevealView } from '@/src/components/ui/app-reveal-view';
 import { AppScreen } from '@/src/components/ui/app-screen';
 import { DataRow } from '@/src/components/ui/data-row';
-import { MetricCard } from '@/src/components/ui/metric-card';
 import { PageHeader } from '@/src/components/ui/page-header';
+import { SectionBlock } from '@/src/components/ui/section-block';
 import {
   canManageUserApprovals,
+  getRoleDescription,
   getRoleLabel,
+  getRoleShortLabel,
   isCouncilScopedRole,
   isSettlementScopedRole,
 } from '@/src/features/auth/lib/permissions';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { theme } from '@/src/theme';
+
+type ProfileStatTone = 'accent' | 'info' | 'warning';
+
+function ProfileStatTile({
+  label,
+  tone,
+  value,
+}: {
+  label: string;
+  tone: ProfileStatTone;
+  value: string;
+}) {
+  return (
+    <View style={[styles.statTile, statToneStyles[tone]]}>
+      <Text style={styles.statLabel}>{label}</Text>
+      <Text numberOfLines={2} style={styles.statValue}>
+        {value}
+      </Text>
+    </View>
+  );
+}
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -27,10 +50,26 @@ export default function ProfileScreen() {
   const signOut = useAuthStore((state) => state.signOut);
   const canApproveUsers = canManageUserApprovals(role);
   const isCouncilScoped = isCouncilScopedRole(role);
+  const linkedScopeCount = isCouncilScoped
+    ? profile?.linkedRegionalCouncils.length ?? 0
+    : profile?.linkedSettlementIds.length ?? 0;
   const showSettlementAssignments =
     Boolean(profile?.linkedSettlements.length) || isSettlementScopedRole(role);
   const showRegionalCouncilAssignments =
     Boolean(profile?.linkedRegionalCouncils.length) || isCouncilScoped;
+  const primaryAction = canApproveUsers
+    ? {
+        label: 'אישור משתמשים',
+        onPress: () => {
+          router.push('/admin/users-approval' as never);
+        },
+      }
+    : {
+        label: 'רענון פרופיל',
+        onPress: () => {
+          void refreshProfile();
+        },
+      };
 
   return (
     <AppScreen contentContainerStyle={styles.screenContent}>
@@ -49,43 +88,40 @@ export default function ProfileScreen() {
       ) : (
         <>
           <AppRevealView delay={30}>
-            <View style={styles.metricsGrid}>
-              <MetricCard label="סטטוס" style={styles.metricCard} tone="accent" value="מחובר" />
-              <MetricCard label="תפקיד" style={styles.metricCard} value={getRoleLabel(role)} />
-              <MetricCard
-                label={isCouncilScoped ? 'מועצות מקושרות' : 'יישובים מקושרים'}
-                style={styles.metricCard}
-                tone={
-                  (isCouncilScoped
-                    ? profile.linkedRegionalCouncils.length
-                    : profile.linkedSettlementIds.length)
-                    ? 'accent'
-                    : 'warning'
-                }
-                value={String(
-                  isCouncilScoped
-                    ? profile.linkedRegionalCouncils.length
-                    : profile.linkedSettlementIds.length
-                )}
+            <View style={styles.metricsRow}>
+              <ProfileStatTile label="סטטוס" tone="accent" value="מחובר" />
+              <ProfileStatTile label="תפקיד" tone="info" value={getRoleShortLabel(role)} />
+              <ProfileStatTile
+                label={isCouncilScoped ? 'מועצות' : 'יישובים'}
+                tone={linkedScopeCount ? 'accent' : 'warning'}
+                value={String(linkedScopeCount)}
               />
             </View>
           </AppRevealView>
 
           <AppRevealView delay={60}>
             <AppCard style={styles.identityCard}>
-              <View style={styles.identityHeader}>
+              <View style={styles.identityTop}>
+                <Text style={styles.identityEyebrow}>זהות והרשאה</Text>
                 <Text numberOfLines={2} style={styles.identityName}>
                   {profile.full_name}
                 </Text>
-                <View style={styles.badges}>
-                  <AppBadge label={getRoleLabel(role)} size="sm" tone="info" />
-                  <AppBadge label={profile.is_active ? 'פעיל' : 'לא פעיל'} size="sm" tone="neutral" />
-                </View>
+                <Text style={styles.identitySubtitle}>{getRoleDescription(role)}</Text>
               </View>
 
-              <View style={styles.badges}>
+              <View style={styles.badgesRow}>
+                <AppBadge label={getRoleLabel(role)} size="sm" tone="info" />
+                <AppBadge
+                  label={profile.is_active ? 'פעיל' : 'ממתין לאישור'}
+                  size="sm"
+                  tone={profile.is_active ? 'success' : 'warning'}
+                />
                 {profile.requested_role ? (
-                  <AppBadge label={`בקשה: ${getRoleLabel(profile.requested_role)}`} size="sm" tone="warning" />
+                  <AppBadge
+                    label={`בקשה: ${getRoleLabel(profile.requested_role)}`}
+                    size="sm"
+                    tone="neutral"
+                  />
                 ) : null}
               </View>
 
@@ -99,7 +135,7 @@ export default function ProfileScreen() {
                   <Text style={styles.assignmentLabel}>מועצות משויכות</Text>
 
                   {profile.linkedRegionalCouncils.length ? (
-                    <View style={styles.badges}>
+                    <View style={styles.badgesRow}>
                       {profile.linkedRegionalCouncils.map((regionalCouncil) => (
                         <AppBadge
                           key={regionalCouncil}
@@ -122,7 +158,7 @@ export default function ProfileScreen() {
                   <Text style={styles.assignmentLabel}>יישובים משויכים</Text>
 
                   {profile.linkedSettlements.length ? (
-                    <View style={styles.badges}>
+                    <View style={styles.badgesRow}>
                       {profile.linkedSettlements.map((settlement) => (
                         <AppBadge
                           key={settlement.id}
@@ -143,51 +179,55 @@ export default function ProfileScreen() {
           </AppRevealView>
 
           <AppRevealView delay={90}>
-            <AppCard style={styles.actionsCard} title="פעולות">
-              {canApproveUsers ? (
-                <View style={styles.adminActions}>
-                  <AppButton
-                    label="אישור משתמשים"
-                    onPress={() => {
-                      router.push('/admin/users-approval' as never);
-                    }}
-                    size="sm"
-                    variant="primary"
-                  />
-                  <AppButton
-                    label="ניהול משתמשים"
-                    onPress={() => {
-                      router.push('/admin/users-management' as never);
-                    }}
-                    size="sm"
-                    variant="secondary"
-                  />
-                </View>
-              ) : null}
-
-              <View style={styles.actions}>
+            <SectionBlock
+              description="פעולות מהירות לחשבון ולהרשאות"
+              title="פעולות חשבון"
+            >
+              <View style={styles.actionsStack}>
                 <AppButton
-                  fullWidth={false}
-                  label="רענון פרופיל"
-                  onPress={() => {
-                    void refreshProfile();
-                  }}
+                  label={primaryAction.label}
+                  onPress={primaryAction.onPress}
                   size="sm"
-                  style={styles.actionButton}
-                  variant="secondary"
+                  style={styles.primaryActionButton}
+                  variant="primary"
                 />
+
+                {canApproveUsers ? (
+                  <>
+                    <AppButton
+                      label="ניהול משתמשים"
+                      onPress={() => {
+                        router.push('/admin/users-management' as never);
+                      }}
+                      size="sm"
+                      style={styles.secondaryActionButton}
+                      variant="secondary"
+                    />
+                    <AppButton
+                      label="רענון פרופיל"
+                      onPress={() => {
+                        void refreshProfile();
+                      }}
+                      size="sm"
+                      style={styles.secondaryActionButton}
+                      variant="secondary"
+                    />
+                  </>
+                ) : null}
+              </View>
+
+              <View style={styles.logoutSection}>
                 <AppButton
-                  fullWidth={false}
                   label="יציאה מהמערכת"
                   onPress={() => {
                     void signOut();
                   }}
                   size="sm"
-                  style={styles.actionButton}
+                  style={styles.logoutButton}
                   variant="danger"
                 />
               </View>
-            </AppCard>
+            </SectionBlock>
           </AppRevealView>
         </>
       )}
@@ -196,63 +236,123 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  actionButton: {
-    flex: 1,
-  },
-  adminActions: {
-    gap: theme.spacing.xs,
-  },
-  actionsCard: {
-    gap: theme.spacing.sm,
-  },
-  actions: {
-    flexDirection: 'row-reverse',
-    gap: theme.spacing.xs,
-  },
   assignmentEmpty: {
     ...theme.typography.caption,
     color: theme.colors.textMuted,
+    lineHeight: 18,
     textAlign: 'right',
   },
   assignmentLabel: {
-    ...theme.typography.caption,
+    ...theme.typography.meta,
     color: theme.colors.textSecondary,
     textAlign: 'right',
   },
   assignmentSection: {
+    borderTopColor: 'rgba(56, 73, 84, 0.34)',
+    borderTopWidth: 1,
     gap: theme.spacing.xs,
+    marginTop: theme.spacing.xxs,
+    paddingTop: theme.spacing.sm,
   },
-  badges: {
+  badgesRow: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: theme.spacing.xs,
-  },
-  identityCard: {
-    gap: theme.spacing.xs,
-  },
-  identityDetails: {
-    gap: theme.spacing.xs,
-  },
-  identityHeader: {
-    gap: 5,
-  },
-  identityName: {
-    ...theme.typography.screenTitle,
-    color: theme.colors.textPrimary,
-    fontSize: 22,
-    lineHeight: 25,
-    textAlign: 'right',
-  },
-  metricCard: {
-    minWidth: 0,
-    width: '31.7%',
-  },
-  metricsGrid: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
     gap: 8,
   },
-  screenContent: {
+  identityCard: {
+    backgroundColor: theme.colors.surfaceStrong,
+    borderColor: 'rgba(56, 73, 84, 0.54)',
+    borderRadius: 16,
+    gap: theme.spacing.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  identityDetails: {
     gap: 10,
+  },
+  identityEyebrow: {
+    ...theme.typography.eyebrow,
+    color: theme.colors.textMuted,
+    textAlign: 'right',
+  },
+  identityName: {
+    color: theme.colors.textPrimary,
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: -0.2,
+    lineHeight: 28,
+    textAlign: 'right',
+  },
+  identitySubtitle: {
+    ...theme.typography.caption,
+    color: theme.colors.textDim,
+    lineHeight: 18,
+    textAlign: 'right',
+  },
+  identityTop: {
+    gap: 6,
+  },
+  logoutButton: {
+    borderRadius: 14,
+  },
+  logoutSection: {
+    borderTopColor: 'rgba(56, 73, 84, 0.34)',
+    borderTopWidth: 1,
+    marginTop: 4,
+    paddingTop: 12,
+  },
+  metricsRow: {
+    flexDirection: 'row-reverse',
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  primaryActionButton: {
+    borderRadius: 14,
+    minHeight: 42,
+  },
+  screenContent: {
+    gap: theme.spacing.xl,
+    paddingBottom: theme.spacing.xl,
+  },
+  secondaryActionButton: {
+    borderColor: theme.colors.borderStrong,
+    borderRadius: 14,
+    borderWidth: 1,
+    minHeight: 40,
+  },
+  statLabel: {
+    ...theme.typography.meta,
+    color: theme.colors.textMuted,
+    textAlign: 'right',
+  },
+  statTile: {
+    borderRadius: 14,
+    flex: 1,
+    gap: 8,
+    minHeight: 72,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  statValue: {
+    color: theme.colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '800',
+    lineHeight: 19,
+    textAlign: 'right',
+  },
+  actionsStack: {
+    gap: 10,
+  },
+});
+
+const statToneStyles = StyleSheet.create({
+  accent: {
+    backgroundColor: theme.colors.surfaceAccent,
+  },
+  info: {
+    backgroundColor: theme.colors.surface,
+  },
+  warning: {
+    backgroundColor: theme.colors.surfaceWarning,
   },
 });

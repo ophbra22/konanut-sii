@@ -47,25 +47,25 @@ function getCountdownText(scheduledAt: Dayjs, now: Dayjs) {
   const minutesDiff = scheduledAt.diff(now, 'minute');
 
   if (minutesDiff <= 0) {
-    return '⏳ מתחיל כעת';
+    return 'מתחיל כעת';
   }
 
   if (minutesDiff < 60) {
-    return `⏳ בעוד ${minutesDiff} דק׳`;
+    return `בעוד ${minutesDiff} דק׳`;
   }
 
   if (minutesDiff < 24 * 60) {
     const hours = Math.ceil(minutesDiff / 60);
-    return `⏳ בעוד ${hours} שעות`;
+    return `בעוד ${hours} שעות`;
   }
 
   const days = Math.ceil(minutesDiff / (24 * 60));
 
   if (days === 1) {
-    return '⏳ בעוד יום';
+    return 'בעוד יום';
   }
 
-  return `⏳ בעוד ${days} ימים`;
+  return `בעוד ${days} ימים`;
 }
 
 export function NextTrainingHeroCard({
@@ -101,14 +101,12 @@ export function NextTrainingHeroCard({
 
   return (
     <AppCard style={styles.card}>
-      <View pointerEvents="none" style={styles.glowPrimary} />
-      <View pointerEvents="none" style={styles.glowSecondary} />
-      <View pointerEvents="none" style={styles.edgeGlow} />
+      <View pointerEvents="none" style={styles.topWash} />
 
       <View style={styles.content}>
         <View style={styles.topRow}>
           <AppBadge label={heroStatus.label} size="sm" tone={heroStatus.tone} />
-          <Text style={styles.eyebrow}>האימון הבא שלך</Text>
+          <Text style={styles.eyebrow}>האימון הבא</Text>
         </View>
 
         <Text numberOfLines={2} style={styles.title}>
@@ -151,75 +149,48 @@ export function NextTrainingHeroCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: theme.colors.surfaceStrong,
-    borderColor: theme.colors.info,
-    minHeight: 188,
+    borderColor: 'rgba(94, 114, 126, 0.18)',
+    borderRadius: 16,
+    borderWidth: 1,
     overflow: 'hidden',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     position: 'relative',
-    ...theme.elevation.hero,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
   },
   content: {
-    gap: theme.spacing.xs,
+    gap: 10,
     position: 'relative',
     zIndex: 1,
   },
   ctaButton: {
-    marginTop: theme.spacing.xxs,
+    marginTop: 2,
   },
   countdownBand: {
     alignItems: 'center',
     alignSelf: 'stretch',
-    backgroundColor: 'rgba(108, 143, 255, 0.14)',
-    borderColor: 'rgba(108, 143, 255, 0.30)',
-    borderRadius: theme.radius.lg,
-    borderWidth: 1,
+    backgroundColor: 'rgba(108, 143, 255, 0.12)',
+    borderRadius: 14,
     flexDirection: 'row-reverse',
     justifyContent: 'center',
-    minHeight: 34,
+    minHeight: 30,
     paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   countdownText: {
     color: theme.colors.info,
     flex: 1,
     fontSize: 12,
-    fontWeight: '900',
+    fontWeight: '800',
     textAlign: 'right',
-  },
-  edgeGlow: {
-    backgroundColor: 'rgba(108, 143, 255, 0.08)',
-    borderRadius: 999,
-    height: 112,
-    opacity: 0.85,
-    position: 'absolute',
-    right: -36,
-    top: 48,
-    width: 112,
   },
   eyebrow: {
     ...theme.typography.meta,
     color: theme.colors.textMuted,
     textAlign: 'right',
-  },
-  glowPrimary: {
-    backgroundColor: theme.colors.glowMuted,
-    borderRadius: 180,
-    height: 180,
-    opacity: 0.45,
-    position: 'absolute',
-    right: -42,
-    top: -68,
-    width: 180,
-  },
-  glowSecondary: {
-    backgroundColor: theme.colors.glowStrong,
-    borderRadius: 140,
-    bottom: -76,
-    height: 140,
-    left: -52,
-    opacity: 0.18,
-    position: 'absolute',
-    width: 140,
   },
   metaItem: {
     alignItems: 'center',
@@ -239,18 +210,29 @@ const styles = StyleSheet.create({
   timeRow: {
     flexDirection: 'row-reverse',
     gap: theme.spacing.sm,
+    flexWrap: 'wrap',
+  },
+  topWash: {
+    backgroundColor: 'rgba(108, 143, 255, 0.07)',
+    borderRadius: 999,
+    height: 120,
+    opacity: 0.8,
+    position: 'absolute',
+    right: -34,
+    top: -48,
+    width: 120,
   },
   title: {
     color: theme.colors.textPrimary,
-    fontSize: 25,
+    fontSize: 21,
     fontWeight: '900',
-    lineHeight: 29,
+    lineHeight: 25,
     textAlign: 'right',
   },
   topRow: {
     alignItems: 'center',
     flexDirection: 'row-reverse',
-    gap: theme.spacing.sm,
+    gap: theme.spacing.xs,
     justifyContent: 'space-between',
   },
 });

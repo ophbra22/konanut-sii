@@ -2,35 +2,23 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { AppLoader } from '@/src/components/feedback/app-loader';
 import { StateCard } from '@/src/components/feedback/state-card';
-import { AppBadge } from '@/src/components/ui/app-badge';
-import { AppCard } from '@/src/components/ui/app-card';
 import { AppRevealView } from '@/src/components/ui/app-reveal-view';
 import { AppScreen } from '@/src/components/ui/app-screen';
-import { MetricCard } from '@/src/components/ui/metric-card';
 import { PageHeader } from '@/src/components/ui/page-header';
+import { SectionBlock } from '@/src/components/ui/section-block';
+import type { DashboardAlertItem } from '@/src/features/dashboard/api/dashboard-service';
 import { useDashboardQuery } from '@/src/features/dashboard/hooks/use-dashboard-query';
 import { formatDisplayDate } from '@/src/lib/date-utils';
 import { theme } from '@/src/theme';
 
-function getSeverityLabel(severity: 'high' | 'low' | 'medium') {
+function getSeverityColor(severity: 'high' | 'low' | 'medium') {
   switch (severity) {
     case 'high':
-      return 'גבוהה';
+      return theme.colors.danger;
     case 'medium':
-      return 'בינונית';
+      return theme.colors.warning;
     default:
-      return 'מידע';
-  }
-}
-
-function getSeverityTone(severity: 'high' | 'low' | 'medium') {
-  switch (severity) {
-    case 'high':
-      return 'danger' as const;
-    case 'medium':
-      return 'warning' as const;
-    default:
-      return 'info' as const;
+      return theme.colors.accentStrong;
   }
 }
 
@@ -42,6 +30,79 @@ function getShortDescription(description: string | null) {
   }
 
   return value;
+}
+
+function getStatusLabel(status: DashboardAlertItem['status']) {
+  return status === 'open' ? 'פתוחה' : 'טופלה';
+}
+
+function AlertSummaryTile({
+  label,
+  tone,
+  value,
+}: {
+  label: string;
+  tone: 'danger' | 'info' | 'warning';
+  value: string;
+}) {
+  return (
+    <View style={[styles.summaryTile, summaryToneStyles[tone]]}>
+      <Text style={styles.summaryLabel}>{label}</Text>
+      <Text style={styles.summaryValue}>{value}</Text>
+    </View>
+  );
+}
+
+function AlertStatusBadge({
+  status,
+}: {
+  status: DashboardAlertItem['status'];
+}) {
+  const isOpen = status === 'open';
+
+  return (
+    <View style={[styles.statusBadge, isOpen ? styles.statusBadgeOpen : styles.statusBadgeResolved]}>
+      <Text style={[styles.statusBadgeText, isOpen ? styles.statusBadgeTextOpen : styles.statusBadgeTextResolved]}>
+        {getStatusLabel(status)}
+      </Text>
+    </View>
+  );
+}
+
+function AlertListItem({
+  alertItem,
+  isLast,
+}: {
+  alertItem: DashboardAlertItem;
+  isLast: boolean;
+}) {
+  return (
+    <View style={[styles.alertRow, !isLast ? styles.alertRowBorder : null]}>
+      <AlertStatusBadge status={alertItem.status} />
+
+      <View style={styles.alertContent}>
+        <Text numberOfLines={1} style={styles.title}>
+          {alertItem.title}
+        </Text>
+
+        <Text numberOfLines={1} style={styles.subtitle}>
+          {alertItem.related_settlement_name || 'ללא שיוך'} • {formatDisplayDate(alertItem.created_at)} •{' '}
+          {alertItem.type}
+        </Text>
+
+        <Text numberOfLines={2} style={styles.description}>
+          {getShortDescription(alertItem.description)}
+        </Text>
+      </View>
+
+      <View
+        style={[
+          styles.alertDot,
+          { backgroundColor: getSeverityColor(alertItem.severity) },
+        ]}
+      />
+    </View>
+  );
 }
 
 export default function AlertsScreen() {
@@ -56,7 +117,7 @@ export default function AlertsScreen() {
   }
 
   return (
-    <AppScreen>
+    <AppScreen contentContainerStyle={styles.screenContent}>
       <PageHeader
         eyebrow="התראות"
         title="מרכז התראות"
@@ -64,10 +125,10 @@ export default function AlertsScreen() {
       />
 
       <AppRevealView delay={30}>
-        <View style={styles.metricsGrid}>
-          <MetricCard label="גבוהות" tone="danger" value={String(highCount)} />
-          <MetricCard label="בינוניות" tone="warning" value={String(mediumCount)} />
-          <MetricCard label="מידע" tone="info" value={String(lowCount)} />
+        <View style={styles.summaryRow}>
+          <AlertSummaryTile label="גבוהות" tone="danger" value={String(highCount)} />
+          <AlertSummaryTile label="בינוניות" tone="warning" value={String(mediumCount)} />
+          <AlertSummaryTile label="מידע" tone="info" value={String(lowCount)} />
         </View>
       </AppRevealView>
 
@@ -92,41 +153,20 @@ export default function AlertsScreen() {
 
       {!error && alerts.length ? (
         <AppRevealView delay={70}>
-          <View style={styles.list}>
-            {alerts.map((alertItem) => (
-              <AppCard key={alertItem.id} style={styles.alertCard}>
-                <View style={styles.cardHeader}>
-                  <Text numberOfLines={1} style={styles.title}>
-                    {alertItem.title}
-                  </Text>
-
-                  <AppBadge
-                    label={getSeverityLabel(alertItem.severity)}
-                    size="sm"
-                    tone={getSeverityTone(alertItem.severity)}
-                  />
-                </View>
-
-                <Text numberOfLines={2} style={styles.description}>
-                  {getShortDescription(alertItem.description)}
-                </Text>
-
-                <View style={styles.metaRow}>
-                  <Text numberOfLines={1} style={styles.metaText}>
-                    {alertItem.related_settlement_name || 'ללא שיוך'}
-                  </Text>
-                  <Text style={styles.metaDivider}>•</Text>
-                  <Text style={styles.metaText}>
-                    {formatDisplayDate(alertItem.created_at)}
-                  </Text>
-                  <Text style={styles.metaDivider}>•</Text>
-                  <Text numberOfLines={1} style={styles.metaText}>
-                    {alertItem.status === 'open' ? 'פתוחה' : 'טופלה'}
-                  </Text>
-                </View>
-              </AppCard>
-            ))}
-          </View>
+          <SectionBlock
+            description="רשימת החריגים האחרונים במבנה תפעולי מרוכז"
+            title="התראות אחרונות"
+          >
+            <View style={styles.list}>
+              {alerts.map((alertItem, index) => (
+                <AlertListItem
+                  key={alertItem.id}
+                  alertItem={alertItem}
+                  isLast={index === alerts.length - 1}
+                />
+              ))}
+            </View>
+          </SectionBlock>
         </AppRevealView>
       ) : null}
     </AppScreen>
@@ -134,48 +174,113 @@ export default function AlertsScreen() {
 }
 
 const styles = StyleSheet.create({
-  alertCard: {
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.sm,
+  alertContent: {
+    flex: 1,
+    gap: 6,
   },
-  cardHeader: {
-    alignItems: 'center',
+  alertDot: {
+    borderRadius: 999,
+    height: 8,
+    marginTop: 7,
+    width: 8,
+  },
+  alertRow: {
+    alignItems: 'flex-start',
     flexDirection: 'row-reverse',
-    gap: theme.spacing.xs,
-    justifyContent: 'space-between',
+    gap: 12,
+    minHeight: 72,
+    paddingVertical: 12,
+  },
+  alertRowBorder: {
+    borderBottomColor: 'rgba(56, 73, 84, 0.40)',
+    borderBottomWidth: 1,
   },
   description: {
-    ...theme.typography.caption,
-    color: theme.colors.textSecondary,
+    color: theme.colors.textDim,
+    fontSize: 11,
+    fontWeight: '600',
+    lineHeight: 15,
     textAlign: 'right',
   },
   list: {
-    gap: theme.spacing.sm,
+    gap: 0,
   },
-  metaDivider: {
+  screenContent: {
+    gap: theme.spacing.xl,
+    paddingBottom: theme.spacing.xl,
+  },
+  statusBadge: {
+    borderRadius: 999,
+    marginTop: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  statusBadgeOpen: {
+    backgroundColor: 'rgba(245, 178, 75, 0.12)',
+  },
+  statusBadgeResolved: {
+    backgroundColor: 'rgba(199, 243, 107, 0.10)',
+  },
+  statusBadgeText: {
+    ...theme.typography.badge,
+    textAlign: 'center',
+  },
+  statusBadgeTextOpen: {
+    color: theme.colors.warning,
+  },
+  statusBadgeTextResolved: {
+    color: theme.colors.accentStrong,
+  },
+  subtitle: {
     color: theme.colors.textMuted,
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '600',
+    lineHeight: 15,
+    textAlign: 'right',
   },
-  metaRow: {
-    alignItems: 'center',
-    flexDirection: 'row-reverse',
-    gap: 6,
-  },
-  metaText: {
-    ...theme.typography.badge,
+  summaryLabel: {
+    ...theme.typography.meta,
     color: theme.colors.textMuted,
     textAlign: 'right',
   },
-  metricsGrid: {
+  summaryRow: {
     flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    gap: theme.spacing.sm,
+    gap: 10,
+    justifyContent: 'space-between',
+  },
+  summaryTile: {
+    borderRadius: 14,
+    flex: 1,
+    gap: 6,
+    minHeight: 70,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  summaryValue: {
+    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontWeight: '900',
+    lineHeight: 22,
+    textAlign: 'right',
   },
   title: {
-    ...theme.typography.cardTitle,
     color: theme.colors.textPrimary,
     flex: 1,
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 18,
     textAlign: 'right',
+  },
+});
+
+const summaryToneStyles = StyleSheet.create({
+  danger: {
+    backgroundColor: theme.colors.surfaceDanger,
+  },
+  info: {
+    backgroundColor: theme.colors.surface,
+  },
+  warning: {
+    backgroundColor: theme.colors.surfaceWarning,
   },
 });
