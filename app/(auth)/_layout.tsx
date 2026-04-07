@@ -6,9 +6,12 @@ import { useAuthStore } from '@/src/stores/auth-store';
 
 export default function AuthLayout() {
   const isInitialized = useAuthStore((state) => state.isInitialized);
+  const session = useAuthStore((state) => state.session);
   const status = useAuthStore((state) => state.status);
+  const shouldShowBootstrapLoader =
+    !isInitialized || status === 'idle' || (status === 'loading' && Boolean(session));
 
-  if (!isInitialized || status === 'idle' || status === 'loading') {
+  if (shouldShowBootstrapLoader) {
     return <AppLoader label="מכין את מסך הכניסה..." />;
   }
 

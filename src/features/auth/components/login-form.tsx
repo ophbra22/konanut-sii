@@ -1,12 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import { ArrowRight, Lock, Mail, Shield } from 'lucide-react-native';
+import { ArrowRight, Lock, Mail } from 'lucide-react-native';
+import { useRef } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { AppTextField } from '@/src/components/ui/app-text-field';
 import { AuthScreenShell } from '@/src/features/auth/components/auth-screen-shell';
 import { AuthSubmitButton } from '@/src/features/auth/components/auth-submit-button';
+import { AuthUtilityLinks } from '@/src/features/auth/components/auth-utility-links';
 import {
   loginSchema,
   type LoginFormValues,
@@ -28,6 +30,7 @@ export function LoginForm() {
   const {
     control,
     handleSubmit,
+    resetField,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormValues>({
     defaultValues: {
@@ -36,6 +39,7 @@ export function LoginForm() {
     },
     resolver: zodResolver(loginSchema),
   });
+  const passwordInputRef = useRef<TextInput>(null);
 
   const isBusy = isSubmitting || status === 'loading';
   const inlineAuthError =
@@ -43,34 +47,54 @@ export function LoginForm() {
 
   const onSubmit = handleSubmit(async (values) => {
     clearError();
-    await signIn({
+    const result = await signIn({
       email: values.email.trim().toLowerCase(),
       password: values.password.trim(),
     });
+
+    if (!result.success && result.reason === 'invalid_credentials') {
+      resetField('password', {
+        defaultValue: '',
+      });
+
+      setTimeout(() => {
+        passwordInputRef.current?.focus();
+      }, 50);
+    }
   });
 
   const footer = (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => {
-        clearError();
-        router.push('/register' as never);
-      }}
-      style={({ pressed }) => [styles.linkRow, pressed ? styles.linkPressed : null]}
-    >
-      <ArrowRight color={theme.colors.info} size={15} strokeWidth={2.2} />
-      <Text style={styles.linkText}>אין לך חשבון? הרשמה</Text>
-    </Pressable>
+    <View style={styles.footerContent}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {
+          clearError();
+          router.push('/register' as never);
+        }}
+        style={({ pressed }) => [styles.linkRow, pressed ? styles.linkPressed : null]}
+      >
+        <ArrowRight color={theme.colors.info} size={15} strokeWidth={2.2} />
+        <Text style={styles.linkText}>אין לך חשבון? הרשמה</Text>
+      </Pressable>
+
+      <AuthUtilityLinks />
+    </View>
   );
 
   const hero = (
     <View style={styles.brandHeader}>
       <View pointerEvents="none" style={styles.brandGlowPrimary} />
       <View pointerEvents="none" style={styles.brandGlowSecondary} />
+      <View pointerEvents="none" style={styles.brandGlowCore} />
 
       <View style={styles.brandContent}>
         <Text style={styles.brandLinePrimary}>זרוע יישובים מג״ב דרום</Text>
-        <Text style={styles.brandLineSecondary}>מערכת אימונים וניהול</Text>
+        <View style={styles.brandTitleWrap}>
+          <View pointerEvents="none" style={styles.brandTitleGlow} />
+          <Text numberOfLines={1} style={styles.brandLineSecondary}>
+            מערכת אימונים וניהול
+          </Text>
+        </View>
         <Text style={styles.brandSubtitle}>
           סביבת התחברות מאובטחת לכוחות וגורמי ניהול
         </Text>
@@ -132,6 +156,7 @@ export function LoginForm() {
               autoCorrect={false}
               errorMessage={errors.password?.message ?? inlineAuthError}
               icon={<Lock />}
+              inputRef={passwordInputRef}
               label="סיסמה"
               onBlur={onBlur}
               onChangeText={(text) => {
@@ -153,7 +178,22 @@ export function LoginForm() {
         />
 
         <View style={styles.actions}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              clearError();
+              router.push('/forgot-password' as never);
+            }}
+            style={({ pressed }) => [
+              styles.secondaryLinkRow,
+              pressed ? styles.linkPressed : null,
+            ]}
+          >
+            <Text style={styles.secondaryLinkText}>שכחתי סיסמה</Text>
+          </Pressable>
+
           <AuthSubmitButton
+            compact
             disabled={isBusy}
             label="התחברות"
             loading={isBusy}
@@ -161,11 +201,6 @@ export function LoginForm() {
               void onSubmit();
             }}
           />
-
-          <View style={styles.securityRow}>
-            <Shield color={theme.colors.textMuted} size={14} strokeWidth={2.1} />
-            <Text style={styles.securityText}>גישה מאובטחת • מערכת פנימית</Text>
-          </View>
         </View>
       </View>
     </AuthScreenShell>
@@ -174,69 +209,96 @@ export function LoginForm() {
 
 const styles = createThemedStyles((theme: AppTheme) => ({
   actions: {
-    gap: theme.spacing.md,
-    marginTop: theme.spacing.xs,
+    gap: 10,
+    marginTop: 2,
   },
   brandContent: {
     alignItems: 'center',
-    gap: 7,
-    maxWidth: 360,
+    gap: 5,
+    maxWidth: 384,
+  },
+  brandGlowCore: {
+    backgroundColor: theme.colors.glowMuted,
+    borderRadius: 220,
+    height: 180,
+    opacity: 0.7,
+    position: 'absolute',
+    top: 8,
+    width: 240,
   },
   brandGlowPrimary: {
     backgroundColor: theme.colors.infoSurface,
     borderRadius: 180,
     height: 160,
-    opacity: 0.72,
+    opacity: 0.58,
     position: 'absolute',
-    right: 34,
-    top: -26,
+    right: 18,
+    top: -10,
     width: 160,
   },
   brandGlowSecondary: {
     backgroundColor: theme.colors.glowStrong,
     borderRadius: 160,
-    bottom: -18,
+    bottom: -8,
     height: 124,
-    left: 48,
-    opacity: 0.44,
+    left: 36,
+    opacity: 0.34,
     position: 'absolute',
     width: 124,
   },
   brandHeader: {
     alignItems: 'center',
-    borderBottomColor: theme.colors.separator,
-    borderBottomWidth: 1,
     justifyContent: 'center',
-    minHeight: 154,
+    minHeight: 130,
     overflow: 'hidden',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingTop: 12,
+    paddingBottom: 2,
     position: 'relative',
   },
   brandLinePrimary: {
     ...theme.typography.eyebrow,
     color: theme.colors.accentStrong,
-    fontSize: 12,
-    letterSpacing: 1,
-    lineHeight: 16,
+    fontSize: 20,
+    letterSpacing: 0.2,
+    lineHeight: 24,
     textAlign: 'center',
   },
   brandLineSecondary: {
     ...theme.typography.display,
     color: theme.colors.textPrimary,
-    fontSize: 30,
-    lineHeight: 34,
+    fontSize: 24,
+    lineHeight: 27,
     textAlign: 'center',
   },
   brandSubtitle: {
     ...theme.typography.caption,
     color: theme.colors.textSecondary,
-    lineHeight: 19,
-    maxWidth: 310,
+    lineHeight: 18,
+    maxWidth: 308,
     textAlign: 'center',
   },
+  brandTitleGlow: {
+    backgroundColor: theme.colors.infoSurface,
+    borderRadius: 999,
+    height: 78,
+    opacity: 0.72,
+    position: 'absolute',
+    width: 250,
+  },
+  brandTitleWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 38,
+    paddingHorizontal: 16,
+    position: 'relative',
+  },
+  footerContent: {
+    alignItems: 'center',
+    gap: 8,
+  },
   form: {
-    gap: 16,
+    gap: 12,
   },
   linkPressed: {
     opacity: 0.76,
@@ -245,7 +307,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     alignItems: 'center',
     alignSelf: 'center',
     flexDirection: 'row-reverse',
-    gap: theme.spacing.xs,
+    gap: 6,
   },
   linkText: {
     ...theme.typography.caption,
@@ -254,16 +316,16 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     fontWeight: '700',
     textAlign: 'center',
   },
-  securityRow: {
-    alignItems: 'center',
-    alignSelf: 'center',
-    flexDirection: 'row-reverse',
-    gap: theme.spacing.xs,
+  secondaryLinkRow: {
+    alignItems: 'flex-end',
+    alignSelf: 'stretch',
+    marginBottom: 2,
   },
-  securityText: {
+  secondaryLinkText: {
     ...theme.typography.caption,
-    color: theme.colors.textMuted,
-    letterSpacing: 0.1,
-    textAlign: 'center',
+    color: theme.colors.info,
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'right',
   },
 }));

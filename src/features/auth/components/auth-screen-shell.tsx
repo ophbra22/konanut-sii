@@ -56,24 +56,27 @@ export function AuthScreenShell({
             colors={[
               appTheme.colors.backgroundDeep,
               appTheme.colors.background,
+              appTheme.colors.backgroundDeep,
               appTheme.colors.background,
             ]}
-            end={{ x: 0.7, y: 1 }}
-            start={{ x: 0.1, y: 0 }}
+            end={{ x: 0.85, y: 1 }}
+            start={{ x: 0.08, y: 0 }}
             style={styles.backgroundGradient}
           />
           <LinearGradient
             colors={[
               appTheme.colors.mediaGlow,
+              appTheme.colors.glowMuted,
               'transparent',
             ]}
-            end={{ x: 1, y: 1 }}
-            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0.95 }}
+            start={{ x: 0, y: 0.05 }}
             style={styles.backgroundBand}
           />
           <View style={styles.backgroundAuraPrimary} />
           <View style={styles.backgroundAuraSecondary} />
           <View style={styles.backgroundAuraTertiary} />
+          <View style={styles.backgroundAuraCenter} />
         </View>
 
         <View
@@ -148,8 +151,13 @@ export function AuthScreenShell({
               />
               <View pointerEvents="none" style={styles.cardTopEdge} />
 
-              <View style={styles.cardHeader}>
-                <View style={styles.cardBadgeBlock}>
+              <View style={[styles.cardHeader, compact ? styles.cardHeaderCompact : null]}>
+                <View
+                  style={[
+                    styles.cardBadgeBlock,
+                    compact ? styles.cardBadgeBlockCompact : null,
+                  ]}
+                >
                   <View style={styles.cardBadge}>
                     <Shield color={appTheme.colors.info} size={14} strokeWidth={2.2} />
                     <Text style={styles.cardBadgeText}>{badgeLabel}</Text>
@@ -159,13 +167,15 @@ export function AuthScreenShell({
                   ) : null}
                 </View>
 
-                <View style={styles.cardHeading}>
+                <View style={[styles.cardHeading, compact ? styles.cardHeadingCompact : null]}>
                   <Text style={styles.cardTitle}>{cardTitle}</Text>
                   <Text style={styles.cardDescription}>{cardDescription}</Text>
                 </View>
               </View>
 
-              <View style={styles.content}>{children}</View>
+              <View style={[styles.content, compact ? styles.contentCompact : null]}>
+                {children}
+              </View>
 
               {footer ? (
                 <View style={[styles.footer, compact ? styles.footerCompact : null]}>{footer}</View>
@@ -183,7 +193,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     backgroundColor: theme.colors.infoSurface,
     borderRadius: 280,
     height: 300,
-    opacity: 0.52,
+    opacity: 0.42,
     position: 'absolute',
     right: -120,
     top: -72,
@@ -194,28 +204,38 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderRadius: 260,
     height: 220,
     left: -70,
-    opacity: 0.32,
+    opacity: 0.24,
     position: 'absolute',
     top: 132,
     width: 220,
+  },
+  backgroundAuraCenter: {
+    alignSelf: 'center',
+    backgroundColor: theme.colors.mediaGlow,
+    borderRadius: 260,
+    height: 240,
+    opacity: 0.34,
+    position: 'absolute',
+    top: 26,
+    width: 280,
   },
   backgroundAuraTertiary: {
     backgroundColor: theme.colors.overlay,
     borderRadius: 260,
     bottom: 36,
     height: 180,
-    opacity: 0.34,
+    opacity: 0.26,
     position: 'absolute',
     right: 18,
     width: 180,
   },
   backgroundBand: {
-    height: 240,
+    height: 260,
     left: -40,
-    opacity: 0.9,
+    opacity: 0.62,
     position: 'absolute',
     right: -40,
-    top: 124,
+    top: 74,
     transform: [{ rotate: '-6deg' }],
   },
   backgroundGradient: {
@@ -229,7 +249,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     ...theme.elevation.card,
     backgroundColor: theme.colors.glassSurfaceStrong,
     borderColor: theme.colors.borderSoft,
-    borderRadius: 30,
+    borderRadius: 24,
     borderWidth: 1,
     gap: theme.spacing.xl,
     padding: theme.spacing.xl,
@@ -239,14 +259,14 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   cardCompact: {
     gap: 14,
     paddingHorizontal: 18,
-    paddingVertical: 17,
+    paddingVertical: 16,
   },
   cardAccent: {
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    height: 132,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: 112,
     left: 0,
-    opacity: 0.92,
+    opacity: 0.78,
     position: 'absolute',
     right: 0,
     top: 0,
@@ -267,6 +287,9 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     alignItems: 'flex-end',
     gap: 6,
   },
+  cardBadgeBlockCompact: {
+    gap: 4,
+  },
   cardBadgeCaption: {
     ...theme.typography.meta,
     color: theme.colors.textMuted,
@@ -284,10 +307,16 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     textAlign: 'right',
   },
   cardHeader: {
-    gap: theme.spacing.lg,
+    gap: 12,
+  },
+  cardHeaderCompact: {
+    gap: 9,
   },
   cardHeading: {
     gap: 7,
+  },
+  cardHeadingCompact: {
+    gap: 5,
   },
   cardTitle: {
     ...theme.typography.cardTitle,
@@ -309,18 +338,24 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   content: {
     gap: theme.spacing.lg,
   },
+  contentCompact: {
+    gap: 14,
+  },
   eyebrow: {
     ...theme.typography.eyebrow,
     color: theme.colors.accentStrong,
     textAlign: 'right',
   },
   footer: {
+    alignItems: 'center',
     borderTopColor: theme.colors.separatorStrong,
     borderTopWidth: 1,
-    paddingTop: theme.spacing.lg,
+    gap: theme.spacing.xs,
+    paddingTop: theme.spacing.md,
   },
   footerCompact: {
-    paddingTop: 12,
+    gap: 6,
+    paddingTop: 10,
   },
   headerCentered: {
     alignItems: 'center',
@@ -334,7 +369,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     width: '100%',
   },
   headerCompact: {
-    gap: 5,
+    gap: 4,
   },
   screenContent: {
     flexGrow: 1,
@@ -350,8 +385,8 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     textAlign: 'right',
   },
   subtitleCompact: {
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 13,
+    lineHeight: 17,
   },
   supportingText: {
     ...theme.typography.caption,
@@ -374,8 +409,8 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     textAlign: 'right',
   },
   titleCompact: {
-    fontSize: 29,
-    lineHeight: 33,
+    fontSize: 28,
+    lineHeight: 31,
   },
   wrapper: {
     alignSelf: 'center',
@@ -387,8 +422,8 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     width: '100%',
   },
   wrapperCompact: {
-    gap: 16,
-    paddingBottom: 16,
+    gap: 12,
+    paddingBottom: 10,
     paddingTop: 18,
   },
   wrapperCentered: {

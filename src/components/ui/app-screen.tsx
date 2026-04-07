@@ -1,8 +1,9 @@
 import type { PropsWithChildren } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { KeyboardSafeScrollView } from '@/src/components/ui/keyboard-safe-scroll-view';
 import { createThemedStyles, type AppTheme, useThemeMode } from '@/src/theme';
 
 type AppScreenProps = PropsWithChildren<{
@@ -17,14 +18,12 @@ export function AppScreen({
 }: AppScreenProps) {
   const themeMode = useThemeMode();
   const content = scroll ? (
-    <ScrollView
+    <KeyboardSafeScrollView
       key={themeMode}
       contentContainerStyle={[styles.content, contentContainerStyle]}
-      keyboardShouldPersistTaps="always"
-      showsVerticalScrollIndicator={false}
     >
       {children}
-    </ScrollView>
+    </KeyboardSafeScrollView>
   ) : (
     <View key={themeMode} style={[styles.content, styles.fill, contentContainerStyle]}>
       {children}

@@ -16,6 +16,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppTextField } from '@/src/components/ui/app-text-field';
 import { AuthScreenShell } from '@/src/features/auth/components/auth-screen-shell';
 import { AuthSubmitButton } from '@/src/features/auth/components/auth-submit-button';
+import { AuthUtilityLinks } from '@/src/features/auth/components/auth-utility-links';
 import { registrationRoleOptions } from '@/src/features/auth/lib/permissions';
 import {
   registerSchema,
@@ -78,17 +79,21 @@ export function RegisterForm() {
   });
 
   const footer = (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => {
-        clearError();
-        router.replace('/login' as never);
-      }}
-      style={({ pressed }) => [styles.linkRow, pressed ? styles.linkPressed : null]}
-    >
-      <ArrowRight color={theme.colors.info} size={15} strokeWidth={2.2} />
-      <Text style={styles.linkText}>כבר יש לך חשבון? להתחברות</Text>
-    </Pressable>
+    <View style={styles.footerContent}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {
+          clearError();
+          router.replace('/login' as never);
+        }}
+        style={({ pressed }) => [styles.linkRow, pressed ? styles.linkPressed : null]}
+      >
+        <ArrowRight color={theme.colors.info} size={15} strokeWidth={2.2} />
+        <Text style={styles.linkText}>כבר יש לך חשבון? להתחברות</Text>
+      </Pressable>
+
+      <AuthUtilityLinks />
+    </View>
   );
 
   if (isSuccess) {
@@ -346,11 +351,6 @@ export function RegisterForm() {
             void onSubmit();
           }}
         />
-
-        <View style={styles.securityRow}>
-          <ShieldCheck color={theme.colors.textMuted} size={14} strokeWidth={2.1} />
-          <Text style={styles.securityText}>גישה מאובטחת • פתיחה לאחר אישור מנהל</Text>
-        </View>
       </View>
     </AuthScreenShell>
   );
@@ -372,6 +372,10 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   form: {
     gap: theme.spacing.lg,
+  },
+  footerContent: {
+    alignItems: 'center',
+    gap: 8,
   },
   linkPressed: {
     opacity: 0.82,
@@ -436,17 +440,6 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   roleOptionTitleSelected: {
     color: theme.colors.info,
-  },
-  securityRow: {
-    alignItems: 'center',
-    alignSelf: 'center',
-    flexDirection: 'row-reverse',
-    gap: theme.spacing.xs,
-  },
-  securityText: {
-    ...theme.typography.caption,
-    color: theme.colors.textMuted,
-    textAlign: 'center',
   },
   successDescription: {
     ...theme.typography.body,

@@ -8,5 +8,6 @@ export function usePendingUsersQuery(enabled = true) {
     enabled,
     queryFn: listPendingUsers,
     queryKey: queryKeys.auth.pendingUsers,
+    refetchOnMount: 'always',
   });
 }

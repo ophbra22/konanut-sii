@@ -3,11 +3,13 @@ import {
   isValidElement,
   useRef,
   useState,
+  type RefObject,
   type ReactElement,
 } from 'react';
 import type { TextInputProps } from 'react-native';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
+import { useKeyboardSafeFocus } from '@/src/components/ui/keyboard-safe-scroll-view';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type FieldIconElement = ReactElement<{
@@ -21,6 +23,7 @@ type AppTextFieldProps = TextInputProps & {
   errorMessage?: string;
   hint?: string;
   icon?: FieldIconElement;
+  inputRef?: RefObject<TextInput | null>;
   label: string;
   textAlign?: 'left' | 'right';
   writingDirection?: 'auto' | 'ltr' | 'rtl';
@@ -31,6 +34,7 @@ export function AppTextField({
   errorMessage,
   hint,
   icon,
+  inputRef: forwardedInputRef,
   label,
   onBlur,
   onFocus,
@@ -39,7 +43,8 @@ export function AppTextField({
   ...props
 }: AppTextFieldProps) {
   const [isFocused, setIsFocused] = useState(false);
-  const inputRef = useRef<TextInput>(null);
+  const internalInputRef = useRef<TextInput>(null);
+  const keyboardSafeFocus = useKeyboardSafeFocus();
   const iconColor =
     errorMessage && !isFocused
       ? theme.colors.danger
@@ -56,6 +61,11 @@ export function AppTextField({
       : null;
   const isEditable = props.editable !== false;
   const isAuthAppearance = appearance === 'auth';
+  const revealField = () => {
+    keyboardSafeFocus?.ensureVisible(internalInputRef, {
+      extraOffset: props.multiline ? 64 : 32,
+    });
+  };
 
   return (
     <View style={styles.wrapper}>
@@ -64,7 +74,8 @@ export function AppTextField({
         accessible={false}
         disabled={!isEditable}
         onPressIn={() => {
-          inputRef.current?.focus();
+          internalInputRef.current?.focus();
+          revealField();
         }}
         style={[
           styles.field,
@@ -90,7 +101,13 @@ export function AppTextField({
         ) : null}
 
         <TextInput
-          ref={inputRef}
+          ref={(node) => {
+            internalInputRef.current = node;
+
+            if (forwardedInputRef) {
+              forwardedInputRef.current = node;
+            }
+          }}
           autoCapitalize="none"
           autoCorrect={false}
           cursorColor={theme.colors.info}
@@ -101,6 +118,7 @@ export function AppTextField({
           }}
           onFocus={(event) => {
             setIsFocused(true);
+            revealField();
             onFocus?.(event);
           }}
           placeholderTextColor={theme.colors.textMuted}
@@ -142,11 +160,11 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     paddingHorizontal: theme.spacing.md,
   },
   fieldAuth: {
-    backgroundColor: theme.colors.inputBackground,
+    backgroundColor: theme.colors.glassSurface,
     borderColor: theme.colors.borderSoft,
-    borderRadius: 20,
-    minHeight: 60,
-    paddingHorizontal: 16,
+    borderRadius: 18,
+    minHeight: 52,
+    paddingHorizontal: 13,
   },
   fieldDisabled: {
     opacity: 0.58,
@@ -160,9 +178,10 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderColor: theme.colors.info,
   },
   fieldFocusedAuth: {
+    ...theme.elevation.focus,
     backgroundColor: theme.colors.surfaceElevated,
     borderColor: theme.colors.info,
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.14,
   },
   hint: {
     ...theme.typography.caption,
@@ -178,12 +197,12 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     width: 34,
   },
   iconSlotAuth: {
-    backgroundColor: theme.colors.glassSurface,
+    backgroundColor: theme.colors.surfaceMuted,
     borderColor: theme.colors.borderSoft,
-    borderRadius: 12,
+    borderRadius: 11,
     borderWidth: 1,
-    height: 38,
-    width: 38,
+    height: 34,
+    width: 34,
   },
   iconSlotError: {
     backgroundColor: theme.colors.dangerSurface,
@@ -203,7 +222,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   inputAuth: {
     fontSize: 15,
     fontWeight: '600',
-    minHeight: 58,
+    minHeight: 50,
   },
   label: {
     ...theme.typography.caption,
@@ -212,10 +231,10 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   labelAuth: {
     color: theme.colors.textSecondary,
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 15,
   },
   wrapper: {
-    gap: 8,
+    gap: 7,
   },
 }));

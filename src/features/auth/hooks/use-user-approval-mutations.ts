@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 
 import {
   approvePendingUser,
+  deleteRequestedUserAccount,
   rejectPendingUser,
   updateManagedUserAccess,
 } from '@/src/features/auth/api/user-approval-service';
@@ -55,6 +56,27 @@ export function useRejectPendingUserMutation() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.auth.pendingUsers });
       void queryClient.invalidateQueries({ queryKey: queryKeys.auth.managedUsers });
       showToast('המשתמש נדחה ונשאר לא פעיל', 'info');
+    },
+  });
+}
+
+export function useDeleteRequestedUserMutation() {
+  const showToast = useFeedbackStore((state) => state.showToast);
+
+  return useMutation({
+    mutationFn: (userId: string) => deleteRequestedUserAccount(userId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.deletionRequestedUsers });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.pendingUsers });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.activeProfiles });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.managedUsers });
+      showToast('המשתמש נמחק בהצלחה', 'success');
+    },
+    onError: (error: unknown) => {
+      showToast(
+        error instanceof Error ? error.message : 'לא ניתן למחוק את המשתמש כרגע',
+        'error'
+      );
     },
   });
 }

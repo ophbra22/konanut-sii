@@ -1,13 +1,14 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Plus, SlidersHorizontal, Trophy } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 
 import { AppLoader } from '@/src/components/feedback/app-loader';
 import { StateCard } from '@/src/components/feedback/state-card';
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppChip } from '@/src/components/ui/app-chip';
 import { FilterBottomSheet } from '@/src/components/ui/filter-bottom-sheet';
+import { KeyboardSafeScrollView } from '@/src/components/ui/keyboard-safe-scroll-view';
 import { OpsIconButton } from '@/src/components/ui/ops-icon-button';
 import { OpsListHeader } from '@/src/components/ui/ops-list-header';
 import { OpsSearchBar } from '@/src/components/ui/ops-search-bar';
@@ -114,10 +115,8 @@ export default function SettlementsScreen() {
     <>
       <AppScreen contentContainerStyle={styles.screenContent} scroll={false}>
         <View style={styles.container}>
-          <ScrollView
+          <KeyboardSafeScrollView
             contentContainerStyle={styles.content}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
           >
             <OpsListHeader
               actions={
@@ -208,7 +207,7 @@ export default function SettlementsScreen() {
                 ))}
               </View>
             ) : null}
-          </ScrollView>
+          </KeyboardSafeScrollView>
         </View>
       </AppScreen>
 

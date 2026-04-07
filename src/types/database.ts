@@ -107,6 +107,52 @@ export type Database = {
           },
         ];
       };
+      professional_content: {
+        Row: {
+          content_type: 'video' | 'presentation' | 'document';
+          created_at: string;
+          created_by: string | null;
+          description: string | null;
+          id: string;
+          is_active: boolean;
+          thumbnail_url: string | null;
+          title: string;
+          topic: string | null;
+          url: string;
+        };
+        Insert: {
+          content_type: 'video' | 'presentation' | 'document';
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          id?: string;
+          is_active?: boolean;
+          thumbnail_url?: string | null;
+          title: string;
+          topic?: string | null;
+          url: string;
+        };
+        Update: {
+          content_type?: 'video' | 'presentation' | 'document';
+          created_at?: string;
+          created_by?: string | null;
+          description?: string | null;
+          id?: string;
+          is_active?: boolean;
+          thumbnail_url?: string | null;
+          title?: string;
+          topic?: string | null;
+          url?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'professional_content_created_by_fkey';
+            columns: ['created_by'];
+            referencedRelation: 'users_profile';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       settlement_rankings: {
         Row: {
           calculated_at: string;
@@ -371,6 +417,7 @@ export type Database = {
         Row: {
           assigned_plaga: 'פלגת לכיש' | 'פלגת נגב' | null;
           created_at: string;
+          deletion_requested_at: string | null;
           email: string | null;
           full_name: string;
           id: string;
@@ -402,6 +449,7 @@ export type Database = {
         Insert: {
           assigned_plaga?: 'פלגת לכיש' | 'פלגת נגב' | null;
           created_at?: string;
+          deletion_requested_at?: string | null;
           email?: string | null;
           full_name: string;
           id: string;
@@ -433,6 +481,7 @@ export type Database = {
         Update: {
           assigned_plaga?: 'פלגת לכיש' | 'פלגת נגב' | null;
           created_at?: string;
+          deletion_requested_at?: string | null;
           email?: string | null;
           full_name?: string;
           id?: string;
@@ -466,6 +515,12 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
+      admin_delete_requested_user_account: {
+        Args: {
+          target_user_id: string;
+        };
+        Returns: boolean;
+      };
       can_insert_feedback: {
         Args: {
           target_instructor_id: string;
@@ -487,6 +542,10 @@ export type Database = {
       current_profile_role: {
         Args: Record<PropertyKey, never>;
         Returns: string | null;
+      };
+      request_account_deletion: {
+        Args: Record<PropertyKey, never>;
+        Returns: boolean;
       };
       list_global_settlement_rankings: {
         Args: {
@@ -575,6 +634,7 @@ export type TablesUpdate<
 
 export type Alert = Tables<'alerts'>;
 export type Feedback = Tables<'feedbacks'>;
+export type ProfessionalContent = Tables<'professional_content'>;
 export type RegionalCouncil = Tables<'regional_councils'>;
 export type Settlement = Tables<'settlements'>;
 export type SettlementRanking = Tables<'settlement_rankings'>;
@@ -585,6 +645,7 @@ export type UserRegionalCouncil = Tables<'user_regional_councils'>;
 export type UserSettlement = Tables<'user_settlements'>;
 
 export type UserRole = UserProfile['role'];
+export type ProfessionalContentType = ProfessionalContent['content_type'];
 export type TrainingStatus = Training['status'];
 export type TrainingType = Training['training_type'];
 export type AlertSeverity = Alert['severity'];

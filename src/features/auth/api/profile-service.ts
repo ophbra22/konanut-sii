@@ -7,7 +7,7 @@ import type {
 } from '@/src/types/database';
 
 const fullProfileSelect =
-  'id, full_name, email, phone, requested_role, requested_area, assigned_plaga, role, is_active, created_at';
+  'id, full_name, email, phone, requested_role, requested_area, assigned_plaga, deletion_requested_at, role, is_active, created_at';
 const legacyProfileSelect = 'id, full_name, email, phone, role, is_active, created_at';
 const settlementLinksSelect = `
   user_id,
@@ -27,6 +27,7 @@ function shouldFallbackToLegacyProfileSelect(error: unknown) {
     message.includes('requested_role') ||
     message.includes('requested_area') ||
     message.includes('assigned_plaga') ||
+    message.includes('deletion_requested_at') ||
     message.includes('column') ||
     message.includes('schema cache')
   );
@@ -54,6 +55,7 @@ function normalizeLegacyProfile<T extends {
   return {
     ...profile,
     assigned_plaga: null,
+    deletion_requested_at: null,
     requested_area: null,
     requested_role: null,
   };
@@ -61,7 +63,7 @@ function normalizeLegacyProfile<T extends {
 
 function getAuthErrorMessage(message: string) {
   if (message.includes('Invalid login credentials')) {
-    return 'פרטי ההתחברות אינם נכונים';
+    return 'כתובת הדוא"ל או הסיסמה שגויים. נסו שוב.';
   }
 
   if (message.includes('User already registered')) {
@@ -77,6 +79,22 @@ function getAuthErrorMessage(message: string) {
     message.includes('Password is too short')
   ) {
     return 'יש לבחור סיסמה באורך 6 תווים לפחות';
+  }
+
+  if (
+    message.includes('New password should be different from the old password') ||
+    message.includes('same password')
+  ) {
+    return 'יש לבחור סיסמה חדשה ושונה מהקודמת';
+  }
+
+  if (
+    message.includes('Auth session missing') ||
+    message.includes('Email link is invalid or has expired') ||
+    (message.includes('expired') && message.includes('link')) ||
+    (message.includes('invalid') && message.includes('token'))
+  ) {
+    return 'קישור איפוס הסיסמה אינו תקין או שפג תוקפו';
   }
 
   if (
@@ -248,4 +266,15 @@ export async function listActiveProfiles(): Promise<UserProfile[]> {
   }
 
   return data ?? [];
+}
+
+export async function requestAccountDeletion() {
+  const { error } = await supabase.rpc('request_account_deletion');
+
+  if (error) {
+    throw createDataAccessError(
+      error,
+      'לא ניתן לשלוח את בקשת מחיקת החשבון כרגע'
+    );
+  }
 }

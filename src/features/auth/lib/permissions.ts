@@ -180,6 +180,10 @@ export function canManageTrainings(role: UserRole | null) {
   return canManageOperationalData(role);
 }
 
+export function canManageProfessionalContent(role: UserRole | null) {
+  return canManageOperationalData(role);
+}
+
 export function canSyncRankings(role: UserRole | null) {
   return isSuperAdmin(role);
 }

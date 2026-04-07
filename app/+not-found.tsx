@@ -9,7 +9,7 @@ export default function NotFoundScreen() {
       <PageHeader
         eyebrow="ניווט"
         title="המסך הזה לא זמין"
-        subtitle="כנראה שהקישור לא תקין או שהמסך עדיין לא הוגדר במערכת."
+        subtitle="כנראה שהקישור אינו תקין, פג תוקף או שאינו זמין לחשבון הנוכחי."
       />
 
       <AppCard

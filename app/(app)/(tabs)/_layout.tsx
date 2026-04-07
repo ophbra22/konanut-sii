@@ -1,5 +1,5 @@
 import {
-  Bell,
+  LibraryBig,
   CalendarDays,
   House,
   MapPinned,
@@ -76,11 +76,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="alerts"
+        name="professional-content"
         options={{
-          title: 'התראות',
+          title: 'תוכן מקצועי',
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon color={color} focused={focused} icon={Bell} />
+            <TabBarIcon color={color} focused={focused} icon={LibraryBig} />
           ),
         }}
       />

@@ -5,7 +5,7 @@ import {
   fetchUserProfile,
   translateAuthError,
 } from '@/src/features/auth/api/profile-service';
-import { getErrorMessage } from '@/src/lib/error-utils';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { queryClient } from '@/src/lib/query-client';
 import { queryKeys } from '@/src/lib/query-keys';
 import { supabase } from '@/src/lib/supabase';
@@ -27,15 +27,21 @@ type SignUpPayload = Credentials & {
 
 type AuthActionResult = {
   message?: string;
+  reason?: 'inactive_account' | 'invalid_credentials' | 'unknown';
   success: boolean;
 };
 
 type AuthState = {
+  beginPasswordRecovery: () => void;
   clearError: () => void;
+  clearPasswordRecoveryState: () => void;
   errorMessage: string | null;
+  failPasswordRecovery: (message: string) => void;
   initialize: () => Promise<void>;
   isInitialized: boolean;
+  isPasswordRecovery: boolean;
   linkedSettlementIds: string[];
+  passwordRecoveryError: string | null;
   profile: AuthProfile | null;
   refreshProfile: () => Promise<void>;
   role: UserRole | null;
@@ -58,7 +64,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
     set({
       errorMessage,
       isInitialized: true,
+      isPasswordRecovery: false,
       linkedSettlementIds: [],
+      passwordRecoveryError: null,
       profile: null,
       role: null,
       session: null,
@@ -67,7 +75,11 @@ export const useAuthStore = create<AuthState>((set, get) => {
     });
   };
 
-  const applyAuthenticatedState = async (session: Session) => {
+  const applyAuthenticatedState = async (
+    session: Session,
+    options: { recovery?: boolean } = {}
+  ) => {
+    const isPasswordRecovery = options.recovery ?? false;
     const normalizedPendingRegistrationEmail = pendingRegistrationEmail?.toLowerCase() ?? null;
     const normalizedSessionEmail = session.user.email?.toLowerCase() ?? null;
 
@@ -79,44 +91,72 @@ export const useAuthStore = create<AuthState>((set, get) => {
       user: session.user,
     }));
 
-    const profile = await fetchUserProfile(session.user.id);
+    let profile: AuthProfile | null = null;
 
-    if (!profile) {
-      await supabase.auth.signOut();
-      applyUnauthenticatedState('לא נמצא פרופיל משתמש עבור החשבון הזה');
-      return;
+    try {
+      profile = await fetchUserProfile(session.user.id);
+    } catch (error) {
+      if (!isPasswordRecovery) {
+        throw error;
+      }
     }
 
-    if (!profile.is_active) {
-      const shouldSilenceInactiveError =
-        normalizedPendingRegistrationEmail !== null &&
-        normalizedSessionEmail === normalizedPendingRegistrationEmail;
+    if (!isPasswordRecovery) {
+      if (!profile) {
+        await supabase.auth.signOut();
+        applyUnauthenticatedState('לא נמצא פרופיל משתמש עבור החשבון הזה');
+        return;
+      }
 
-      await supabase.auth.signOut();
-      applyUnauthenticatedState(
-        shouldSilenceInactiveError
-          ? null
-          : 'החשבון הזה אינו פעיל כרגע. יש לפנות למנהל המערכת'
-      );
-      return;
+      if (profile.deletion_requested_at) {
+        await supabase.auth.signOut();
+        applyUnauthenticatedState(
+          'בקשת מחיקת החשבון התקבלה וממתינה לטיפול. אפשר לפנות לתמיכה לפרטים נוספים.'
+        );
+        return;
+      }
+
+      if (!profile.is_active) {
+        const shouldSilenceInactiveError =
+          normalizedPendingRegistrationEmail !== null &&
+          normalizedSessionEmail === normalizedPendingRegistrationEmail;
+
+        await supabase.auth.signOut();
+        applyUnauthenticatedState(
+          shouldSilenceInactiveError
+            ? null
+            : 'החשבון הזה אינו פעיל כרגע. יש לפנות למנהל המערכת'
+        );
+        return;
+      }
     }
 
     pendingRegistrationEmail = null;
-    queryClient.setQueryData(queryKeys.auth.profile, profile);
+
+    if (profile) {
+      queryClient.setQueryData(queryKeys.auth.profile, profile);
+    } else {
+      queryClient.removeQueries({ queryKey: queryKeys.auth.profile });
+    }
 
     set({
       errorMessage: null,
       isInitialized: true,
-      linkedSettlementIds: profile.linkedSettlementIds,
+      isPasswordRecovery,
+      linkedSettlementIds: profile?.linkedSettlementIds ?? [],
+      passwordRecoveryError: null,
       profile,
-      role: profile.role,
+      role: profile?.role ?? null,
       session,
       status: 'authenticated',
       user: session.user,
     });
   };
 
-  const syncSession = async (session: Session | null) => {
+  const syncSession = async (
+    session: Session | null,
+    options: { recovery?: boolean } = {}
+  ) => {
     try {
       if (!session) {
         pendingRegistrationEmail = null;
@@ -124,20 +164,41 @@ export const useAuthStore = create<AuthState>((set, get) => {
         return;
       }
 
-      await applyAuthenticatedState(session);
+      await applyAuthenticatedState(session, options);
     } catch (error) {
       applyUnauthenticatedState(
-        getErrorMessage(error, 'לא ניתן לסנכרן את נתוני ההתחברות')
+        getPresentableErrorMessage(error, 'לא ניתן לסנכרן את נתוני ההתחברות')
       );
       throw error;
     }
   };
 
   return {
+    beginPasswordRecovery: () => {
+      pendingRegistrationEmail = null;
+      set({
+        errorMessage: null,
+        isPasswordRecovery: true,
+        passwordRecoveryError: null,
+      });
+    },
     clearError: () => {
       set({ errorMessage: null });
     },
+    clearPasswordRecoveryState: () => {
+      set({
+        isPasswordRecovery: false,
+        passwordRecoveryError: null,
+      });
+    },
     errorMessage: null,
+    failPasswordRecovery: (message) => {
+      set({
+        errorMessage: null,
+        isPasswordRecovery: false,
+        passwordRecoveryError: message,
+      });
+    },
     initialize: async () => {
       if (get().isInitialized && get().status !== 'idle') {
         return;
@@ -156,12 +217,20 @@ export const useAuthStore = create<AuthState>((set, get) => {
         if (error) {
           applyUnauthenticatedState(translateAuthError(error));
         } else {
-          await syncSession(data.session ?? null);
+          await syncSession(data.session ?? null, {
+            recovery: get().isPasswordRecovery,
+          });
         }
 
         if (!authSubscription) {
-          authSubscription = supabase.auth.onAuthStateChange((_event, session) => {
-            void syncSession(session).catch(() => {
+          authSubscription = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+              get().beginPasswordRecovery();
+            }
+
+            void syncSession(session, {
+              recovery: event === 'PASSWORD_RECOVERY' || get().isPasswordRecovery,
+            }).catch(() => {
               // syncSession already applies the unauthenticated/error state.
             });
           }).data.subscription;
@@ -169,7 +238,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
       })()
         .catch((error: unknown) => {
           applyUnauthenticatedState(
-            getErrorMessage(error, 'אירעה שגיאה באתחול החשבון')
+            getPresentableErrorMessage(error, 'אירעה שגיאה באתחול החשבון')
           );
         })
         .finally(() => {
@@ -179,7 +248,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
       await initializePromise;
     },
     isInitialized: false,
+    isPasswordRecovery: false,
     linkedSettlementIds: [],
+    passwordRecoveryError: null,
     profile: null,
     refreshProfile: async () => {
       const session = get().session;
@@ -193,7 +264,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         await applyAuthenticatedState(session);
       } catch (error) {
         applyUnauthenticatedState(
-          getErrorMessage(error, 'לא ניתן לרענן את פרטי המשתמש')
+          getPresentableErrorMessage(error, 'לא ניתן לרענן את פרטי המשתמש')
         );
       }
     },
@@ -205,6 +276,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set((state) => ({
         ...state,
         errorMessage: null,
+        isPasswordRecovery: false,
+        passwordRecoveryError: null,
         status: 'loading',
       }));
 
@@ -216,11 +289,15 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
       if (error) {
         const message = translateAuthError(error);
+        const reason = error.message.includes('Invalid login credentials')
+          ? 'invalid_credentials'
+          : 'unknown';
 
         applyUnauthenticatedState(message);
 
         return {
           message,
+          reason,
           success: false,
         };
       }
@@ -228,17 +305,24 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         await syncSession(data.session ?? null);
       } catch (syncError) {
-        const message = getErrorMessage(syncError, 'לא ניתן להשלים את הכניסה');
+        const message = getPresentableErrorMessage(
+          syncError,
+          'לא ניתן להשלים את הכניסה'
+        );
 
         return {
           message,
+          reason: 'unknown',
           success: false,
         };
       }
 
       if (get().status !== 'authenticated') {
+        const message = get().errorMessage ?? 'לא ניתן להשלים את הכניסה';
+
         return {
-          message: get().errorMessage ?? 'לא ניתן להשלים את הכניסה',
+          message,
+          reason: message.includes('אינו פעיל') ? 'inactive_account' : 'unknown',
           success: false,
         };
       }
@@ -258,6 +342,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set((state) => ({
         ...state,
         errorMessage: null,
+        isPasswordRecovery: false,
+        passwordRecoveryError: null,
         status: 'loading',
       }));
 
@@ -298,7 +384,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
       } catch (signOutError) {
         pendingRegistrationEmail = null;
 
-        const message = getErrorMessage(signOutError, 'לא ניתן להשלים את בקשת ההרשמה');
+        const message = getPresentableErrorMessage(
+          signOutError,
+          'לא ניתן להשלים את בקשת ההרשמה'
+        );
 
         applyUnauthenticatedState(message);
 

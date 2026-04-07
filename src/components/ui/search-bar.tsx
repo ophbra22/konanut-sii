@@ -3,6 +3,7 @@ import { Search } from 'lucide-react-native';
 import type { TextInputProps } from 'react-native';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import { useKeyboardSafeFocus } from '@/src/components/ui/keyboard-safe-scroll-view';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type SearchBarProps = TextInputProps & {
@@ -19,7 +20,14 @@ export function SearchBar({
 }: SearchBarProps) {
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<TextInput>(null);
+  const keyboardSafeFocus = useKeyboardSafeFocus();
   const isEditable = editable !== false;
+  const revealField = () => {
+    keyboardSafeFocus?.ensureVisible(inputRef, {
+      extraOffset: 24,
+      topOffset: 16,
+    });
+  };
 
   return (
     <Pressable
@@ -27,6 +35,7 @@ export function SearchBar({
       disabled={!isEditable}
       onPressIn={() => {
         inputRef.current?.focus();
+        revealField();
       }}
       style={[styles.wrapper, isFocused && styles.wrapperFocused, !isEditable && styles.wrapperDisabled]}
     >
@@ -47,6 +56,7 @@ export function SearchBar({
         }}
         onFocus={(event) => {
           setIsFocused(true);
+          revealField();
           onFocus?.(event);
         }}
         placeholder={placeholder}

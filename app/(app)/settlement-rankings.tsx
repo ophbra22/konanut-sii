@@ -1,90 +1,39 @@
 import { useRouter } from 'expo-router';
 import { ArrowRight, RotateCw } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { AppLoader } from '@/src/components/feedback/app-loader';
 import { StateCard } from '@/src/components/feedback/state-card';
-import { AppChip } from '@/src/components/ui/app-chip';
+import { AppScreen } from '@/src/components/ui/app-screen';
+import { KeyboardSafeScrollView } from '@/src/components/ui/keyboard-safe-scroll-view';
 import { OpsIconButton } from '@/src/components/ui/ops-icon-button';
 import { OpsListHeader } from '@/src/components/ui/ops-list-header';
 import { OpsSearchBar } from '@/src/components/ui/ops-search-bar';
-import { AppScreen } from '@/src/components/ui/app-screen';
 import { isSuperAdmin } from '@/src/features/auth/lib/permissions';
 import { useSyncSettlementRankingsMutation } from '@/src/features/rankings/api/rankings-service';
 import { SettlementRankingCard } from '@/src/features/rankings/components/settlement-ranking-card';
-import {
-  useRankingPeriodsQuery,
-  useRankingsQuery,
-} from '@/src/features/rankings/hooks/use-rankings-query';
-import {
-  getCurrentRankingPeriod,
-  getDefaultRankingPeriods,
-  type RankingLevel,
-} from '@/src/features/rankings/utils/ranking-calculator';
-import { getHalfYearLabel } from '@/src/lib/date-utils';
+import { useRankingsQuery } from '@/src/features/rankings/hooks/use-rankings-query';
+import { getCurrentHalfYearPeriod, getHalfYearLabel } from '@/src/lib/date-utils';
 import { matchesSearchQuery } from '@/src/lib/search-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
-import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
-
-type LevelFilter = 'all' | RankingLevel;
-
-const levelOptions: Array<{
-  key: LevelFilter;
-  label: string;
-}> = [
-  { key: 'all', label: 'הכל' },
-  { key: 'מצטיין', label: 'מצטיין' },
-  { key: 'טוב', label: 'טוב' },
-  { key: 'תקין', label: 'תקין' },
-  { key: 'דורש שיפור', label: 'דורש שיפור' },
-  { key: 'חריג', label: 'חריג' },
-];
+import { createThemedStyles, type AppTheme } from '@/src/theme';
 
 export default function SettlementRankingsScreen() {
   const router = useRouter();
   const role = useAuthStore((state) => state.role);
-  const [period, setPeriod] = useState(getCurrentRankingPeriod());
-  const [levelFilter, setLevelFilter] = useState<LevelFilter>('all');
+  const currentPeriod = getCurrentHalfYearPeriod();
   const [searchTerm, setSearchTerm] = useState('');
   const syncMutation = useSyncSettlementRankingsMutation();
-  const periodsQuery = useRankingPeriodsQuery();
-  const { data, error, isLoading, refetch } = useRankingsQuery(period);
+  const { data, error, isLoading, refetch } = useRankingsQuery(currentPeriod);
 
-  const availablePeriods = periodsQuery.data?.length
-    ? periodsQuery.data
-    : getDefaultRankingPeriods();
-
-  const searchedRankings = useMemo(() => {
+  const visibleRankings = useMemo(() => {
     const items = data ?? [];
 
-    return items.filter((item) => {
-      return matchesSearchQuery(
-        [item.settlementName, item.area, item.regionalCouncil],
-        searchTerm
-      );
-    });
+    return items.filter((item) =>
+      matchesSearchQuery([item.settlementName, item.area, item.regionalCouncil], searchTerm)
+    );
   }, [data, searchTerm]);
-
-  const filteredRankings = useMemo(() => {
-    if (levelFilter === 'all') {
-      return searchedRankings;
-    }
-
-    return searchedRankings.filter((item) => item.rankingLevel === levelFilter);
-  }, [levelFilter, searchedRankings]);
-
-  const levelCounts = useMemo(
-    () => ({
-      all: searchedRankings.length,
-      alert: searchedRankings.filter((item) => item.rankingLevel === 'חריג').length,
-      excellent: searchedRankings.filter((item) => item.rankingLevel === 'מצטיין').length,
-      good: searchedRankings.filter((item) => item.rankingLevel === 'טוב').length,
-      improve: searchedRankings.filter((item) => item.rankingLevel === 'דורש שיפור').length,
-      okay: searchedRankings.filter((item) => item.rankingLevel === 'תקין').length,
-    }),
-    [searchedRankings]
-  );
 
   if (isLoading) {
     return <AppLoader label="טוען את דירוגי היישובים..." />;
@@ -93,95 +42,46 @@ export default function SettlementRankingsScreen() {
   return (
     <AppScreen contentContainerStyle={styles.screenContent} scroll={false}>
       <View style={styles.container}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <OpsListHeader
-            actions={
-              <>
-                {isSuperAdmin(role) ? (
+        <KeyboardSafeScrollView contentContainerStyle={styles.content}>
+          <View style={styles.topBlock}>
+            <OpsListHeader
+              actions={
+                <>
+                  {isSuperAdmin(role) ? (
+                    <OpsIconButton
+                      icon={RotateCw}
+                      onPress={() => {
+                        void syncMutation.mutateAsync(currentPeriod);
+                      }}
+                    />
+                  ) : null}
                   <OpsIconButton
-                    icon={RotateCw}
+                    icon={ArrowRight}
                     onPress={() => {
-                      void syncMutation.mutateAsync(period);
+                      router.push('/settlements' as never);
                     }}
                   />
-                ) : null}
-                <OpsIconButton
-                  icon={ArrowRight}
-                  onPress={() => {
-                    router.push('/settlements' as never);
-                  }}
-                />
-              </>
-            }
-            subtitle={`${filteredRankings.length} יישובים מדורגים`}
-            title="דירוג יישובים"
-          />
+                </>
+              }
+              subtitle={getHalfYearLabel(currentPeriod)}
+              title="דירוג יישובים"
+            />
 
-          <OpsSearchBar
-            onChangeText={setSearchTerm}
-            placeholder="חיפוש יישוב..."
-            value={searchTerm}
-          />
-
-          <ScrollView
-            contentContainerStyle={styles.chipsContent}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-          >
-            <View style={styles.chipsRow}>
-              {availablePeriods.map((periodOption) => (
-                <AppChip
-                  key={periodOption}
-                  label={getHalfYearLabel(periodOption)}
-                  onPress={() => {
-                    setPeriod(periodOption);
-                  }}
-                  selected={period === periodOption}
-                  tone={period === periodOption ? 'accent' : 'neutral'}
-                />
-              ))}
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryDot} />
+              <Text style={styles.summaryText}>
+                {`${visibleRankings.length} יישובים • ממוינים לפי ציון`}
+              </Text>
             </View>
-          </ScrollView>
 
-          <ScrollView
-            contentContainerStyle={styles.chipsContent}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-          >
-            <View style={styles.chipsRow}>
-              {levelOptions.map((option) => {
-                const count =
-                  option.key === 'all'
-                    ? levelCounts.all
-                    : option.key === 'מצטיין'
-                      ? levelCounts.excellent
-                      : option.key === 'טוב'
-                        ? levelCounts.good
-                        : option.key === 'תקין'
-                          ? levelCounts.okay
-                          : option.key === 'דורש שיפור'
-                            ? levelCounts.improve
-                            : levelCounts.alert;
-
-                return (
-                  <AppChip
-                    count={count}
-                    key={option.key}
-                    label={option.label}
-                    onPress={() => {
-                      setLevelFilter(option.key);
-                    }}
-                    selected={levelFilter === option.key}
-                    tone={levelFilter === option.key ? 'accent' : 'neutral'}
-                  />
-                );
-              })}
+            <View style={styles.searchWrap}>
+              <OpsSearchBar
+                onChangeText={setSearchTerm}
+                placeholder="חיפוש יישוב..."
+                value={searchTerm}
+              />
             </View>
-          </ScrollView>
+          </View>
 
           {error ? (
             <StateCard
@@ -195,17 +95,17 @@ export default function SettlementRankingsScreen() {
             />
           ) : null}
 
-          {!error && !filteredRankings.length ? (
+          {!error && !visibleRankings.length ? (
             <StateCard
               actionLabel={isSuperAdmin(role) ? 'רענון דירוגים' : 'רענון'}
               description={
                 isSuperAdmin(role)
-                  ? 'לא נמצאו דירוגים לתקופה או למסננים שנבחרו. אפשר לרענן חישוב לתקופה הפעילה.'
-                  : 'לא נמצאו דירוגים לתקופה או למסננים שנבחרו.'
+                  ? `לא נמצאו דירוגים עבור ${getHalfYearLabel(currentPeriod)}. אפשר לרענן חישוב לתקופה הפעילה.`
+                  : `לא נמצאו דירוגים עבור ${getHalfYearLabel(currentPeriod)}.`
               }
               onAction={() => {
                 if (isSuperAdmin(role)) {
-                  void syncMutation.mutateAsync(period);
+                  void syncMutation.mutateAsync(currentPeriod);
                   return;
                 }
 
@@ -215,40 +115,57 @@ export default function SettlementRankingsScreen() {
             />
           ) : null}
 
-          {!error && filteredRankings.length ? (
+          {!error && visibleRankings.length ? (
             <View style={styles.list}>
-              {filteredRankings.map((item) => (
+              {visibleRankings.map((item) => (
                 <SettlementRankingCard key={item.settlementId} ranking={item} />
               ))}
             </View>
           ) : null}
-        </ScrollView>
+        </KeyboardSafeScrollView>
       </View>
     </AppScreen>
   );
 }
 
 const styles = createThemedStyles((theme: AppTheme) => ({
-  chipsContent: {
-    paddingLeft: theme.spacing.lg,
-    paddingRight: theme.spacing.lg,
-  },
-  chipsRow: {
-    flexDirection: 'row-reverse',
-    gap: theme.spacing.sm,
-  },
   container: {
     flex: 1,
   },
   content: {
-    gap: theme.spacing.section,
+    gap: 8,
     paddingBottom: theme.spacing.xl,
   },
   list: {
-    gap: theme.spacing.sm,
+    gap: 7,
+  },
+  searchWrap: {
+    paddingTop: 2,
   },
   screenContent: {
     flex: 1,
-    paddingTop: theme.spacing.xxs,
+    paddingTop: 0,
+  },
+  summaryDot: {
+    backgroundColor: theme.colors.borderStrong,
+    borderRadius: theme.radius.pill,
+    height: 4,
+    opacity: 0.8,
+    width: 4,
+  },
+  summaryRow: {
+    alignItems: 'center',
+    flexDirection: 'row-reverse',
+    gap: theme.spacing.xs,
+    justifyContent: 'flex-end',
+  },
+  summaryText: {
+    ...theme.typography.caption,
+    color: theme.colors.textMuted,
+    textAlign: 'right',
+  },
+  topBlock: {
+    gap: 6,
+    marginBottom: 2,
   },
 }));

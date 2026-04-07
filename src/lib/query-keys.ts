@@ -1,6 +1,7 @@
 export const queryKeys = {
   auth: {
     activeProfiles: ['auth', 'active-profiles'] as const,
+    deletionRequestedUsers: ['auth', 'deletion-requested-users'] as const,
     managedUsers: ['auth', 'managed-users'] as const,
     pendingUsers: ['auth', 'pending-users'] as const,
     profile: ['auth', 'profile'] as const,
@@ -11,6 +12,11 @@ export const queryKeys = {
   },
   dashboard: {
     overview: ['dashboard', 'overview'] as const,
+  },
+  professionalContent: {
+    all: ['professional-content'] as const,
+    detail: (contentId: string) => ['professional-content', contentId] as const,
+    list: (scope: 'active' | 'all') => ['professional-content', scope] as const,
   },
   rankings: {
     all: ['rankings'] as const,

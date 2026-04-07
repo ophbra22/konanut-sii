@@ -14,6 +14,7 @@ declare
 begin
   truncate table
     public.feedbacks,
+    public.professional_content,
     public.training_settlements,
     public.alerts,
     public.settlement_rankings,
@@ -417,6 +418,44 @@ begin
       84,
       86,
       'זהב'
+    );
+
+  insert into public.professional_content (
+    title,
+    description,
+    content_type,
+    topic,
+    url,
+    is_active,
+    created_by
+  )
+  values
+    (
+      'סרטון בטיחות מטווח',
+      'רענון קצר לנוהלי בטיחות, חלוקת גזרות ופתיחת קו ירי.',
+      'video',
+      'בטיחות מטווח',
+      'https://example.com/content/range-safety-video',
+      true,
+      admin_user_id
+    ),
+    (
+      'מצגת הגנת יישוב בסיסית',
+      'מצגת הדרכה למפקדי כיתות בנושא תגובה מהירה וחלוקת אחריות.',
+      'presentation',
+      'הגנת יישוב',
+      'https://example.com/content/settlement-defense-presentation',
+      true,
+      admin_user_id
+    ),
+    (
+      'נוהל פתיחת יום אימונים',
+      'מסמך עזר קצר לתיאום מדריכים, בטיחות וקליטת משתתפים.',
+      'document',
+      'נהלי אימון',
+      'https://example.com/content/training-day-procedure',
+      true,
+      admin_user_id
     );
 end
 $$;

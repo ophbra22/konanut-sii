@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { ArrowRight } from 'lucide-react-native';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { AppLoader } from '@/src/components/feedback/app-loader';
 import { StateCard } from '@/src/components/feedback/state-card';
 import { AppRevealView } from '@/src/components/ui/app-reveal-view';
 import { AppScreen } from '@/src/components/ui/app-screen';
+import { KeyboardSafeScrollView } from '@/src/components/ui/keyboard-safe-scroll-view';
 import { OpsIconButton } from '@/src/components/ui/ops-icon-button';
 import { OpsListHeader } from '@/src/components/ui/ops-list-header';
 import { ManagedUserAccessCard } from '@/src/features/auth/components/managed-user-access-card';
@@ -89,10 +90,8 @@ export default function UsersManagementScreen() {
 
   return (
     <AppScreen contentContainerStyle={styles.screenContent} scroll={false}>
-      <ScrollView
+      <KeyboardSafeScrollView
         contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
       >
         <OpsListHeader
           actions={
@@ -173,7 +172,7 @@ export default function UsersManagementScreen() {
             </View>
           </AppRevealView>
         ) : null}
-      </ScrollView>
+      </KeyboardSafeScrollView>
     </AppScreen>
   );
 }

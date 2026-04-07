@@ -16,6 +16,7 @@ function RootNavigator() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="(app)" />
+        <Stack.Screen name="reset-password" />
         <Stack.Screen name="+not-found" />
       </Stack>
     </ThemeProvider>

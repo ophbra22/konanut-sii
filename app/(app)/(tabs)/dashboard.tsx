@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import dayjs from 'dayjs';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { StateCard } from '@/src/components/feedback/state-card';
 import { AppBadge } from '@/src/components/ui/app-badge';
@@ -146,7 +146,6 @@ export default function DashboardScreen() {
     <AppScreen contentContainerStyle={styles.screenContent}>
       <AppRevealView delay={20}>
         <View style={styles.hero}>
-          
           <Text style={styles.heroTitle}>זרוע יישובים מג״ב דרום</Text>
           <View style={styles.heroMetaRow}>
             <Text style={styles.heroDate}>{todayLabel}</Text>
@@ -293,18 +292,6 @@ export default function DashboardScreen() {
                   isLast={index === alerts.length - 1}
                 />
               ))}
-
-              <Pressable
-                onPress={() => {
-                  router.push('/alerts' as never);
-                }}
-                style={({ pressed }) => [
-                  styles.alertsCta,
-                  pressed && styles.alertsCtaPressed,
-                ]}
-              >
-                <Text style={styles.alertsCtaText}>לכל ההתראות →</Text>
-              </Pressable>
             </View>
           ) : (
             <View style={styles.alertsList}>
@@ -322,20 +309,6 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   alertContent: {
     flex: 1,
     gap: 6,
-  },
-  alertsCta: {
-    alignSelf: 'flex-start',
-    marginTop: 12,
-    paddingVertical: 2,
-  },
-  alertsCtaPressed: {
-    opacity: 0.82,
-  },
-  alertsCtaText: {
-    color: theme.colors.info,
-    fontSize: 12,
-    fontWeight: '800',
-    textAlign: 'right',
   },
   alertDot: {
     borderRadius: 999,

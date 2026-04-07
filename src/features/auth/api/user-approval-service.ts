@@ -20,8 +20,12 @@ export type ManagedUserProfile = UserProfile & {
 };
 
 const fullProfileSelect =
-  'id, full_name, email, phone, requested_role, requested_area, assigned_plaga, role, is_active, created_at';
+  'id, full_name, email, phone, requested_role, requested_area, assigned_plaga, deletion_requested_at, role, is_active, created_at';
 const legacyProfileSelect = 'id, full_name, email, phone, role, is_active, created_at';
+const deletionRequestedProfileSelect =
+  'id, full_name, email, phone, assigned_plaga, deletion_requested_at, role, is_active, created_at';
+const deletionRequestedLegacyProfileSelect =
+  'id, full_name, email, phone, deletion_requested_at, role, is_active, created_at';
 const settlementLinksSelect = `
   user_id,
   settlement:settlements (
@@ -40,6 +44,7 @@ function shouldFallbackToLegacyProfileSelect(error: unknown) {
     message.includes('requested_role') ||
     message.includes('requested_area') ||
     message.includes('assigned_plaga') ||
+    message.includes('deletion_requested_at') ||
     message.includes('column') ||
     message.includes('schema cache')
   );
@@ -67,6 +72,7 @@ function normalizeLegacyProfile<T extends {
   return {
     ...profile,
     assigned_plaga: null,
+    deletion_requested_at: null,
     requested_area: null,
     requested_role: null,
   };
@@ -263,6 +269,83 @@ export async function listPendingUsers(): Promise<PendingUserProfile[]> {
   }
 
   return data ?? [];
+}
+
+export async function listDeletionRequestedUsers(): Promise<UserProfile[]> {
+  const { data, error } = await supabase
+    .from('users_profile')
+    .select(deletionRequestedProfileSelect)
+    .not('deletion_requested_at', 'is', null)
+    .order('deletion_requested_at', { ascending: false });
+
+  if (error && shouldFallbackToLegacyProfileSelect(error)) {
+    const { data: legacyData, error: legacyError } = await supabase
+      .from('users_profile')
+      .select(deletionRequestedLegacyProfileSelect)
+      .not('deletion_requested_at', 'is', null)
+      .order('deletion_requested_at', { ascending: false });
+
+    if (legacyError) {
+      throw createDataAccessError(legacyError, 'לא ניתן לטעון את בקשות מחיקת החשבון');
+    }
+
+    return (legacyData ?? []).map((item) => ({
+      ...item,
+      assigned_plaga: null,
+      requested_area: null,
+      requested_role: null,
+    }));
+  }
+
+  if (error) {
+    throw createDataAccessError(error, 'לא ניתן לטעון את בקשות מחיקת החשבון');
+  }
+
+  return (data ?? []).map((item) => ({
+    ...item,
+    requested_area: null,
+    requested_role: null,
+  }));
+}
+
+export async function deleteRequestedUserAccount(userId: string) {
+  const { error } = await supabase.rpc('admin_delete_requested_user_account', {
+    target_user_id: userId,
+  });
+
+  if (!error) {
+    return;
+  }
+
+  const message = getErrorMessage(error, '');
+
+  if (message.includes('deletion_request_not_found')) {
+    throw new Error('לא נמצאה בקשת מחיקת חשבון פעילה עבור המשתמש');
+  }
+
+  if (message.includes('cannot_delete_current_session')) {
+    throw new Error('לא ניתן למחוק את החשבון שממנו את/ה מחובר/ת כרגע');
+  }
+
+  if (message.includes('not_authorized')) {
+    throw new Error('אין לך הרשאה למחוק את החשבון הזה');
+  }
+
+  if (message.includes('profile_not_found')) {
+    throw new Error('המשתמש כבר לא זמין למחיקה');
+  }
+
+  if (
+    message.includes('admin_delete_requested_user_account') ||
+    message.includes('function public.admin_delete_requested_user_account') ||
+    message.includes('Could not find the function')
+  ) {
+    throw new Error(
+      'פונקציית מחיקת המשתמש עדיין לא הותקנה בשרת. צריך להחיל את מיגרציית המחיקה ב-Supabase.'
+    );
+  }
+
+  throw createDataAccessError(error, 'לא ניתן למחוק את המשתמש כרגע');
 }
 
 export async function approvePendingUser(params: {

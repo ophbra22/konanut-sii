@@ -8,6 +8,7 @@ import {
 } from '@/src/theme';
 
 type AuthSubmitButtonProps = {
+  compact?: boolean;
   disabled?: boolean;
   label: string;
   loading?: boolean;
@@ -16,6 +17,7 @@ type AuthSubmitButtonProps = {
 };
 
 export function AuthSubmitButton({
+  compact = false,
   disabled = false,
   label,
   loading = false,
@@ -32,6 +34,7 @@ export function AuthSubmitButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
+        compact ? styles.buttonCompact : null,
         pressed && !isDisabled ? styles.buttonPressed : null,
         isDisabled ? styles.buttonDisabled : null,
       ]}
@@ -44,7 +47,7 @@ export function AuthSubmitButton({
         ]}
         end={{ x: 1, y: 1 }}
         start={{ x: 0, y: 0 }}
-        style={styles.gradient}
+        style={[styles.gradient, compact ? styles.gradientCompact : null]}
       >
         <View pointerEvents="none" style={styles.highlight} />
         <View pointerEvents="none" style={styles.lowlight} />
@@ -65,36 +68,43 @@ export function AuthSubmitButton({
 const styles = createThemedStyles((theme: AppTheme) => ({
   button: {
     ...theme.elevation.hero,
-    borderRadius: 20,
-    shadowOpacity: 0.24,
+    borderRadius: 18,
+    shadowOpacity: 0.18,
     width: '100%',
   },
   buttonDisabled: {
     opacity: 0.82,
     shadowOpacity: 0.1,
   },
+  buttonCompact: {
+    shadowOpacity: 0.16,
+  },
   buttonPressed: {
-    transform: [{ scale: 0.987 }, { translateY: 1 }],
+    transform: [{ scale: 0.988 }, { translateY: 1 }],
   },
   gradient: {
     alignItems: 'center',
     borderColor: theme.colors.infoBorder,
-    borderRadius: 20,
+    borderRadius: 18,
     borderWidth: 1,
     justifyContent: 'center',
-    minHeight: 58,
+    minHeight: 54,
     overflow: 'hidden',
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: 18,
     position: 'relative',
+  },
+  gradientCompact: {
+    minHeight: 50,
+    paddingHorizontal: 16,
   },
   highlight: {
     backgroundColor: theme.colors.highlightOverlay,
     borderRadius: theme.radius.pill,
-    height: 40,
-    left: 18,
-    opacity: 0.74,
+    height: 34,
+    left: 16,
+    opacity: 0.66,
     position: 'absolute',
-    right: 18,
+    right: 16,
     top: 1,
   },
   label: {
@@ -108,11 +118,11 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     backgroundColor: 'rgba(0, 0, 0, 0.08)',
     borderRadius: theme.radius.pill,
     bottom: -8,
-    height: 28,
-    left: 20,
-    opacity: 0.48,
+    height: 24,
+    left: 18,
+    opacity: 0.34,
     position: 'absolute',
-    right: 20,
+    right: 18,
   },
   loadingRow: {
     alignItems: 'center',

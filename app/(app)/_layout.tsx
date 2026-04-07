@@ -21,6 +21,8 @@ export default function AppLayout() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="admin/users-approval" />
       <Stack.Screen name="admin/users-management" />
+      <Stack.Screen name="professional-content/create" />
+      <Stack.Screen name="professional-content/[contentId]/edit" />
       <Stack.Screen name="settlement-rankings" />
     </Stack>
   );

@@ -6,11 +6,17 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "plugins": [
       "expo-router",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "האפליקציה זקוקה לגישה ליומן כדי להוסיף אימונים ליומן המכשיר."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -21,9 +27,19 @@
       "backgroundColor": "#070b0d"
     },
     "ios": {
+      "bundleIdentifier": "com.konanut.sia",
+      "buildNumber": "1.0.0",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      },
       "supportsTablet": false
     },
     "android": {
+      "package": "com.konanut.sia",
+      "permissions": [
+        "READ_CALENDAR",
+        "WRITE_CALENDAR"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#070b0d"

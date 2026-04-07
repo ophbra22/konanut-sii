@@ -1,7 +1,14 @@
-import { MoonStar, SunMedium } from 'lucide-react-native';
+import { useMutation } from '@tanstack/react-query';
+import {
+  LifeBuoy,
+  MoonStar,
+  ShieldAlert,
+  SunMedium,
+} from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, Linking, StyleSheet, Text, View } from 'react-native';
 
+import { appReviewLinks } from '@/src/config/app-review-links';
 import { StateCard } from '@/src/components/feedback/state-card';
 import { AppBadge } from '@/src/components/ui/app-badge';
 import { AppButton } from '@/src/components/ui/app-button';
@@ -12,6 +19,7 @@ import { DataRow } from '@/src/components/ui/data-row';
 import { PageHeader } from '@/src/components/ui/page-header';
 import { SegmentedControl } from '@/src/components/ui/segmented-control';
 import { SectionBlock } from '@/src/components/ui/section-block';
+import { requestAccountDeletion } from '@/src/features/auth/api/profile-service';
 import {
   canManageUserApprovals,
   getRoleDescription,
@@ -62,6 +70,9 @@ export default function ProfileScreen() {
   const role = useAuthStore((state) => state.role);
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const signOut = useAuthStore((state) => state.signOut);
+  const requestDeletionMutation = useMutation({
+    mutationFn: requestAccountDeletion,
+  });
   const canApproveUsers = canManageUserApprovals(role);
   const isPlagaScoped = isPlagaScopedRole(role);
   const isCouncilScoped = isCouncilScopedRole(role);
@@ -90,6 +101,70 @@ export default function ProfileScreen() {
           void refreshProfile();
         },
       };
+
+  async function openExternalLink(url: string, label: string) {
+    try {
+      const supported = await Linking.canOpenURL(url);
+
+      if (!supported) {
+        throw new Error();
+      }
+
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert('הקישור לא נפתח', `לא הצלחנו לפתוח כרגע את ${label}.`);
+    }
+  }
+
+  function handleAccountDeletionRequest() {
+    Alert.alert(
+      'בקשת מחיקת חשבון',
+      'שליחת הבקשה תקפיא את הגישה לחשבון באפליקציה, ותעביר את המחיקה המלאה לטיפול מנהל המערכת. האם להמשיך?',
+      [
+        {
+          style: 'cancel',
+          text: 'ביטול',
+        },
+        {
+          style: 'destructive',
+          text: 'שליחת בקשה',
+          onPress: () => {
+            void requestDeletionMutation
+              .mutateAsync()
+              .then(() => {
+                Alert.alert(
+                  'הבקשה נשלחה',
+                  'בקשת מחיקת החשבון התקבלה בהצלחה. הגישה לחשבון תיסגר כעת, והמחיקה תושלם על ידי מנהל המערכת לאחר בדיקה.',
+                  [
+                    {
+                      text: 'אישור',
+                      onPress: () => {
+                        void signOut().then((result) => {
+                          if (!result.success) {
+                            Alert.alert(
+                              'הבקשה נשמרה',
+                              'בקשת המחיקה נשמרה, אך לא הצלחנו לנתק כרגע את החשבון מהמכשיר. נסו לצאת שוב או לסגור את האפליקציה.'
+                            );
+                          }
+                        });
+                      },
+                    },
+                  ]
+                );
+              })
+              .catch((error: unknown) => {
+                Alert.alert(
+                  'לא ניתן לשלוח את הבקשה',
+                  error instanceof Error
+                    ? error.message
+                    : 'לא ניתן לשלוח את בקשת מחיקת החשבון כרגע'
+                );
+              });
+          },
+        },
+      ]
+    );
+  }
 
   return (
     <AppScreen contentContainerStyle={styles.screenContent}>
@@ -309,6 +384,65 @@ export default function ProfileScreen() {
                   variant="danger"
                 />
               </View>
+
+              <View style={styles.accountDeletionSection}>
+                <View style={styles.accountDeletionHeader}>
+                  <ShieldAlert
+                    color={theme.colors.warning}
+                    size={15}
+                    strokeWidth={2.1}
+                  />
+                  <Text style={styles.accountDeletionTitle}>מחיקת חשבון</Text>
+                </View>
+
+                <Text style={styles.accountDeletionDescription}>
+                  בקשת מחיקה נשלחת מתוך היישומון, הגישה לחשבון מוקפאת לאחר האישור, והמחיקה
+                  הסופית מתבצעת על ידי מנהל המערכת.
+                </Text>
+
+                <AppButton
+                  disabled={requestDeletionMutation.isPending}
+                  label="בקשת מחיקת חשבון"
+                  loading={requestDeletionMutation.isPending}
+                  onPress={handleAccountDeletionRequest}
+                  size="sm"
+                  style={styles.deleteAccountButton}
+                  variant="danger"
+                />
+              </View>
+            </SectionBlock>
+          </AppRevealView>
+
+          <AppRevealView delay={130}>
+            <SectionBlock
+              description="קישורי פרטיות, תמיכה ויצירת קשר לשאלות על המערכת והחשבון"
+              title="עזרה ופרטיות"
+            >
+              <View style={styles.actionsStack}>
+                <AppButton
+                  label="מדיניות פרטיות"
+                  onPress={() => {
+                    void openExternalLink(appReviewLinks.privacyPolicyUrl, 'מדיניות הפרטיות');
+                  }}
+                  size="sm"
+                  style={styles.secondaryActionButton}
+                  variant="secondary"
+                />
+                <AppButton
+                  label="תמיכה ויצירת קשר"
+                  onPress={() => {
+                    void openExternalLink(appReviewLinks.supportUrl, 'ערוץ התמיכה');
+                  }}
+                  size="sm"
+                  style={styles.secondaryActionButton}
+                  variant="secondary"
+                />
+              </View>
+
+              <View style={styles.supportMetaRow}>
+                <LifeBuoy color={theme.colors.textMuted} size={14} strokeWidth={2.1} />
+                <Text style={styles.supportMetaText}>{appReviewLinks.supportEmail}</Text>
+              </View>
             </SectionBlock>
           </AppRevealView>
         </>
@@ -318,6 +452,29 @@ export default function ProfileScreen() {
 }
 
 const styles = createThemedStyles((theme: AppTheme) => ({
+  accountDeletionDescription: {
+    ...theme.typography.caption,
+    color: theme.colors.textMuted,
+    lineHeight: 18,
+    textAlign: 'right',
+  },
+  accountDeletionHeader: {
+    alignItems: 'center',
+    flexDirection: 'row-reverse',
+    gap: 6,
+  },
+  accountDeletionSection: {
+    borderTopColor: theme.colors.separator,
+    borderTopWidth: 1,
+    gap: 10,
+    marginTop: 6,
+    paddingTop: 12,
+  },
+  accountDeletionTitle: {
+    ...theme.typography.meta,
+    color: theme.colors.textPrimary,
+    textAlign: 'right',
+  },
   assignmentEmpty: {
     ...theme.typography.caption,
     color: theme.colors.textMuted,
@@ -401,6 +558,20 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderRadius: 14,
     borderWidth: 1,
     minHeight: 40,
+  },
+  deleteAccountButton: {
+    borderRadius: 14,
+    minHeight: 40,
+  },
+  supportMetaRow: {
+    alignItems: 'center',
+    flexDirection: 'row-reverse',
+    gap: 6,
+  },
+  supportMetaText: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+    textAlign: 'right',
   },
   statLabel: {
     ...theme.typography.meta,

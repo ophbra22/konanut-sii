@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
+  CalendarPlus,
   Check,
   MessageSquarePlus,
   Share2,
@@ -10,6 +11,7 @@ import {
 } from 'lucide-react-native';
 import {
   Alert,
+  Linking,
   Pressable,
   Share,
   StyleSheet,
@@ -38,9 +40,15 @@ import {
   useUpdateTrainingStatusMutation,
 } from '@/src/features/trainings/hooks/use-training-mutations';
 import { useTrainingDetailsQuery } from '@/src/features/trainings/hooks/use-trainings-query';
+import {
+  addTrainingToDeviceCalendar,
+  DeviceCalendarError,
+} from '@/src/features/trainings/lib/device-calendar';
+import { buildTrainingCompletionSummary } from '@/src/features/trainings/lib/training-completion-summary';
 import { getTrainingStatusTone } from '@/src/features/trainings/lib/training-presenters';
 import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
+import { useFeedbackStore } from '@/src/stores/feedback-store';
 import type { TrainingStatus } from '@/src/types/database';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
@@ -85,6 +93,7 @@ function ActionButton({
         size={15}
       />
       <Text
+        numberOfLines={1}
         style={[
           styles.actionButtonLabel,
           tone === 'primary'
@@ -188,6 +197,7 @@ export default function TrainingDetailsScreen() {
   }>();
   const profile = useAuthStore((state) => state.profile);
   const role = useAuthStore((state) => state.role);
+  const showToast = useFeedbackStore((state) => state.showToast);
   const router = useRouter();
   const deleteFeedbackMutation = useDeleteTrainingFeedbackMutation();
   const feedbackMutation = useSaveTrainingFeedbackMutation();
@@ -195,6 +205,7 @@ export default function TrainingDetailsScreen() {
   const { data, error, isLoading } = useTrainingDetailsQuery(trainingId);
   const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(null);
   const [isFeedbackFormVisible, setIsFeedbackFormVisible] = useState(false);
+  const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
   const canManageFeedback = canCreateFeedbacks(role);
   const canEditTraining = canManageTrainings(role);
 
@@ -230,40 +241,42 @@ export default function TrainingDetailsScreen() {
     );
   }
 
+  const training = data;
+
   const editingFeedback =
-    data.feedbacks.find((feedback) => feedback.id === editingFeedbackId) ?? null;
-  const hasScoreData = data.averageFeedbackRating !== null;
-  const trainingScore = getOperationalScore(data.averageFeedbackRating);
+    training.feedbacks.find((feedback) => feedback.id === editingFeedbackId) ?? null;
+  const hasScoreData = training.averageFeedbackRating !== null;
+  const trainingScore = getOperationalScore(training.averageFeedbackRating);
   const scoreTone = hasScoreData ? getScoreTone(trainingScore) : 'neutral';
   const feedbackCoverageComplete =
-    data.feedbackCount > 0 &&
-    data.settlements.length > 0 &&
-    data.missingFeedbackSettlements.length === 0;
+    training.feedbackCount > 0 &&
+    training.settlements.length > 0 &&
+    training.missingFeedbackSettlements.length === 0;
   const metadataSummary = [
-    formatDisplayDate(data.training_date),
-    formatDisplayTime(data.training_time),
-    data.instructor?.full_name || 'ללא מדריך',
-    data.location?.trim() || 'ללא מיקום',
+    formatDisplayDate(training.training_date),
+    formatDisplayTime(training.training_time),
+    training.instructor?.full_name || 'ללא מדריך',
+    training.location?.trim() || 'ללא מיקום',
   ].join(' • ');
-  const averageLabel = data.averageFeedbackRating
-    ? data.averageFeedbackRating.toFixed(1)
+  const averageLabel = training.averageFeedbackRating
+    ? training.averageFeedbackRating.toFixed(1)
     : '—';
-  const feedbackSummaryText = `${data.missingFeedbackSettlements.length} חסרים | ${data.feedbackCount} משובים | ממוצע ${averageLabel}`;
+  const feedbackSummaryText = `${training.missingFeedbackSettlements.length} חסרים | ${training.feedbackCount} משובים | ממוצע ${averageLabel}`;
   const shareMessage = [
-    `📍 ${data.title}`,
-    `📅 ${formatDisplayDate(data.training_date)}`,
-    `🕒 ${formatDisplayTime(data.training_time)}`,
+    `📍 ${training.title}`,
+    `📅 ${formatDisplayDate(training.training_date)}`,
+    `🕒 ${formatDisplayTime(training.training_time)}`,
     `📊 ציון: ${trainingScore}`,
-    `📌 סטטוס: ${getStatusLabelValue(data.status)}`,
+    `📌 סטטוס: ${getStatusLabelValue(training.status)}`,
   ].join('\n');
 
   const executionChecklist = [
     {
-      completed: data.training_type === 'מטווח' && data.status === 'הושלם',
+      completed: training.training_type === 'מטווח' && training.status === 'הושלם',
       label: 'מטווח',
     },
     {
-      completed: data.training_type === 'הגנת יישוב' && data.status === 'הושלם',
+      completed: training.training_type === 'הגנת יישוב' && training.status === 'הושלם',
       label: 'הגנת יישוב',
     },
     {
@@ -276,10 +289,61 @@ export default function TrainingDetailsScreen() {
     try {
       await Share.share({
         message: shareMessage,
-        title: data?.title ?? 'אימון',
+        title: training.title ?? 'אימון',
       });
     } catch {
       Alert.alert('שיתוף לא זמין', 'לא הצלחנו לפתוח את חלונית השיתוף כרגע.');
+    }
+  }
+
+  async function handleShareCompletionSummary() {
+    try {
+      const summary = buildTrainingCompletionSummary(training);
+
+      if (!summary.trim()) {
+        Alert.alert('לא ניתן להכין את סיכום האימון', 'נסו שוב בעוד רגע.');
+        return;
+      }
+
+      await Share.share({
+        message: summary,
+        title: `סיכום אימון - ${training.title}`,
+      });
+    } catch {
+      Alert.alert('לא ניתן לשתף את סיכום האימון', 'לא הצלחנו לפתוח את חלונית השיתוף כרגע.');
+    }
+  }
+
+  async function handleAddToCalendar() {
+    setIsAddingToCalendar(true);
+
+    try {
+      await addTrainingToDeviceCalendar(training);
+      showToast('האימון נוסף ליומן', 'success');
+    } catch (error) {
+      if (error instanceof DeviceCalendarError) {
+        if (error.code === 'permission_denied') {
+          Alert.alert('נדרשת גישה ליומן', error.message);
+          return;
+        }
+
+        if (error.code === 'permission_blocked') {
+          Alert.alert('הגישה ליומן חסומה', error.message, [
+            { style: 'cancel', text: 'ביטול' },
+            {
+              text: 'פתיחת הגדרות',
+              onPress: () => {
+                void Linking.openSettings();
+              },
+            },
+          ]);
+          return;
+        }
+      }
+
+      showToast('לא ניתן להוסיף את האימון ליומן', 'error');
+    } finally {
+      setIsAddingToCalendar(false);
     }
   }
 
@@ -326,6 +390,14 @@ export default function TrainingDetailsScreen() {
             onPress={() => {
               setEditingFeedbackId(null);
               setIsFeedbackFormVisible(true);
+            }}
+          />
+          <ActionButton
+            disabled={isAddingToCalendar}
+            icon={CalendarPlus}
+            label={isAddingToCalendar ? 'מוסיף...' : 'הוסף ליומן'}
+            onPress={() => {
+              void handleAddToCalendar();
             }}
           />
           <ActionButton
@@ -559,14 +631,24 @@ export default function TrainingDetailsScreen() {
         </SectionBlock>
       </AppRevealView>
 
-      {canEditTraining ? (
+      {canEditTraining || data.status === 'הושלם' ? (
         <AppRevealView delay={140}>
           <SectionBlock title="פעולה מסכמת">
             {data.status === 'הושלם' ? (
               <AppCard style={styles.footerCard}>
-                <View style={styles.completeTrainingRow}>
-                  <Check color={theme.colors.accentStrong} size={16} />
-                  <Text style={styles.completeTrainingText}>האימון כבר מסומן כהושלם</Text>
+                <View style={styles.completedSummaryCard}>
+                  <View style={styles.completeTrainingRow}>
+                    <Check color={theme.colors.accentStrong} size={16} />
+                    <Text style={styles.completeTrainingText}>האימון כבר מסומן כהושלם</Text>
+                  </View>
+
+                  <AppButton
+                    label="שיתוף סיכום אימון"
+                    onPress={() => {
+                      void handleShareCompletionSummary();
+                    }}
+                    variant="secondary"
+                  />
                 </View>
               </AppCard>
             ) : (
@@ -600,6 +682,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     gap: 5,
     height: 36,
     justifyContent: 'center',
+    minWidth: 0,
     paddingHorizontal: 8,
   },
   actionButtonDisabled: {
@@ -607,6 +690,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   actionButtonLabel: {
     ...theme.typography.badge,
+    flexShrink: 1,
     fontWeight: '800',
     textAlign: 'center',
   },
@@ -689,6 +773,9 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     flexDirection: 'row-reverse',
     gap: 8,
     justifyContent: 'center',
+  },
+  completedSummaryCard: {
+    gap: 12,
   },
   completeTrainingText: {
     color: theme.colors.accentStrong,
