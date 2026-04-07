@@ -54,7 +54,59 @@ function getTimeRange(training: TrainingDetails) {
   return `${formatDisplayTime(training.training_time)} - לא הוזן`;
 }
 
+function formatAttendanceLine(training: TrainingDetails) {
+  if (!training.settlement_attendance.length) {
+    return 'לא הוזן';
+  }
+
+  return training.settlement_attendance
+    .map((item) => {
+      const totalLabel =
+        item.total_squad_members_snapshot === null
+          ? 'לא הוגדר'
+          : String(item.total_squad_members_snapshot);
+      const participationLabel =
+        item.participation_rate === null ? '' : ` (${item.participation_rate}% השתתפות)`;
+
+      return `${item.settlement_name}: ${item.trained_count} מתוך ${totalLabel}${participationLabel}`;
+    })
+    .join('\n');
+}
+
+function getParticipantsSummary(training: TrainingDetails) {
+  const { overall_participation_rate, total_squad_overall, total_trained_overall } =
+    training.participationSummary;
+
+  if (!training.settlement_attendance.length) {
+    return 'לא הוזן';
+  }
+
+  if (total_squad_overall > 0) {
+    const participationText =
+      overall_participation_rate === null ? '' : ` • ${overall_participation_rate}% השתתפות`;
+
+    return `${total_trained_overall} מתוך ${total_squad_overall}${participationText}`;
+  }
+
+  return `${total_trained_overall}`;
+}
+
 function getClosingSummary(training: TrainingDetails) {
+  const { overall_participation_rate, total_squad_overall, total_trained_overall } =
+    training.participationSummary;
+  const feedbackSuffix =
+    training.averageFeedbackRating !== null
+      ? ` ממוצע המשובים: ${training.averageFeedbackRating.toFixed(1)}.`
+      : '';
+
+  if (training.settlement_attendance.length && overall_participation_rate !== null) {
+    return `סה"כ השתתפו ${total_trained_overall} מתוך ${total_squad_overall}. אחוז השתתפות כולל: ${overall_participation_rate}%.${feedbackSuffix}`;
+  }
+
+  if (training.settlement_attendance.length) {
+    return `סה"כ השתתפו ${total_trained_overall}. אין מספיק נתונים לחישוב אחוז השתתפות כולל.${feedbackSuffix}`;
+  }
+
   if (training.averageFeedbackRating !== null) {
     return `האימון הושלם. ממוצע המשובים: ${training.averageFeedbackRating.toFixed(1)}.`;
   }
@@ -78,12 +130,12 @@ export function buildTrainingCompletionSummary(training: TrainingDetails) {
     `*מדריכים:* ${instructorName}`,
     '*ק בטיחות:* לא הוזן',
     '*חונכים/משקבטים:* לא הוזן',
-    '*סה"כ כמות משתתפים:* לא הוזן',
+    `*סה"כ כמות משתתפים:* ${getParticipantsSummary(training)}`,
     `*שעות:* ${getTimeRange(training)}`,
     `*נושאי המטווח:* ${notes}`,
     '',
     '*במטווח:*',
-    'לא הוזן',
+    formatAttendanceLine(training),
     '',
     getClosingSummary(training),
   ].join('\n');

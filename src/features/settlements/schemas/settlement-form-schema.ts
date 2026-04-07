@@ -9,6 +9,11 @@ export const settlementFormSchema = z.object({
   is_active: z.boolean(),
   name: z.string().trim().min(2, 'יש להזין שם יישוב'),
   regional_council: z.string().trim().optional(),
+  total_squad_members: z
+    .number()
+    .int('יש להזין מספר שלם ללא שברים')
+    .min(0, 'המספר לא יכול להיות שלילי')
+    .nullable(),
 });
 
 export type SettlementFormValues = z.infer<typeof settlementFormSchema>;

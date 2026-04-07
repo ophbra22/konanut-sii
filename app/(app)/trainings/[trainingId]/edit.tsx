@@ -140,6 +140,7 @@ export default function EditTrainingScreen() {
             area: settlement.area,
             id: settlement.id,
             name: settlement.name,
+            total_squad_members: settlement.total_squad_members,
           }))}
           submitLabel="שמירת שינויים"
         />

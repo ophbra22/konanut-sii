@@ -1,8 +1,19 @@
 import dayjs from 'dayjs';
 
+import { normalizeTrainingSettlementAttendance } from '@/src/features/trainings/lib/training-attendance-utils';
 import { createDataAccessError } from '@/src/lib/error-utils';
 import { supabase } from '@/src/lib/supabase';
-import type { Settlement, Training, UserProfile } from '@/src/types/database';
+import type {
+  Json,
+  Settlement,
+  Training,
+  TrainingSettlementAttendance,
+  UserProfile,
+} from '@/src/types/database';
+
+type NormalizedTrainingRecord = Omit<Training, 'settlement_attendance'> & {
+  settlement_attendance: TrainingSettlementAttendance[];
+};
 
 type CalendarTrainingQueryRow = Training & {
   instructor: Pick<UserProfile, 'full_name' | 'id'> | null;
@@ -11,7 +22,7 @@ type CalendarTrainingQueryRow = Training & {
   }>;
 };
 
-export type CalendarTrainingItem = Training & {
+export type CalendarTrainingItem = NormalizedTrainingRecord & {
   instructor: Pick<UserProfile, 'full_name' | 'id'> | null;
   settlements: Array<Pick<Settlement, 'area' | 'id' | 'name'>>;
 };
@@ -41,6 +52,7 @@ export async function getCalendarOverview(monthKey: string): Promise<CalendarOve
         training_time,
         status,
         notes,
+        settlement_attendance,
         created_at,
         instructor:users_profile!trainings_instructor_id_fkey (
           id,
@@ -85,6 +97,9 @@ export async function getCalendarOverview(monthKey: string): Promise<CalendarOve
 
     return {
       ...row,
+      settlement_attendance: normalizeTrainingSettlementAttendance(
+        row.settlement_attendance as Json | null | undefined
+      ),
       training_settlements: undefined,
       settlements,
     };

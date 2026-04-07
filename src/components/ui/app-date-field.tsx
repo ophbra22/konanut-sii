@@ -14,7 +14,13 @@ import {
 } from 'react-native';
 
 import { AppButton } from '@/src/components/ui/app-button';
-import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
+import {
+  createThemedStyles,
+  theme,
+  type AppTheme,
+  useAppTheme,
+  useThemeMode,
+} from '@/src/theme';
 
 type AppDateFieldProps = {
   disabled?: boolean;
@@ -63,12 +69,18 @@ export function AppDateField({
   placeholder,
   value,
 }: AppDateFieldProps) {
+  const appTheme = useAppTheme();
+  const themeMode = useThemeMode();
   const [isOpen, setIsOpen] = useState(false);
   const [iosDraftDate, setIosDraftDate] = useState(getPickerDate(value));
 
   const displayValue = useMemo(
     () => getDisplayValue(value, placeholder),
     [placeholder, value]
+  );
+  const draftDisplayValue = useMemo(
+    () => dayjs(iosDraftDate).format('DD/MM/YYYY'),
+    [iosDraftDate]
   );
 
   const openPicker = () => {
@@ -144,6 +156,15 @@ export function AppDateField({
           minimumDate={minimumDate}
           mode="date"
           onChange={handleNativeChange}
+          positiveButton={{
+            label: 'אישור',
+            textColor: appTheme.colors.info,
+          }}
+          negativeButton={{
+            label: 'ביטול',
+            textColor: appTheme.colors.textSecondary,
+          }}
+          title="בחירת תאריך"
           value={getPickerDate(value)}
         />
       ) : null}
@@ -158,18 +179,28 @@ export function AppDateField({
           <View style={styles.modalOverlay}>
             <Pressable onPress={closePicker} style={StyleSheet.absoluteFillObject} />
             <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>בחירת תאריך</Text>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>בחירת תאריך</Text>
+                <Text style={styles.modalSubtitle}>יש לבחור יום מתאים ולאשר את הבחירה</Text>
+                <View style={styles.selectedDateBadge}>
+                  <Text style={styles.selectedDateBadgeText}>{draftDisplayValue}</Text>
+                </View>
+              </View>
 
-              <DateTimePicker
-                display="inline"
-                locale="he-IL"
-                maximumDate={maximumDate}
-                minimumDate={minimumDate}
-                mode="date"
-                onChange={handleNativeChange}
-                themeVariant="dark"
-                value={iosDraftDate}
-              />
+              <View style={styles.pickerShell}>
+                <DateTimePicker
+                  accentColor={appTheme.colors.info}
+                  display="inline"
+                  locale="he-IL"
+                  maximumDate={maximumDate}
+                  minimumDate={minimumDate}
+                  mode="date"
+                  onChange={handleNativeChange}
+                  textColor={appTheme.colors.textPrimary}
+                  themeVariant={themeMode === 'dark' ? 'dark' : 'light'}
+                  value={iosDraftDate}
+                />
+              </View>
 
               <View style={styles.modalActions}>
                 <AppButton
@@ -241,32 +272,67 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     flex: 1,
   },
   modalActions: {
+    borderTopColor: theme.colors.separator,
+    borderTopWidth: 1,
     flexDirection: 'row-reverse',
     gap: theme.spacing.sm,
+    paddingTop: theme.spacing.sm,
   },
   modalCard: {
+    ...theme.elevation.card,
     backgroundColor: theme.colors.surface,
-    borderColor: theme.colors.borderStrong,
+    borderColor: theme.colors.borderSoft,
     borderRadius: theme.radius.xl,
     borderWidth: 1,
     gap: theme.spacing.md,
     padding: theme.spacing.lg,
     width: '100%',
   },
+  modalHeader: {
+    gap: 6,
+  },
   modalOverlay: {
     alignItems: 'center',
-    backgroundColor: theme.colors.glassSurface,
+    backgroundColor: theme.colors.modalBackdrop,
     flex: 1,
     justifyContent: 'center',
     padding: theme.spacing.lg,
+  },
+  modalSubtitle: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+    textAlign: 'right',
   },
   modalTitle: {
     ...theme.typography.cardTitle,
     color: theme.colors.textPrimary,
     textAlign: 'right',
   },
+  pickerShell: {
+    backgroundColor: theme.colors.surfaceStrong,
+    borderColor: theme.colors.borderSoft,
+    borderRadius: 20,
+    borderWidth: 1,
+    overflow: 'hidden',
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+  },
   placeholder: {
     color: theme.colors.textMuted,
+  },
+  selectedDateBadge: {
+    alignSelf: 'flex-end',
+    backgroundColor: theme.colors.infoSurface,
+    borderColor: theme.colors.infoBorder,
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  selectedDateBadgeText: {
+    ...theme.typography.badge,
+    color: theme.colors.info,
+    textAlign: 'center',
   },
   value: {
     ...theme.typography.body,

@@ -2,15 +2,25 @@ import { createDataAccessError } from '@/src/lib/error-utils';
 import { supabase } from '@/src/lib/supabase';
 import type {
   Feedback,
+  Json,
   Settlement,
   TablesInsert,
   TablesUpdate,
   Training,
+  TrainingParticipationSummary,
+  TrainingSettlementAttendance,
   UserProfile,
 } from '@/src/types/database';
+import {
+  calculateTrainingParticipationSummary,
+  normalizeTrainingSettlementAttendance,
+} from '@/src/features/trainings/lib/training-attendance-utils';
 
-type SettlementSummary = Pick<Settlement, 'area' | 'id' | 'name'>;
+type SettlementSummary = Pick<Settlement, 'area' | 'id' | 'name' | 'total_squad_members'>;
 type UserSummary = Pick<UserProfile, 'full_name' | 'id'>;
+type NormalizedTrainingRecord = Omit<Training, 'settlement_attendance'> & {
+  settlement_attendance: TrainingSettlementAttendance[];
+};
 
 type TrainingListQueryRow = Training & {
   instructor: UserSummary | null;
@@ -35,7 +45,7 @@ type TrainingDetailsQueryRow = Training & {
   }>;
 };
 
-export type TrainingListItem = Training & {
+export type TrainingListItem = NormalizedTrainingRecord & {
   instructor: UserSummary | null;
   settlements: SettlementSummary[];
 };
@@ -48,12 +58,13 @@ export type TrainingFeedbackItem = Pick<
   settlement: SettlementSummary | null;
 };
 
-export type TrainingDetails = Training & {
+export type TrainingDetails = NormalizedTrainingRecord & {
   averageFeedbackRating: number | null;
   feedbackCount: number;
   feedbacks: TrainingFeedbackItem[];
   instructor: UserSummary | null;
   missingFeedbackSettlements: SettlementSummary[];
+  participationSummary: TrainingParticipationSummary;
   settlements: SettlementSummary[];
 };
 
@@ -76,6 +87,7 @@ const trainingsListSelect = `
   training_time,
   status,
   notes,
+  settlement_attendance,
   created_at,
   instructor:users_profile!trainings_instructor_id_fkey (
     id,
@@ -85,7 +97,8 @@ const trainingsListSelect = `
     settlement:settlements (
       id,
       name,
-      area
+      area,
+      total_squad_members
     )
   )
 `;
@@ -109,6 +122,9 @@ function normalizeComment(comment: string | null) {
 
 function buildTrainingDetails(data: TrainingDetailsQueryRow): TrainingDetails {
   const settlements = mapSettlements(data.training_settlements ?? []);
+  const settlementAttendance = normalizeTrainingSettlementAttendance(
+    data.settlement_attendance as Json | null | undefined
+  );
   const feedbacks = [...(data.feedbacks ?? [])].sort((left, right) =>
     right.created_at.localeCompare(left.created_at)
   );
@@ -127,6 +143,8 @@ function buildTrainingDetails(data: TrainingDetailsQueryRow): TrainingDetails {
     missingFeedbackSettlements: settlements.filter(
       (settlement) => !feedbackSettlementIds.has(settlement.id)
     ),
+    participationSummary: calculateTrainingParticipationSummary(settlementAttendance),
+    settlement_attendance: settlementAttendance,
     settlements,
   };
 }
@@ -146,6 +164,9 @@ export async function listTrainings(): Promise<TrainingListItem[]> {
 
   return rows.map((row) => ({
     ...row,
+    settlement_attendance: normalizeTrainingSettlementAttendance(
+      row.settlement_attendance as Json | null | undefined
+    ),
     settlements: mapSettlements(row.training_settlements ?? []),
   }));
 }
@@ -166,6 +187,7 @@ export async function getTrainingDetails(
         training_time,
         status,
         notes,
+        settlement_attendance,
         created_at,
         instructor:users_profile!trainings_instructor_id_fkey (
           id,
@@ -175,7 +197,8 @@ export async function getTrainingDetails(
           settlement:settlements (
             id,
             name,
-            area
+            area,
+            total_squad_members
           )
         ),
         feedbacks (
@@ -193,7 +216,8 @@ export async function getTrainingDetails(
           settlement:settlements!feedbacks_settlement_id_fkey (
             id,
             name,
-            area
+            area,
+            total_squad_members
           )
         )
       `

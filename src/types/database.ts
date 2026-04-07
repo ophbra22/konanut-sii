@@ -209,6 +209,7 @@ export type Database = {
           is_active: boolean;
           name: string;
           regional_council: string | null;
+          total_squad_members: number | null;
         };
         Insert: {
           area: string;
@@ -219,6 +220,7 @@ export type Database = {
           is_active?: boolean;
           name: string;
           regional_council?: string | null;
+          total_squad_members?: number | null;
         };
         Update: {
           area?: string;
@@ -229,6 +231,7 @@ export type Database = {
           is_active?: boolean;
           name?: string;
           regional_council?: string | null;
+          total_squad_members?: number | null;
         };
         Relationships: [];
       };
@@ -291,6 +294,7 @@ export type Database = {
           instructor_id: string | null;
           location: string | null;
           notes: string | null;
+          settlement_attendance: Json;
           status: 'מתוכנן' | 'הושלם' | 'בוטל' | 'נדחה';
           title: string;
           training_date: string;
@@ -310,6 +314,7 @@ export type Database = {
           instructor_id?: string | null;
           location?: string | null;
           notes?: string | null;
+          settlement_attendance?: Json;
           status?: 'מתוכנן' | 'הושלם' | 'בוטל' | 'נדחה';
           title: string;
           training_date: string;
@@ -329,6 +334,7 @@ export type Database = {
           instructor_id?: string | null;
           location?: string | null;
           notes?: string | null;
+          settlement_attendance?: Json;
           status?: 'מתוכנן' | 'הושלם' | 'בוטל' | 'נדחה';
           title?: string;
           training_date?: string;
@@ -650,6 +656,18 @@ export type TrainingStatus = Training['status'];
 export type TrainingType = Training['training_type'];
 export type AlertSeverity = Alert['severity'];
 export type AlertStatus = Alert['status'];
+export type TrainingSettlementAttendance = {
+  participation_rate: number | null;
+  settlement_id: string;
+  settlement_name: string;
+  total_squad_members_snapshot: number | null;
+  trained_count: number;
+};
+export type TrainingParticipationSummary = {
+  overall_participation_rate: number | null;
+  total_squad_overall: number;
+  total_trained_overall: number;
+};
 
 export type LinkedSettlement = Pick<
   Settlement,

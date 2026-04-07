@@ -49,7 +49,7 @@ import { getTrainingStatusTone } from '@/src/features/trainings/lib/training-pre
 import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { useFeedbackStore } from '@/src/stores/feedback-store';
-import type { TrainingStatus } from '@/src/types/database';
+import type { TrainingSettlementAttendance, TrainingStatus } from '@/src/types/database';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type ActionButtonProps = {
@@ -69,6 +69,14 @@ type StatusChecklistItemProps = {
   completed: boolean;
   label: string;
 };
+
+type ParticipationRowProps = {
+  item: TrainingSettlementAttendance;
+};
+
+function isPassingParticipationRate(rate: number | null) {
+  return rate !== null && rate >= 70;
+}
 
 function ActionButton({
   disabled = false,
@@ -152,6 +160,55 @@ function StatusChecklistItem({
         ) : (
           <X color={theme.colors.danger} size={14} />
         )}
+      </View>
+    </View>
+  );
+}
+
+function formatParticipationTotal(item: TrainingSettlementAttendance) {
+  if (item.total_squad_members_snapshot === null) {
+    return `${item.trained_count} מתוך לא הוגדר`;
+  }
+
+  return `${item.trained_count} מתוך ${item.total_squad_members_snapshot}`;
+}
+
+function ParticipationRow({ item }: ParticipationRowProps) {
+  const toneStyle =
+    item.participation_rate === null
+      ? styles.participationBadgeNeutral
+      : isPassingParticipationRate(item.participation_rate)
+        ? styles.participationBadgeAccent
+        : styles.participationBadgeDanger;
+  const toneLabelStyle =
+    item.participation_rate === null
+      ? styles.participationBadgeLabelNeutral
+      : isPassingParticipationRate(item.participation_rate)
+        ? styles.participationBadgeLabelAccent
+        : styles.participationBadgeLabelDanger;
+  const helperTextStyle =
+    item.participation_rate === null
+      ? styles.participationHelper
+      : isPassingParticipationRate(item.participation_rate)
+        ? styles.participationHelperAccent
+        : styles.participationHelperDanger;
+
+  return (
+    <View style={styles.participationRow}>
+      <View style={styles.participationRowBody}>
+        <Text style={styles.participationSettlementName}>{item.settlement_name}</Text>
+        <Text style={styles.participationTotals}>{formatParticipationTotal(item)}</Text>
+        <Text style={helperTextStyle}>
+          {item.participation_rate === null
+            ? 'אחוז ההשתתפות לא חושב כי אין מצבה מוגדרת'
+            : `${item.participation_rate}% השתתפות`}
+        </Text>
+      </View>
+
+      <View style={[styles.participationBadge, toneStyle]}>
+        <Text style={[styles.participationBadgeLabel, toneLabelStyle]}>
+          {item.participation_rate === null ? 'ללא מצבה' : `${item.participation_rate}%`}
+        </Text>
       </View>
     </View>
   );
@@ -262,6 +319,11 @@ export default function TrainingDetailsScreen() {
     ? training.averageFeedbackRating.toFixed(1)
     : '—';
   const feedbackSummaryText = `${training.missingFeedbackSettlements.length} חסרים | ${training.feedbackCount} משובים | ממוצע ${averageLabel}`;
+  const hasAttendanceData = training.settlement_attendance.length > 0;
+  const hasKnownSquadData = training.participationSummary.total_squad_overall > 0;
+  const hasPartialSquadCoverage = training.settlement_attendance.some(
+    (item) => item.total_squad_members_snapshot === null
+  );
   const shareMessage = [
     `📍 ${training.title}`,
     `📅 ${formatDisplayDate(training.training_date)}`,
@@ -284,6 +346,19 @@ export default function TrainingDetailsScreen() {
       label: 'משובים',
     },
   ];
+  const overallParticipationSummary = hasKnownSquadData
+    ? `סה״כ השתתפו: ${training.participationSummary.total_trained_overall} מתוך ${training.participationSummary.total_squad_overall}`
+    : `סה״כ השתתפו: ${training.participationSummary.total_trained_overall}`;
+  const overallParticipationRateLabel =
+    training.participationSummary.overall_participation_rate !== null
+      ? `${training.participationSummary.overall_participation_rate}%`
+      : 'אין מספיק נתונים';
+  const overallParticipationRateStyle =
+    training.participationSummary.overall_participation_rate === null
+      ? styles.participationSummarySubtitle
+      : isPassingParticipationRate(training.participationSummary.overall_participation_rate)
+        ? styles.participationSummarySubtitleAccent
+        : styles.participationSummarySubtitleDanger;
 
   async function handleShare() {
     try {
@@ -631,8 +706,47 @@ export default function TrainingDetailsScreen() {
         </SectionBlock>
       </AppRevealView>
 
+      <AppRevealView delay={130}>
+        <SectionBlock title="השתתפות לפי יישוב">
+          {hasAttendanceData ? (
+            <View style={styles.participationSection}>
+              <AppCard style={styles.participationSummaryCard}>
+                <Text style={styles.participationSummaryTitle}>{overallParticipationSummary}</Text>
+                <Text style={overallParticipationRateStyle}>
+                  אחוז השתתפות כולל: {overallParticipationRateLabel}
+                </Text>
+                {!hasKnownSquadData ? (
+                  <Text style={styles.participationSummaryHint}>
+                    אין עדיין מספיק נתוני מצבה כדי לחשב שיעור השתתפות כולל.
+                  </Text>
+                ) : hasPartialSquadCoverage ? (
+                  <Text style={styles.participationSummaryHint}>
+                    החישוב הכולל מבוסס רק על יישובים עם מצבה מוגדרת.
+                  </Text>
+                ) : null}
+              </AppCard>
+
+              <AppCard style={styles.participationListCard}>
+                <View style={styles.participationList}>
+                  {training.settlement_attendance.map((item) => (
+                    <ParticipationRow key={item.settlement_id} item={item} />
+                  ))}
+                </View>
+              </AppCard>
+            </View>
+          ) : (
+            <AppCard style={styles.emptyFeedbackCard}>
+              <Text style={styles.emptyFeedbackTitle}>לא הוזנו נתוני השתתפות</Text>
+              <Text style={styles.emptyFeedbackDescription}>
+                נתוני ההתאמנו מתוך מצבת היישוב עדיין לא נשמרו עבור האימון הזה.
+              </Text>
+            </AppCard>
+          )}
+        </SectionBlock>
+      </AppRevealView>
+
       {canEditTraining || data.status === 'הושלם' ? (
-        <AppRevealView delay={140}>
+        <AppRevealView delay={150}>
           <SectionBlock title="פעולה מסכמת">
             {data.status === 'הושלם' ? (
               <AppCard style={styles.footerCard}>
@@ -868,6 +982,129 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     color: theme.colors.textMuted,
     fontSize: 11,
     lineHeight: 15,
+    textAlign: 'right',
+  },
+  participationBadge: {
+    alignItems: 'center',
+    borderRadius: theme.radius.pill,
+    borderWidth: 1,
+    justifyContent: 'center',
+    minWidth: 74,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  participationBadgeAccent: {
+    backgroundColor: theme.colors.successSurface,
+    borderColor: theme.colors.accentBorder,
+  },
+  participationBadgeLabel: {
+    ...theme.typography.badge,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  participationBadgeLabelAccent: {
+    color: theme.colors.accentStrong,
+  },
+  participationBadgeLabelNeutral: {
+    color: theme.colors.textSecondary,
+  },
+  participationBadgeLabelDanger: {
+    color: theme.colors.danger,
+  },
+  participationBadgeNeutral: {
+    backgroundColor: theme.colors.surface,
+    borderColor: theme.colors.border,
+  },
+  participationBadgeDanger: {
+    backgroundColor: theme.colors.dangerSurface,
+    borderColor: theme.colors.danger,
+  },
+  participationHelper: {
+    color: theme.colors.textMuted,
+    fontSize: 10,
+    lineHeight: 14,
+    textAlign: 'right',
+  },
+  participationHelperAccent: {
+    color: theme.colors.accentStrong,
+    fontSize: 10,
+    lineHeight: 14,
+    textAlign: 'right',
+  },
+  participationHelperDanger: {
+    color: theme.colors.danger,
+    fontSize: 10,
+    lineHeight: 14,
+    textAlign: 'right',
+  },
+  participationList: {
+    gap: 0,
+  },
+  participationListCard: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  participationRow: {
+    alignItems: 'center',
+    borderBottomColor: theme.colors.border,
+    borderBottomWidth: 1,
+    flexDirection: 'row-reverse',
+    gap: 12,
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+  },
+  participationRowBody: {
+    flex: 1,
+    gap: 3,
+  },
+  participationSection: {
+    gap: theme.spacing.sm,
+  },
+  participationSettlementName: {
+    color: theme.colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  participationSummaryCard: {
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  participationSummaryHint: {
+    color: theme.colors.textMuted,
+    fontSize: 10,
+    lineHeight: 14,
+    textAlign: 'right',
+  },
+  participationSummarySubtitle: {
+    color: theme.colors.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+  participationSummarySubtitleAccent: {
+    color: theme.colors.accentStrong,
+    fontSize: 11,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  participationSummarySubtitleDanger: {
+    color: theme.colors.danger,
+    fontSize: 11,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  participationSummaryTitle: {
+    color: theme.colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  participationTotals: {
+    color: theme.colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
     textAlign: 'right',
   },
   quickActionsRow: {

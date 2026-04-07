@@ -217,7 +217,8 @@ begin
     area,
     coordinator_name,
     coordinator_phone,
-    is_active
+    is_active,
+    total_squad_members
   )
   values
     (
@@ -227,7 +228,8 @@ begin
       'פלגת לכיש',
       'אורי כהן',
       '050-1230001',
-      true
+      true,
+      15
     ),
     (
       settlement_2_id,
@@ -236,7 +238,8 @@ begin
       'פלגת לכיש',
       'שחר לוי',
       '050-1230002',
-      true
+      true,
+      12
     ),
     (
       settlement_3_id,
@@ -245,7 +248,8 @@ begin
       'פלגת נגב',
       'מאיה אביטל',
       '050-1230003',
-      true
+      true,
+      14
     ),
     (
       settlement_4_id,
@@ -254,7 +258,8 @@ begin
       'פלגת נגב',
       'רועי הדר',
       '050-1230004',
-      false
+      false,
+      null
     );
 
   insert into public.user_settlements (user_id, settlement_id)
@@ -272,7 +277,8 @@ begin
     training_date,
     training_time,
     status,
-    notes
+    notes,
+    settlement_attendance
   )
   values
     (
@@ -284,7 +290,23 @@ begin
       current_date + 7,
       '09:00',
       'מתוכנן',
-      'דגש על ירי לילה ותרגילי מעבר מעמדות.'
+      'דגש על ירי לילה ותרגילי מעבר מעמדות.',
+      jsonb_build_array(
+        jsonb_build_object(
+          'settlement_id', settlement_1_id,
+          'settlement_name', 'קדמת הגליל',
+          'trained_count', 0,
+          'total_squad_members_snapshot', 15,
+          'participation_rate', null
+        ),
+        jsonb_build_object(
+          'settlement_id', settlement_2_id,
+          'settlement_name', 'נווה רימון',
+          'trained_count', 0,
+          'total_squad_members_snapshot', 12,
+          'participation_rate', null
+        )
+      )
     ),
     (
       training_2_id,
@@ -295,7 +317,23 @@ begin
       current_date - 14,
       '18:30',
       'הושלם',
-      'התרגיל כלל הזנקת כוח מהירה, חלוקת גזרות ותקשורת.'
+      'התרגיל כלל הזנקת כוח מהירה, חלוקת גזרות ותקשורת.',
+      jsonb_build_array(
+        jsonb_build_object(
+          'settlement_id', settlement_1_id,
+          'settlement_name', 'קדמת הגליל',
+          'trained_count', 9,
+          'total_squad_members_snapshot', 15,
+          'participation_rate', 60
+        ),
+        jsonb_build_object(
+          'settlement_id', settlement_3_id,
+          'settlement_name', 'גבעות כרמל',
+          'trained_count', 7,
+          'total_squad_members_snapshot', 14,
+          'participation_rate', 50
+        )
+      )
     ),
     (
       training_3_id,
@@ -306,7 +344,16 @@ begin
       current_date + 21,
       '20:00',
       'מתוכנן',
-      'מפגש משותף ליישובים תחת אחריות אזורית.'
+      'מפגש משותף ליישובים תחת אחריות אזורית.',
+      jsonb_build_array(
+        jsonb_build_object(
+          'settlement_id', settlement_3_id,
+          'settlement_name', 'גבעות כרמל',
+          'trained_count', 0,
+          'total_squad_members_snapshot', 14,
+          'participation_rate', null
+        )
+      )
     );
 
   insert into public.training_settlements (training_id, settlement_id)

@@ -29,6 +29,7 @@ const defaultValues: SettlementFormValues = {
   is_active: true,
   name: '',
   regional_council: '',
+  total_squad_members: null,
 };
 
 export function SettlementForm({
@@ -127,6 +128,29 @@ export function SettlementForm({
             onChangeText={onChange}
             placeholder="הזינו שם רכז"
             value={value ?? ''}
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name="total_squad_members"
+        render={({ field: { onBlur, onChange, value } }) => (
+          <AppTextField
+            errorMessage={errors.total_squad_members?.message}
+            hint="מספר כלל חברי כיתת הכוננות ביישוב"
+            inputMode="numeric"
+            keyboardType="number-pad"
+            label="מצבת כיתת כוננות"
+            onBlur={onBlur}
+            onChangeText={(text) => {
+              const sanitized = text.replace(/[^\d]/g, '');
+              onChange(sanitized ? Number(sanitized) : null);
+            }}
+            placeholder="לדוגמה: 18"
+            textAlign="left"
+            value={value === null ? '' : String(value)}
+            writingDirection="ltr"
           />
         )}
       />

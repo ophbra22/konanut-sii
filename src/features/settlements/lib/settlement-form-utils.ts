@@ -17,6 +17,7 @@ export function getSettlementFormValues(
     is_active: settlement?.is_active ?? true,
     name: settlement?.name ?? '',
     regional_council: settlement?.regional_council ?? '',
+    total_squad_members: settlement?.total_squad_members ?? null,
   };
 }
 
@@ -30,6 +31,7 @@ export function toSettlementInsertInput(
     is_active: values.is_active,
     name: values.name.trim(),
     regional_council: toOptionalText(values.regional_council),
+    total_squad_members: values.total_squad_members,
   };
 }
 

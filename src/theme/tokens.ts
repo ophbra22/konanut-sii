@@ -31,6 +31,7 @@ export type AppTheme = {
     inputBackground: string;
     inverseText: string;
     mediaGlow: string;
+    modalBackdrop: string;
     mutedBlue: string;
     overlay: string;
     primary: string;
@@ -270,6 +271,7 @@ export const darkTheme: AppTheme = {
     inputBackground: '#0A1014',
     inverseText: '#070B0D',
     mediaGlow: 'rgba(108, 143, 255, 0.08)',
+    modalBackdrop: 'rgba(4, 7, 10, 0.64)',
     mutedBlue: '#7A8A95',
     overlay: 'rgba(199, 243, 107, 0.08)',
     primary: '#6C8FFF',
@@ -364,6 +366,7 @@ export const lightTheme: AppTheme = {
     inputBackground: '#EEF3F7',
     inverseText: '#FFFFFF',
     mediaGlow: 'rgba(71, 109, 222, 0.08)',
+    modalBackdrop: 'rgba(17, 26, 34, 0.16)',
     mutedBlue: '#81909C',
     overlay: 'rgba(111, 140, 59, 0.10)',
     primary: '#476DDE',

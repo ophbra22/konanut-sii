@@ -1,14 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { useEffect, useMemo } from 'react';
+import { Controller, useForm, useWatch } from 'react-hook-form';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { AppCard } from '@/src/components/ui/app-card';
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppChip } from '@/src/components/ui/app-chip';
 import { AppDateField } from '@/src/components/ui/app-date-field';
 import { AppTextField } from '@/src/components/ui/app-text-field';
 import { SectionBlock } from '@/src/components/ui/section-block';
 import { trainingStatuses, trainingTypes } from '@/src/features/trainings/constants';
+import {
+  isSameSettlementAttendance,
+  syncSettlementAttendance,
+} from '@/src/features/trainings/lib/training-attendance-utils';
 import {
   trainingFormSchema,
   type TrainingFormValues,
@@ -22,7 +27,7 @@ type TrainingFormProps = {
   instructorOptions: Pick<UserProfile, 'full_name' | 'id'>[];
   isSubmitting?: boolean;
   onSubmit: (values: TrainingFormValues) => Promise<void> | void;
-  settlementOptions: Pick<Settlement, 'area' | 'id' | 'name'>[];
+  settlementOptions: Pick<Settlement, 'area' | 'id' | 'name' | 'total_squad_members'>[];
   submitLabel: string;
 };
 
@@ -30,6 +35,7 @@ const defaultValues: TrainingFormValues = {
   instructor_id: '',
   location: '',
   notes: '',
+  settlement_attendance: [],
   settlement_ids: [],
   status: 'מתוכנן',
   title: '',
@@ -46,6 +52,10 @@ function FieldError({ message }: { message?: string }) {
   return <Text style={styles.error}>{message}</Text>;
 }
 
+function formatTotalSquadMembers(value: number | null) {
+  return value === null ? 'לא הוגדרה מצבה' : String(value);
+}
+
 export function TrainingForm({
   allowEmptyInstructor = true,
   initialValues,
@@ -60,6 +70,7 @@ export function TrainingForm({
     formState: { errors },
     handleSubmit,
     reset,
+    setValue,
   } = useForm<TrainingFormValues>({
     defaultValues: {
       ...defaultValues,
@@ -74,6 +85,42 @@ export function TrainingForm({
       ...initialValues,
     });
   }, [initialValues, reset]);
+
+  const selectedSettlementIds = useWatch({
+    control,
+    name: 'settlement_ids',
+  });
+  const settlementAttendance = useWatch({
+    control,
+    name: 'settlement_attendance',
+  });
+  const selectedSettlements = useMemo(() => {
+    const settlementById = new Map(settlementOptions.map((settlement) => [settlement.id, settlement]));
+
+    return (selectedSettlementIds ?? []).reduce<typeof settlementOptions>((items, settlementId) => {
+      const settlement = settlementById.get(settlementId);
+
+      if (settlement) {
+        items.push(settlement);
+      }
+
+      return items;
+    }, []);
+  }, [selectedSettlementIds, settlementOptions]);
+
+  useEffect(() => {
+    const nextAttendance = syncSettlementAttendance(
+      selectedSettlements,
+      settlementAttendance ?? []
+    );
+
+    if (!isSameSettlementAttendance(settlementAttendance ?? [], nextAttendance)) {
+      setValue('settlement_attendance', nextAttendance, {
+        shouldDirty: false,
+        shouldValidate: false,
+      });
+    }
+  }, [selectedSettlements, settlementAttendance, setValue]);
 
   return (
     <View style={styles.form}>
@@ -167,6 +214,70 @@ export function TrainingForm({
           </SectionBlock>
         )}
       />
+
+      {selectedSettlements.length ? (
+        <SectionBlock
+          description="דווחו כמה מחברי כיתת הכוננות של כל יישוב השתתפו בפועל. הנתונים יישמרו כ־snapshot בתוך האימון."
+          title="השתתפות לפי יישוב"
+        >
+          <View style={styles.attendanceList}>
+            {selectedSettlements.map((settlement, index) => {
+              const attendanceItem = settlementAttendance?.[index];
+              const trainedCount =
+                attendanceItem?.settlement_id === settlement.id
+                  ? attendanceItem.trained_count
+                  : 0;
+              const attendanceError =
+                attendanceItem?.settlement_id === settlement.id
+                  ? errors.settlement_attendance?.[index]?.trained_count?.message
+                  : undefined;
+
+              return (
+                <AppCard key={settlement.id} style={styles.attendanceCard}>
+                  <View style={styles.attendanceCardHeader}>
+                    <Text style={styles.attendanceSettlementName}>{settlement.name}</Text>
+                    <Text style={styles.attendanceSettlementMeta}>
+                      מצבה מלאה: {formatTotalSquadMembers(attendanceItem?.total_squad_members_snapshot ?? settlement.total_squad_members)}
+                    </Text>
+                  </View>
+
+                  {attendanceItem?.total_squad_members_snapshot === null ? (
+                    <View style={styles.attendanceWarningBox}>
+                      <Text style={styles.attendanceWarningText}>
+                        לא הוגדרה מצבת כיתת כוננות ליישוב זה
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  <Controller
+                    control={control}
+                    name={`settlement_attendance.${index}.trained_count`}
+                    render={({ field: { onBlur, onChange, value } }) => (
+                      <AppTextField
+                        errorMessage={attendanceError}
+                        hint="כמה מחברי הכיתה השתתפו באימון בפועל"
+                        inputMode="numeric"
+                        keyboardType="number-pad"
+                        label="כמה התאמנו בפועל"
+                        onBlur={onBlur}
+                        onChangeText={(text) => {
+                          const sanitized = text.replace(/[^\d]/g, '');
+                          onChange(sanitized ? Number(sanitized) : 0);
+                        }}
+                        placeholder="0"
+                        textAlign="left"
+                        value={String(value ?? trainedCount ?? 0)}
+                        writingDirection="ltr"
+                      />
+                    )}
+                  />
+                </AppCard>
+              );
+            })}
+          </View>
+          <FieldError message={errors.settlement_attendance?.message} />
+        </SectionBlock>
+      ) : null}
 
       <Controller
         control={control}
@@ -294,6 +405,40 @@ export function TrainingForm({
 }
 
 const styles = createThemedStyles((theme: AppTheme) => ({
+  attendanceCard: {
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+  },
+  attendanceCardHeader: {
+    gap: 4,
+  },
+  attendanceList: {
+    gap: theme.spacing.sm,
+  },
+  attendanceSettlementMeta: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+    textAlign: 'right',
+  },
+  attendanceSettlementName: {
+    ...theme.typography.cardTitle,
+    color: theme.colors.textPrimary,
+    textAlign: 'right',
+  },
+  attendanceWarningBox: {
+    backgroundColor: theme.colors.warningSurface,
+    borderColor: theme.colors.warningBorder,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: theme.spacing.xs,
+  },
+  attendanceWarningText: {
+    ...theme.typography.caption,
+    color: theme.colors.warning,
+    textAlign: 'right',
+  },
   chips: {
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
