@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type PropsWithChildren,
   type RefObject,
 } from 'react';
@@ -55,10 +56,11 @@ export function KeyboardSafeScrollView({
   children,
   contentContainerStyle,
   keyboardDismissMode = Platform.OS === 'ios' ? 'interactive' : 'on-drag',
-  keyboardExtraPadding = 40,
+  keyboardExtraPadding = 8,
   keyboardShouldPersistTaps = 'handled',
   onScroll,
   scrollEventThrottle = 16,
+  style,
   ...props
 }: KeyboardSafeScrollViewProps) {
   const insets = useSafeAreaInsets();
@@ -67,6 +69,7 @@ export function KeyboardSafeScrollView({
   const keyboardHeightRef = useRef(0);
   const pendingRequestRef = useRef<PendingRequest | null>(null);
   const timeoutHandlesRef = useRef<Array<ReturnType<typeof setTimeout>>>([]);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
 
   const clearScheduledChecks = useCallback(() => {
     timeoutHandlesRef.current.forEach((handle) => {
@@ -148,11 +151,13 @@ export function KeyboardSafeScrollView({
 
     const showSubscription = Keyboard.addListener(showEvent, (event) => {
       keyboardHeightRef.current = event.endCoordinates.height;
+      setIsKeyboardVisible(true);
       scheduleVisibilityCheck();
     });
 
     const hideSubscription = Keyboard.addListener(hideEvent, () => {
       keyboardHeightRef.current = 0;
+      setIsKeyboardVisible(false);
       clearScheduledChecks();
     });
 
@@ -174,13 +179,14 @@ export function KeyboardSafeScrollView({
       contentContainerStyle,
       {
         paddingBottom:
-          basePaddingBottom + insets.bottom + keyboardExtraPadding,
+          basePaddingBottom + insets.bottom + (isKeyboardVisible ? keyboardExtraPadding : 0),
       },
     ],
     [
       basePaddingBottom,
       contentContainerStyle,
       insets.bottom,
+      isKeyboardVisible,
       keyboardExtraPadding,
     ]
   );
@@ -211,6 +217,7 @@ export function KeyboardSafeScrollView({
         onScroll={handleScroll}
         scrollEventThrottle={scrollEventThrottle}
         showsVerticalScrollIndicator={false}
+        style={[styles.scrollView, style]}
         {...props}
       >
         {children}
@@ -218,3 +225,11 @@ export function KeyboardSafeScrollView({
     </KeyboardSafeContext.Provider>
   );
 }
+
+const styles = StyleSheet.create({
+  scrollView: {
+    direction: 'ltr',
+    flex: 1,
+    width: '100%',
+  },
+});

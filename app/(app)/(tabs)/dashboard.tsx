@@ -78,12 +78,12 @@ function DashboardAlertPreviewItem({
 
       <View style={styles.alertContent}>
         <View style={styles.alertTitleRow}>
-          <DashboardAlertStatusPill status={alertItem.status} />
           <Text numberOfLines={1} style={styles.alertTitle}>
             {alertItem.related_settlement_name
               ? `${alertItem.title} – ${alertItem.related_settlement_name}`
               : alertItem.title}
           </Text>
+          <DashboardAlertStatusPill status={alertItem.status} />
         </View>
 
         <Text numberOfLines={2} style={styles.alertSubtitle}>
@@ -148,10 +148,10 @@ export default function DashboardScreen() {
         <View style={styles.hero}>
           <Text style={styles.heroTitle}>זרוע יישובים מג״ב דרום</Text>
           <View style={styles.heroMetaRow}>
-            <Text style={styles.heroDate}>{todayLabel}</Text>
             <Text numberOfLines={1} style={styles.heroGreeting}>
               {heroGreeting}
             </Text>
+            <Text style={styles.heroDate}>{todayLabel}</Text>
           </View>
           <Text style={styles.heroSubtitle}>תמונת מצב אימונים בזמן אמת</Text>
         </View>
@@ -307,6 +307,7 @@ export default function DashboardScreen() {
 
 const styles = createThemedStyles((theme: AppTheme) => ({
   alertContent: {
+    alignItems: 'stretch',
     flex: 1,
     gap: 6,
   },
@@ -318,6 +319,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   alertRow: {
     alignItems: 'flex-start',
+    direction: 'ltr',
     flexDirection: 'row-reverse',
     gap: 12,
     minHeight: 54,
@@ -354,6 +356,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     fontWeight: '600',
     lineHeight: 15,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   alertTitle: {
     color: theme.colors.textPrimary,
@@ -362,9 +365,11 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     fontWeight: '800',
     lineHeight: 17,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   alertTitleRow: {
     alignItems: 'center',
+    direction: 'ltr',
     flexDirection: 'row-reverse',
     gap: 10,
     justifyContent: 'space-between',
@@ -390,6 +395,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     textAlign: 'right',
   },
   featuredCard: {
+    alignItems: 'stretch',
     backgroundColor: theme.colors.surfaceStrong,
     borderColor: theme.colors.cardOutline,
     borderRadius: 16,
@@ -403,6 +409,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     shadowRadius: 18,
   },
   featuredEmptyCard: {
+    alignItems: 'flex-end',
     borderRadius: 16,
     gap: 8,
     paddingHorizontal: 16,
@@ -438,6 +445,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     width: '22%',
   },
   hero: {
+    alignItems: 'stretch',
     gap: 8,
   },
   heroEyebrow: {
@@ -448,26 +456,30 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   heroDate: {
     ...theme.typography.meta,
     color: theme.colors.textMuted,
-    textAlign: 'left',
+    textAlign: 'right',
+    writingDirection: 'rtl',
   },
   heroGreeting: {
     ...theme.typography.caption,
     color: theme.colors.textSecondary,
-    flex: 1,
+    flexShrink: 1,
     fontWeight: '800',
     minWidth: 0,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   heroMetaRow: {
     alignItems: 'center',
+    direction: 'ltr',
     flexDirection: 'row-reverse',
     gap: 10,
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
   },
   heroSubtitle: {
     ...theme.typography.meta,
     color: theme.colors.textDim,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   heroTitle: {
     color: theme.colors.textPrimary,
@@ -476,12 +488,14 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     lineHeight: 31,
     letterSpacing: -0.4,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   metricCard: {
     minWidth: 0,
     width: '48.4%',
   },
   metricsGrid: {
+    direction: 'ltr',
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
     gap: 12,
@@ -489,9 +503,10 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   screenContent: {
     gap: theme.spacing.xl,
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: theme.spacing.sm,
   },
   systemCard: {
+    alignItems: 'stretch',
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
     gap: 6,
@@ -502,15 +517,18 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     ...theme.typography.meta,
     color: theme.colors.textDim,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   systemTitle: {
     ...theme.typography.caption,
     color: theme.colors.textPrimary,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   systemTopRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    direction: 'ltr',
+    flexDirection: 'row',
     gap: theme.spacing.xs,
     justifyContent: 'space-between',
   },

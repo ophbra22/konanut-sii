@@ -4,6 +4,10 @@ declare
   admin_user_id constant uuid := '11111111-1111-1111-1111-111111111111';
   viewer_north_user_id constant uuid := '22222222-2222-2222-2222-222222222222';
   viewer_center_user_id constant uuid := '33333333-3333-3333-3333-333333333333';
+  council_1_id constant uuid := 'cccccccc-cccc-cccc-cccc-ccccccccccc1';
+  council_2_id constant uuid := 'cccccccc-cccc-cccc-cccc-ccccccccccc2';
+  council_3_id constant uuid := 'cccccccc-cccc-cccc-cccc-ccccccccccc3';
+  council_4_id constant uuid := 'cccccccc-cccc-cccc-cccc-ccccccccccc4';
   settlement_1_id constant uuid := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1';
   settlement_2_id constant uuid := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2';
   settlement_3_id constant uuid := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3';
@@ -61,7 +65,7 @@ begin
       admin_user_id,
       'authenticated',
       'authenticated',
-      'admin@konanut.local',
+      'ophbra22@gmail.com',
       crypt('Konanut123!', gen_salt('bf')),
       now(),
       '',
@@ -70,7 +74,7 @@ begin
       '',
       '',
       0,
-      null,
+      '+972545246426',
       '',
       '',
       '{"provider":"email","providers":["email"]}'::jsonb,
@@ -146,10 +150,10 @@ begin
       format(
         '{"sub":"%s","email":"%s","email_verified":true}',
         admin_user_id,
-        'admin@konanut.local'
+        'ophbra22@gmail.com'
       )::jsonb,
       'email',
-      'admin@konanut.local',
+      'ophbra22@gmail.com',
       now(),
       now(),
       now()
@@ -186,8 +190,8 @@ begin
   update public.users_profile
   set
     full_name = 'מנהל מערכת',
-    email = 'admin@konanut.local',
-    phone = '050-7000001',
+    email = 'ophbra22@gmail.com',
+    phone = '+972545246426',
     role = 'super_admin',
     is_active = true
   where id = admin_user_id;
@@ -210,9 +214,42 @@ begin
     is_active = true
   where id = viewer_center_user_id;
 
+  insert into public.regional_councils (
+    id,
+    name,
+    plaga_name,
+    regional_squad_name
+  )
+  values
+    (
+      council_1_id,
+      'גליל עליון',
+      'פלגת לכיש',
+      'כיתת כוננות אזורית'
+    ),
+    (
+      council_2_id,
+      'בקעת הירדן',
+      'פלגת לכיש',
+      'כיתת כוננות אזורית'
+    ),
+    (
+      council_3_id,
+      'חוף הכרמל',
+      'פלגת נגב',
+      'כיתת כוננות אזורית'
+    ),
+    (
+      council_4_id,
+      'מטה בנימין',
+      'פלגת נגב',
+      'כיתת כוננות אזורית'
+    );
+
   insert into public.settlements (
     id,
     name,
+    council_id,
     regional_council,
     area,
     coordinator_name,
@@ -224,6 +261,7 @@ begin
     (
       settlement_1_id,
       'קדמת הגליל',
+      council_1_id,
       'גליל עליון',
       'פלגת לכיש',
       'אורי כהן',
@@ -234,6 +272,7 @@ begin
     (
       settlement_2_id,
       'נווה רימון',
+      council_2_id,
       'בקעת הירדן',
       'פלגת לכיש',
       'שחר לוי',
@@ -244,6 +283,7 @@ begin
     (
       settlement_3_id,
       'גבעות כרמל',
+      council_3_id,
       'חוף הכרמל',
       'פלגת נגב',
       'מאיה אביטל',
@@ -254,6 +294,7 @@ begin
     (
       settlement_4_id,
       'נחל צורים',
+      council_4_id,
       'מטה בנימין',
       'פלגת נגב',
       'רועי הדר',
@@ -482,7 +523,7 @@ begin
       'רענון קצר לנוהלי בטיחות, חלוקת גזרות ופתיחת קו ירי.',
       'video',
       'בטיחות מטווח',
-      'https://example.com/content/range-safety-video',
+      'https://ophbra22.github.io/privacy-policy/contact.html',
       true,
       admin_user_id
     ),
@@ -491,7 +532,7 @@ begin
       'מצגת הדרכה למפקדי כיתות בנושא תגובה מהירה וחלוקת אחריות.',
       'presentation',
       'הגנת יישוב',
-      'https://example.com/content/settlement-defense-presentation',
+      'https://ophbra22.github.io/privacy-policy/contact.html',
       true,
       admin_user_id
     ),
@@ -500,7 +541,7 @@ begin
       'מסמך עזר קצר לתיאום מדריכים, בטיחות וקליטת משתתפים.',
       'document',
       'נהלי אימון',
-      'https://example.com/content/training-day-procedure',
+      'https://ophbra22.github.io/privacy-policy/contact.html',
       true,
       admin_user_id
     );

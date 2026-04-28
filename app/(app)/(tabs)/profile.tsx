@@ -19,8 +19,8 @@ import { DataRow } from '@/src/components/ui/data-row';
 import { PageHeader } from '@/src/components/ui/page-header';
 import { SegmentedControl } from '@/src/components/ui/segmented-control';
 import { SectionBlock } from '@/src/components/ui/section-block';
-import { requestAccountDeletion } from '@/src/features/auth/api/profile-service';
 import {
+  canManageSettlements,
   canManageUserApprovals,
   getRoleDescription,
   getRoleLabel,
@@ -29,6 +29,7 @@ import {
   isPlagaScopedRole,
   isSettlementScopedRole,
 } from '@/src/features/auth/lib/permissions';
+import { rtlRow, rtlRowReverse } from '@/src/lib/rtl';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { createThemedStyles, theme, useThemeController, type AppTheme } from '@/src/theme';
 
@@ -68,11 +69,13 @@ export default function ProfileScreen() {
   const { mode, setMode } = useThemeController();
   const profile = useAuthStore((state) => state.profile);
   const role = useAuthStore((state) => state.role);
+  const deleteAccount = useAuthStore((state) => state.deleteAccount);
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
   const signOut = useAuthStore((state) => state.signOut);
-  const requestDeletionMutation = useMutation({
-    mutationFn: requestAccountDeletion,
+  const deleteAccountMutation = useMutation({
+    mutationFn: deleteAccount,
   });
+  const canManageCouncils = canManageSettlements(role);
   const canApproveUsers = canManageUserApprovals(role);
   const isPlagaScoped = isPlagaScopedRole(role);
   const isCouncilScoped = isCouncilScopedRole(role);
@@ -116,10 +119,10 @@ export default function ProfileScreen() {
     }
   }
 
-  function handleAccountDeletionRequest() {
+  function handleAccountDeletion() {
     Alert.alert(
-      'בקשת מחיקת חשבון',
-      'שליחת הבקשה תקפיא את הגישה לחשבון באפליקציה, ותעביר את המחיקה המלאה לטיפול מנהל המערכת. האם להמשיך?',
+      'מחיקת חשבון',
+      'האם למחוק את החשבון לצמיתות? הפעולה תמחק את חשבון ההתחברות ונתוני הפרופיל שלך באופן מיידי, ולא ניתן יהיה לשחזר אותה.',
       [
         {
           style: 'cancel',
@@ -127,26 +130,27 @@ export default function ProfileScreen() {
         },
         {
           style: 'destructive',
-          text: 'שליחת בקשה',
+          text: 'מחק חשבון',
           onPress: () => {
-            void requestDeletionMutation
+            void deleteAccountMutation
               .mutateAsync()
-              .then(() => {
+              .then((result) => {
+                if (!result.success) {
+                  Alert.alert(
+                    'לא ניתן למחוק את החשבון',
+                    result.message ?? 'לא ניתן למחוק את החשבון כרגע'
+                  );
+                  return;
+                }
+
                 Alert.alert(
-                  'הבקשה נשלחה',
-                  'בקשת מחיקת החשבון התקבלה בהצלחה. הגישה לחשבון תיסגר כעת, והמחיקה תושלם על ידי מנהל המערכת לאחר בדיקה.',
+                  'החשבון נמחק',
+                  'החשבון נמחק בהצלחה. תועבר כעת למסך הכניסה.',
                   [
                     {
                       text: 'אישור',
                       onPress: () => {
-                        void signOut().then((result) => {
-                          if (!result.success) {
-                            Alert.alert(
-                              'הבקשה נשמרה',
-                              'בקשת המחיקה נשמרה, אך לא הצלחנו לנתק כרגע את החשבון מהמכשיר. נסו לצאת שוב או לסגור את האפליקציה.'
-                            );
-                          }
-                        });
+                        router.replace('/login' as never);
                       },
                     },
                   ]
@@ -154,10 +158,10 @@ export default function ProfileScreen() {
               })
               .catch((error: unknown) => {
                 Alert.alert(
-                  'לא ניתן לשלוח את הבקשה',
+                  'לא ניתן למחוק את החשבון',
                   error instanceof Error
                     ? error.message
-                    : 'לא ניתן לשלוח את בקשת מחיקת החשבון כרגע'
+                    : 'לא ניתן למחוק את החשבון כרגע'
                 );
               });
           },
@@ -360,6 +364,17 @@ export default function ProfileScreen() {
                       style={styles.secondaryActionButton}
                       variant="secondary"
                     />
+                    {canManageCouncils ? (
+                      <AppButton
+                        label="ניהול מועצות"
+                        onPress={() => {
+                          router.push('/admin/councils-management' as never);
+                        }}
+                        size="sm"
+                        style={styles.secondaryActionButton}
+                        variant="secondary"
+                      />
+                    ) : null}
                     <AppButton
                       label="רענון פרופיל"
                       onPress={() => {
@@ -396,15 +411,15 @@ export default function ProfileScreen() {
                 </View>
 
                 <Text style={styles.accountDeletionDescription}>
-                  בקשת מחיקה נשלחת מתוך היישומון, הגישה לחשבון מוקפאת לאחר האישור, והמחיקה
-                  הסופית מתבצעת על ידי מנהל המערכת.
+                  מחיקת החשבון מתבצעת מיידית לאחר אישור. חשבון ההתחברות ונתוני הפרופיל
+                  יימחקו לצמיתות, ותנותק מהמערכת.
                 </Text>
 
                 <AppButton
-                  disabled={requestDeletionMutation.isPending}
-                  label="בקשת מחיקת חשבון"
-                  loading={requestDeletionMutation.isPending}
-                  onPress={handleAccountDeletionRequest}
+                  disabled={deleteAccountMutation.isPending}
+                  label="מחיקת חשבון"
+                  loading={deleteAccountMutation.isPending}
+                  onPress={handleAccountDeletion}
                   size="sm"
                   style={styles.deleteAccountButton}
                   variant="danger"
@@ -460,7 +475,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   accountDeletionHeader: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 6,
   },
   accountDeletionSection: {
@@ -494,7 +509,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     paddingTop: theme.spacing.sm,
   },
   badgesRow: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: 8,
   },
@@ -529,6 +544,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     textAlign: 'right',
   },
   identityTop: {
+    alignItems: 'flex-end',
     gap: 6,
   },
   logoutButton: {
@@ -541,7 +557,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     paddingTop: 12,
   },
   metricsRow: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 10,
     justifyContent: 'space-between',
   },
@@ -551,7 +567,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   screenContent: {
     gap: theme.spacing.xl,
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: theme.spacing.sm,
   },
   secondaryActionButton: {
     borderColor: theme.colors.borderStrong,
@@ -565,7 +581,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   supportMetaRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRowReverse,
     gap: 6,
   },
   supportMetaText: {
@@ -579,6 +595,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     textAlign: 'right',
   },
   statTile: {
+    alignItems: 'flex-end',
     borderRadius: 14,
     flex: 1,
     gap: 8,

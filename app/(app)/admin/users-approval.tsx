@@ -12,16 +12,13 @@ import { KeyboardSafeScrollView } from '@/src/components/ui/keyboard-safe-scroll
 import { OpsIconButton } from '@/src/components/ui/ops-icon-button';
 import { OpsListHeader } from '@/src/components/ui/ops-list-header';
 import { SectionBlock } from '@/src/components/ui/section-block';
-import { AccountDeletionRequestCard } from '@/src/features/auth/components/account-deletion-request-card';
 import { PendingUserApprovalCard } from '@/src/features/auth/components/pending-user-approval-card';
 import {
   canManageUserApprovals,
 } from '@/src/features/auth/lib/permissions';
-import { useDeletionRequestedUsersQuery } from '@/src/features/auth/hooks/use-deletion-requested-users-query';
 import { usePendingUsersQuery } from '@/src/features/auth/hooks/use-pending-users-query';
 import {
   useApprovePendingUserMutation,
-  useDeleteRequestedUserMutation,
   useRejectPendingUserMutation,
 } from '@/src/features/auth/hooks/use-user-approval-mutations';
 import { useSettlementsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
@@ -34,10 +31,8 @@ export default function UsersApprovalScreen() {
   const role = useAuthStore((state) => state.role);
   const canManage = canManageUserApprovals(role);
   const pendingUsersQuery = usePendingUsersQuery(canManage);
-  const deletionRequestsQuery = useDeletionRequestedUsersQuery(canManage);
   const settlementsQuery = useSettlementsQuery(canManage);
   const approveMutation = useApprovePendingUserMutation();
-  const deleteRequestedUserMutation = useDeleteRequestedUserMutation();
   const rejectMutation = useRejectPendingUserMutation();
 
   useFocusEffect(
@@ -47,16 +42,16 @@ export default function UsersApprovalScreen() {
       }
 
       void pendingUsersQuery.refetch();
-      void deletionRequestsQuery.refetch();
 
       return undefined;
-    }, [canManage, deletionRequestsQuery, pendingUsersQuery])
+    }, [canManage, pendingUsersQuery])
   );
 
   const settlementOptions = (settlementsQuery.data ?? [])
     .filter((settlement) => settlement.is_active)
     .map((settlement) => ({
       area: settlement.area,
+      council_id: settlement.council_id,
       id: settlement.id,
       name: settlement.name,
       regional_council: settlement.regional_council,
@@ -101,20 +96,15 @@ export default function UsersApprovalScreen() {
 
   if (
     pendingUsersQuery.isLoading ||
-    deletionRequestsQuery.isLoading ||
     settlementsQuery.isLoading
   ) {
     return <AppLoader label="טוען משתמשים לאישור..." />;
   }
 
   const pendingUsers = pendingUsersQuery.data ?? [];
-  const deletionRequests = deletionRequestsQuery.data ?? [];
   const approvingUserId = approveMutation.isPending ? approveMutation.variables?.userId : null;
-  const deletingUserId = deleteRequestedUserMutation.isPending
-    ? deleteRequestedUserMutation.variables
-    : null;
   const rejectingUserId = rejectMutation.isPending ? rejectMutation.variables : null;
-  const openRequestsCount = pendingUsers.length + deletionRequests.length;
+  const openRequestsCount = pendingUsers.length;
 
   return (
     <AppScreen contentContainerStyle={styles.screenContent} scroll={false}>
@@ -131,7 +121,7 @@ export default function UsersApprovalScreen() {
               }}
             />
           }
-          subtitle={`${openRequestsCount} בקשות פתוחות לטיפול`}
+          subtitle={`${openRequestsCount} בקשות משתמשים פתוחות`}
           title="אישור משתמשים"
         />
 
@@ -143,18 +133,6 @@ export default function UsersApprovalScreen() {
               void pendingUsersQuery.refetch();
             }}
             title="לא ניתן לטעון את רשימת המשתמשים"
-            variant="warning"
-          />
-        ) : null}
-
-        {deletionRequestsQuery.error ? (
-          <StateCard
-            actionLabel="נסו שוב"
-            description={deletionRequestsQuery.error.message}
-            onAction={() => {
-              void deletionRequestsQuery.refetch();
-            }}
-            title="לא ניתן לטעון את בקשות מחיקת החשבון"
             variant="warning"
           />
         ) : null}
@@ -172,17 +150,13 @@ export default function UsersApprovalScreen() {
         ) : null}
 
         {!pendingUsersQuery.error &&
-        !deletionRequestsQuery.error &&
         !settlementsQuery.error &&
         openRequestsCount === 0 ? (
           <StateCard
             actionLabel="רענון"
-            description="אין כרגע בקשות פתוחות לאישור משתמשים או למחיקת חשבון."
+            description="אין כרגע בקשות משתמשים פתוחות לאישור."
             onAction={() => {
-              void Promise.all([
-                pendingUsersQuery.refetch(),
-                deletionRequestsQuery.refetch(),
-              ]);
+              void pendingUsersQuery.refetch();
             }}
             title="אין בקשות פתוחות"
           />
@@ -192,7 +166,7 @@ export default function UsersApprovalScreen() {
           <AppRevealView delay={40}>
             <SectionBlock
               description="משתמשים חדשים שממתינים להפעלה ולהקצאת הרשאות."
-              title="בקשות הצטרפות"
+              title="בקשות משתמשים לאישור"
             >
               <View style={styles.list}>
                 {pendingUsers.map((user) => (
@@ -233,41 +207,6 @@ export default function UsersApprovalScreen() {
                     plagaOptions={PLAGA_VALUES}
                     regionalCouncilOptions={regionalCouncilOptions}
                     settlementOptions={settlementOptions}
-                    user={user}
-                  />
-                ))}
-              </View>
-            </SectionBlock>
-          </AppRevealView>
-        ) : null}
-
-        {!deletionRequestsQuery.error && deletionRequests.length ? (
-          <AppRevealView delay={80}>
-            <SectionBlock
-              description="משתמשים שביקשו לסגור את החשבון וממתינים לטיפול מנהלי."
-              title="בקשות מחיקת חשבון"
-            >
-              <View style={styles.list}>
-                {deletionRequests.map((user) => (
-                  <AccountDeletionRequestCard
-                    key={user.id}
-                    isDeleting={deletingUserId === user.id}
-                    onDelete={() => {
-                      Alert.alert(
-                        'מחיקת משתמש',
-                        `האם למחוק כעת את ${user.full_name} לצמיתות? הפעולה תסיר גם את חשבון ההתחברות ולא ניתן יהיה לשחזר אותה.`,
-                        [
-                          { style: 'cancel', text: 'ביטול' },
-                          {
-                            style: 'destructive',
-                            text: 'מחיקה',
-                            onPress: () => {
-                              deleteRequestedUserMutation.mutate(user.id);
-                            },
-                          },
-                        ]
-                      );
-                    }}
                     user={user}
                   />
                 ))}

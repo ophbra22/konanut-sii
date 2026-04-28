@@ -35,6 +35,7 @@ export type DashboardAlertItem = Pick<
 export type DashboardUpcomingTraining = Pick<
   Training,
   | 'id'
+  | 'end_time'
   | 'location'
   | 'status'
   | 'title'
@@ -163,7 +164,7 @@ export async function getDashboardOverview(
       .limit(3),
     supabase
       .from('trainings')
-      .select('id, title, training_type, training_date, training_time, status, location')
+      .select('id, title, training_type, training_date, training_time, end_time, status, location')
       .neq('status', 'בוטל')
       .gte('training_date', today)
       .order('training_date', { ascending: true })

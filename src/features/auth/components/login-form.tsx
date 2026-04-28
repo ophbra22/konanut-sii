@@ -1,67 +1,232 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'expo-router';
-import { ArrowRight, Lock, Mail } from 'lucide-react-native';
-import { useRef } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { ArrowRight, KeyRound, Lock, Mail } from 'lucide-react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 
 import { AppTextField } from '@/src/components/ui/app-text-field';
+import { SegmentedControl } from '@/src/components/ui/segmented-control';
 import { AuthScreenShell } from '@/src/features/auth/components/auth-screen-shell';
 import { AuthSubmitButton } from '@/src/features/auth/components/auth-submit-button';
 import { AuthUtilityLinks } from '@/src/features/auth/components/auth-utility-links';
+import { AuthBrandHero } from '@/src/features/auth/components/auth-brand-hero';
+import { normalizeEmailAddress } from '@/src/features/auth/api/email-auth-service';
 import {
-  loginSchema,
-  type LoginFormValues,
-} from '@/src/features/auth/schemas/login-schema';
+  EMAIL_OTP_MAX_LENGTH,
+  MIN_PASSWORD_LENGTH,
+  getPasswordMinLengthMessage,
+  isValidEmailOtpToken,
+  sanitizeOtpInput,
+} from '@/src/features/auth/lib/auth-constants';
+import { rtlRowReverse } from '@/src/lib/rtl';
 import { useAuthStore } from '@/src/stores/auth-store';
-import {
-  createThemedStyles,
-  theme,
-  type AppTheme,
-} from '@/src/theme';
+import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
+
+type LoginMethod = 'otp' | 'password';
+
+function getNormalizedEmailOrNull(value: string) {
+  try {
+    return normalizeEmailAddress(value);
+  } catch {
+    return null;
+  }
+}
+
+function getCardCopy(method: LoginMethod, isOtpSent: boolean) {
+  if (method === 'password') {
+    return {
+      badgeCaption: 'גישה מלאה למורשים בלבד',
+      badgeLabel: 'כניסה מאובטחת',
+      cardDescription: 'הזינו אימייל וסיסמה כדי להמשיך למערכת המבצעית.',
+      cardTitle: 'כניסה עם סיסמה',
+      subtitle: 'כניסה מאובטחת למשתמשים פעילים ומאושרים',
+    };
+  }
+
+  if (isOtpSent) {
+    return {
+      badgeCaption: 'קוד חד-פעמי פעיל',
+      badgeLabel: 'אימות מייל',
+      cardDescription: 'הזינו את הקוד שנשלח אליכם למייל כדי להשלים את הכניסה.',
+      cardTitle: 'כניסה עם קוד למייל',
+      subtitle: 'קוד חד-פעמי נשלח לכתובת שהוזנה',
+    };
+  }
+
+  return {
+    badgeCaption: 'ללא סיסמה',
+    badgeLabel: 'כניסה עם קוד למייל',
+    cardDescription: 'נשלח קוד חד-פעמי לכתובת האימייל, ולאחר האימות תעברו ישירות למסך הראשי.',
+    cardTitle: 'כניסה עם קוד למייל',
+    subtitle: 'דרך מהירה ומאובטחת להתחברות',
+  };
+}
 
 export function LoginForm() {
   const router = useRouter();
   const authError = useAuthStore((state) => state.errorMessage);
   const clearError = useAuthStore((state) => state.clearError);
+  const sendEmailOtp = useAuthStore((state) => state.sendEmailOtp);
   const signIn = useAuthStore((state) => state.signIn);
+  const signInWithEmailOtp = useAuthStore((state) => state.signInWithEmailOtp);
   const status = useAuthStore((state) => state.status);
+  const [code, setCode] = useState('');
+  const [countdown, setCountdown] = useState(0);
+  const [email, setEmail] = useState('');
+  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isSigningInWithPassword, setIsSigningInWithPassword] = useState(false);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>('password');
+  const [password, setPassword] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
 
-  const {
-    control,
-    handleSubmit,
-    resetField,
-    formState: { errors, isSubmitting },
-  } = useForm<LoginFormValues>({
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-    resolver: zodResolver(loginSchema),
-  });
-  const passwordInputRef = useRef<TextInput>(null);
+  useEffect(() => {
+    if (countdown <= 0) {
+      return undefined;
+    }
 
-  const isBusy = isSubmitting || status === 'loading';
-  const inlineAuthError =
-    !errors.email?.message && !errors.password?.message ? authError ?? undefined : undefined;
+    const timer = setTimeout(() => {
+      setCountdown((current) => Math.max(0, current - 1));
+    }, 1000);
 
-  const onSubmit = handleSubmit(async (values) => {
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [countdown]);
+
+  useEffect(() => {
     clearError();
-    const result = await signIn({
-      email: values.email.trim().toLowerCase(),
-      password: values.password.trim(),
-    });
+    setFieldError(null);
+    setSuccessMessage(null);
 
-    if (!result.success && result.reason === 'invalid_credentials') {
-      resetField('password', {
-        defaultValue: '',
+    if (loginMethod === 'password') {
+      setCode('');
+      setVerifiedEmail(null);
+      setCountdown(0);
+      return;
+    }
+
+    setPassword('');
+  }, [clearError, loginMethod]);
+
+  const isBusy =
+    isSendingCode ||
+    isSigningInWithPassword ||
+    isVerifyingCode ||
+    status === 'loading';
+  const displayedError = fieldError ?? authError;
+  const normalizedEmail = getNormalizedEmailOrNull(email);
+  const isOtpSent = Boolean(verifiedEmail);
+  const isCodeComplete = isValidEmailOtpToken(code);
+  const canSendCode = Boolean(normalizedEmail) && !isBusy && countdown <= 0;
+  const canAttemptPasswordSignIn = !isBusy;
+  const canVerifyCode = isOtpSent && isCodeComplete && !isBusy;
+  const cardCopy = useMemo(
+    () => getCardCopy(loginMethod, isOtpSent),
+    [isOtpSent, loginMethod]
+  );
+
+  async function handlePasswordSignIn() {
+    clearError();
+    setFieldError(null);
+    setSuccessMessage(null);
+
+    if (!normalizedEmail) {
+      setFieldError('יש להזין כתובת אימייל תקינה');
+      return;
+    }
+
+    if (password.trim().length < MIN_PASSWORD_LENGTH) {
+      setFieldError(getPasswordMinLengthMessage());
+      return;
+    }
+
+    setIsSigningInWithPassword(true);
+
+    try {
+      const result = await signIn({
+        email: normalizedEmail,
+        password: password.trim(),
       });
 
-      setTimeout(() => {
-        passwordInputRef.current?.focus();
-      }, 50);
+      if (!result.success) {
+        setFieldError(result.message ?? 'לא ניתן להשלים את הכניסה כעת');
+        return;
+      }
+
+      setSuccessMessage('ההתחברות הושלמה בהצלחה');
+    } finally {
+      setIsSigningInWithPassword(false);
     }
-  });
+  }
+
+  async function handleSendCode() {
+    clearError();
+    setFieldError(null);
+    setSuccessMessage(null);
+
+    let emailForOtp: string;
+
+    try {
+      emailForOtp = normalizeEmailAddress(email);
+    } catch (error) {
+      setFieldError(error instanceof Error ? error.message : 'כתובת אימייל לא תקינה');
+      return;
+    }
+
+    setIsSendingCode(true);
+
+    try {
+      const result = await sendEmailOtp(emailForOtp);
+
+      if (!result.success) {
+        setFieldError(result.message ?? 'לא ניתן לשלוח קוד אימות כעת');
+        return;
+      }
+
+      setVerifiedEmail(result.email ?? emailForOtp);
+      setCode('');
+      setCountdown(60);
+      setSuccessMessage('שלחנו קוד חד-פעמי לכתובת האימייל שהוזנה');
+    } finally {
+      setIsSendingCode(false);
+    }
+  }
+
+  async function handleVerifyCode() {
+    clearError();
+    setFieldError(null);
+    setSuccessMessage(null);
+
+    if (!isCodeComplete) {
+      setFieldError('יש להזין את הקוד בדיוק כפי שנשלח למייל');
+      return;
+    }
+
+    setIsVerifyingCode(true);
+
+    try {
+      const result = await signInWithEmailOtp({
+        email: verifiedEmail ?? email,
+        token: code,
+      });
+
+      if (!result.success) {
+        setFieldError(result.message ?? 'הקוד שגוי או פג תוקף');
+        return;
+      }
+
+      if (result.reason === 'needs_registration') {
+        router.replace('/register' as never);
+        return;
+      }
+
+      setSuccessMessage('ההתחברות הושלמה בהצלחה');
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  }
 
   const footer = (
     <View style={styles.footerContent}>
@@ -74,134 +239,227 @@ export function LoginForm() {
         style={({ pressed }) => [styles.linkRow, pressed ? styles.linkPressed : null]}
       >
         <ArrowRight color={theme.colors.info} size={15} strokeWidth={2.2} />
-        <Text style={styles.linkText}>אין לך חשבון? הרשמה</Text>
+        <Text style={styles.linkText}>אין לך חשבון? להגשת בקשת הרשמה</Text>
       </Pressable>
 
       <AuthUtilityLinks />
     </View>
   );
 
-  const hero = (
-    <View style={styles.brandHeader}>
-      <View pointerEvents="none" style={styles.brandGlowPrimary} />
-      <View pointerEvents="none" style={styles.brandGlowSecondary} />
-      <View pointerEvents="none" style={styles.brandGlowCore} />
-
-      <View style={styles.brandContent}>
-        <Text style={styles.brandLinePrimary}>זרוע יישובים מג״ב דרום</Text>
-        <View style={styles.brandTitleWrap}>
-          <View pointerEvents="none" style={styles.brandTitleGlow} />
-          <Text numberOfLines={1} style={styles.brandLineSecondary}>
-            מערכת אימונים וניהול
-          </Text>
-        </View>
-        <Text style={styles.brandSubtitle}>
-          סביבת התחברות מאובטחת לכוחות וגורמי ניהול
-        </Text>
-      </View>
-    </View>
-  );
-
   return (
     <AuthScreenShell
-      badgeCaption="גישה מבוקרת"
-      badgeLabel="מערכת מאובטחת"
-      cardDescription="יש להזין פרטי גישה לחשבון מאושר במערכת."
-      cardTitle="פרטי הזדהות"
+      badgeCaption={cardCopy.badgeCaption}
+      badgeLabel={cardCopy.badgeLabel}
+      cardDescription={cardCopy.cardDescription}
+      cardTitle={cardCopy.cardTitle}
       compact
       eyebrow={null}
-      headerAlign="center"
       footer={footer}
-      hero={hero}
-      subtitle="גישה למשתמשים מורשים בלבד"
+      hero={
+        <AuthBrandHero
+          subtitle="כניסה מאובטחת למערכת המבצעית לניהול כוננות, אימונים ודירוגי יישובים"
+          title="כוננות שיא"
+        />
+      }
+      subtitle={cardCopy.subtitle}
       title="כניסה למערכת"
     >
       <View style={styles.form}>
-        <Controller
-          control={control}
-          name="email"
-          render={({ field: { onBlur, onChange, value } }) => (
-            <AppTextField
-              appearance="auth"
-              autoCapitalize="none"
-              autoComplete="email"
-              autoCorrect={false}
-              errorMessage={errors.email?.message}
-              icon={<Mail />}
-              keyboardType="email-address"
-              label='דוא"ל'
-              onBlur={onBlur}
-              onChangeText={(text) => {
-                clearError();
-                onChange(text);
-              }}
-              placeholder='הזינו דוא"ל'
-              returnKeyType="next"
-              textAlign="left"
-              textContentType="username"
-              value={value}
-              writingDirection="ltr"
-            />
-          )}
+        <SegmentedControl
+          onValueChange={setLoginMethod}
+          options={[
+            { label: 'כניסה עם סיסמה', value: 'password' },
+            { label: 'כניסה עם קוד למייל', value: 'otp' },
+          ]}
+          value={loginMethod}
         />
 
-        <Controller
-          control={control}
-          name="password"
-          render={({ field: { onBlur, onChange, value } }) => (
+        {successMessage ? (
+          <View style={styles.successBanner}>
+            <Text style={styles.successText}>{successMessage}</Text>
+          </View>
+        ) : null}
+
+        {displayedError ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorText}>{displayedError}</Text>
+          </View>
+        ) : null}
+
+        <AppTextField
+          appearance="auth"
+          autoCapitalize="none"
+          autoComplete="email"
+          autoCorrect={false}
+          editable={!isOtpSent || loginMethod === 'password'}
+          errorMessage={undefined}
+          icon={<Mail />}
+          keyboardType="email-address"
+          label="אימייל"
+          onChangeText={(text) => {
+            clearError();
+            setFieldError(null);
+            setEmail(text);
+          }}
+          placeholder="הזינו כתובת אימייל"
+          returnKeyType={loginMethod === 'password' ? 'next' : 'send'}
+          textAlign="right"
+          textContentType="emailAddress"
+          value={email}
+          writingDirection="ltr"
+        />
+
+        {loginMethod === 'password' ? (
+          <>
             <AppTextField
               appearance="auth"
               autoCapitalize="none"
-              autoComplete="current-password"
+              autoComplete="password"
               autoCorrect={false}
-              errorMessage={errors.password?.message ?? inlineAuthError}
+              errorMessage={undefined}
               icon={<Lock />}
-              inputRef={passwordInputRef}
               label="סיסמה"
-              onBlur={onBlur}
               onChangeText={(text) => {
                 clearError();
-                onChange(text);
+                setFieldError(null);
+                setPassword(text);
               }}
               onSubmitEditing={() => {
-                void onSubmit();
+                if (canAttemptPasswordSignIn) {
+                  void handlePasswordSignIn();
+                }
               }}
-              placeholder="סיסמה"
+              placeholder="הזינו סיסמה"
               returnKeyType="done"
               secureTextEntry
-              textAlign="left"
+              textAlign="right"
               textContentType="password"
-              value={value}
+              value={password}
               writingDirection="ltr"
             />
-          )}
-        />
 
-        <View style={styles.actions}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              clearError();
-              router.push('/forgot-password' as never);
-            }}
-            style={({ pressed }) => [
-              styles.secondaryLinkRow,
-              pressed ? styles.linkPressed : null,
-            ]}
-          >
-            <Text style={styles.secondaryLinkText}>שכחתי סיסמה</Text>
-          </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                clearError();
+                router.push('/forgot-password' as never);
+              }}
+              style={({ pressed }) => [
+                styles.secondaryLinkRow,
+                pressed ? styles.linkPressed : null,
+              ]}
+            >
+              <Text style={styles.secondaryLinkText}>שכחת סיסמה?</Text>
+            </Pressable>
 
-          <AuthSubmitButton
-            compact
-            disabled={isBusy}
-            label="התחברות"
-            loading={isBusy}
-            onPress={() => {
-              void onSubmit();
-            }}
-          />
-        </View>
+            <AuthSubmitButton
+              compact
+              disabled={!canAttemptPasswordSignIn}
+              label="כניסה עם סיסמה"
+              loading={isSigningInWithPassword}
+              loadingLabel="מתחבר..."
+              onPress={() => {
+                void handlePasswordSignIn();
+              }}
+            />
+          </>
+        ) : (
+          <>
+            {isOtpSent ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  clearError();
+                  setCode('');
+                  setFieldError(null);
+                  setSuccessMessage(null);
+                  setVerifiedEmail(null);
+                  setCountdown(0);
+                }}
+                style={({ pressed }) => [
+                  styles.secondaryLinkRow,
+                  pressed ? styles.linkPressed : null,
+                ]}
+              >
+                <Text style={styles.secondaryLinkText}>שינוי כתובת אימייל</Text>
+              </Pressable>
+            ) : null}
+
+            {isOtpSent ? (
+              <AppTextField
+              appearance="auth"
+              autoComplete="one-time-code"
+              icon={<KeyRound />}
+              keyboardType="number-pad"
+              label="קוד חד-פעמי"
+                maxLength={EMAIL_OTP_MAX_LENGTH}
+                onChangeText={(text) => {
+                  clearError();
+                  setFieldError(null);
+                  setCode(sanitizeOtpInput(text));
+                }}
+                onSubmitEditing={() => {
+                  if (canVerifyCode) {
+                    void handleVerifyCode();
+                  }
+                }}
+                placeholder="הזינו את הקוד שנשלח למייל"
+                returnKeyType="done"
+                textAlign="right"
+                textContentType="oneTimeCode"
+                value={code}
+                writingDirection="ltr"
+              />
+            ) : null}
+
+            <View style={styles.actions}>
+              {!isOtpSent ? (
+                <AuthSubmitButton
+                  compact
+                  disabled={!canSendCode}
+                  label="שלח קוד למייל"
+                  loading={isSendingCode}
+                  loadingLabel="שולח קוד..."
+                  onPress={() => {
+                    void handleSendCode();
+                  }}
+                />
+              ) : (
+                <>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={countdown > 0 || isBusy}
+                    onPress={() => {
+                      void handleSendCode();
+                    }}
+                    style={({ pressed }) => [
+                      styles.secondaryLinkRow,
+                      pressed ? styles.linkPressed : null,
+                      countdown > 0 || isBusy ? styles.secondaryLinkDisabled : null,
+                    ]}
+                  >
+                    <Text style={styles.secondaryLinkText}>
+                      {countdown > 0
+                        ? `שלח קוד מחדש בעוד ${countdown} שניות`
+                        : 'שלח קוד מחדש'}
+                    </Text>
+                  </Pressable>
+
+                  <AuthSubmitButton
+                    compact
+                    disabled={!canVerifyCode}
+                    label="אמת והיכנס"
+                    loading={isVerifyingCode}
+                    loadingLabel="מאמת..."
+                    onPress={() => {
+                      void handleVerifyCode();
+                    }}
+                  />
+                </>
+              )}
+            </View>
+          </>
+        )}
       </View>
     </AuthScreenShell>
   );
@@ -210,88 +468,20 @@ export function LoginForm() {
 const styles = createThemedStyles((theme: AppTheme) => ({
   actions: {
     gap: 10,
-    marginTop: 2,
   },
-  brandContent: {
-    alignItems: 'center',
-    gap: 5,
-    maxWidth: 384,
+  errorBanner: {
+    backgroundColor: theme.colors.dangerSurface,
+    borderColor: theme.colors.danger,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
   },
-  brandGlowCore: {
-    backgroundColor: theme.colors.glowMuted,
-    borderRadius: 220,
-    height: 180,
-    opacity: 0.7,
-    position: 'absolute',
-    top: 8,
-    width: 240,
-  },
-  brandGlowPrimary: {
-    backgroundColor: theme.colors.infoSurface,
-    borderRadius: 180,
-    height: 160,
-    opacity: 0.58,
-    position: 'absolute',
-    right: 18,
-    top: -10,
-    width: 160,
-  },
-  brandGlowSecondary: {
-    backgroundColor: theme.colors.glowStrong,
-    borderRadius: 160,
-    bottom: -8,
-    height: 124,
-    left: 36,
-    opacity: 0.34,
-    position: 'absolute',
-    width: 124,
-  },
-  brandHeader: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 130,
-    overflow: 'hidden',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 2,
-    position: 'relative',
-  },
-  brandLinePrimary: {
-    ...theme.typography.eyebrow,
-    color: theme.colors.accentStrong,
-    fontSize: 20,
-    letterSpacing: 0.2,
-    lineHeight: 24,
-    textAlign: 'center',
-  },
-  brandLineSecondary: {
-    ...theme.typography.display,
-    color: theme.colors.textPrimary,
-    fontSize: 24,
-    lineHeight: 27,
-    textAlign: 'center',
-  },
-  brandSubtitle: {
+  errorText: {
     ...theme.typography.caption,
-    color: theme.colors.textSecondary,
-    lineHeight: 18,
-    maxWidth: 308,
-    textAlign: 'center',
-  },
-  brandTitleGlow: {
-    backgroundColor: theme.colors.infoSurface,
-    borderRadius: 999,
-    height: 78,
-    opacity: 0.72,
-    position: 'absolute',
-    width: 250,
-  },
-  brandTitleWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 38,
-    paddingHorizontal: 16,
-    position: 'relative',
+    color: theme.colors.danger,
+    fontWeight: '700',
+    textAlign: 'right',
   },
   footerContent: {
     alignItems: 'center',
@@ -306,25 +496,40 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   linkRow: {
     alignItems: 'center',
     alignSelf: 'center',
-    flexDirection: 'row-reverse',
-    gap: 6,
+    ...rtlRowReverse,
+    gap: theme.spacing.xs,
   },
   linkText: {
     ...theme.typography.caption,
-    color: theme.colors.textSecondary,
-    fontSize: 13,
-    fontWeight: '700',
+    color: theme.colors.info,
     textAlign: 'center',
+  },
+  secondaryLinkDisabled: {
+    opacity: 0.58,
   },
   secondaryLinkRow: {
     alignItems: 'flex-end',
     alignSelf: 'stretch',
-    marginBottom: 2,
+    marginTop: -2,
   },
   secondaryLinkText: {
     ...theme.typography.caption,
     color: theme.colors.info,
     fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+  successBanner: {
+    backgroundColor: theme.colors.successSurface,
+    borderColor: theme.colors.accentBorder,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+  },
+  successText: {
+    ...theme.typography.caption,
+    color: theme.colors.accentStrong,
     fontWeight: '700',
     textAlign: 'right',
   },

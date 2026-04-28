@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MIN_PASSWORD_LENGTH } from '@/src/features/auth/lib/auth-constants';
 
 export const registerSchema = z
   .object({
@@ -12,7 +13,7 @@ export const registerSchema = z
       .min(2, 'יש להזין שם מלא'),
     password: z
       .string()
-      .min(6, 'יש להזין סיסמה באורך 6 תווים לפחות'),
+      .min(MIN_PASSWORD_LENGTH, `יש להזין סיסמה באורך ${MIN_PASSWORD_LENGTH} תווים לפחות`),
     password_confirmation: z.string().min(1, 'יש לאמת את הסיסמה'),
     requested_role: z.enum([
       'super_admin',

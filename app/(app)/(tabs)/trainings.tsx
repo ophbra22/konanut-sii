@@ -17,6 +17,7 @@ import { canCreateTrainings } from '@/src/features/auth/lib/permissions';
 import type { TrainingListItem } from '@/src/features/trainings/api/trainings-service';
 import { TrainingListCard } from '@/src/features/trainings/components/training-list-card';
 import { useTrainingsQuery } from '@/src/features/trainings/hooks/use-trainings-query';
+import { rtlRow } from '@/src/lib/rtl';
 import { matchesSearchQuery } from '@/src/lib/search-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
@@ -241,7 +242,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   content: {
     gap: theme.spacing.section,
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: theme.spacing.sm,
   },
   list: {
     gap: theme.spacing.sm,
@@ -250,7 +251,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     flex: 1,
   },
   modalChips: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.sm,
   },

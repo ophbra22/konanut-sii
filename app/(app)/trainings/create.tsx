@@ -1,4 +1,6 @@
-import { useRouter } from 'expo-router';
+import dayjs from 'dayjs';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useMemo } from 'react';
 
 import { AppLoader } from '@/src/components/feedback/app-loader';
 import { StateCard } from '@/src/components/feedback/state-card';
@@ -18,6 +20,10 @@ import { toTrainingInsertInput } from '@/src/features/trainings/lib/training-for
 import { useAuthStore } from '@/src/stores/auth-store';
 
 export default function CreateTrainingScreen() {
+  const { date, selectedDate } = useLocalSearchParams<{
+    date?: string;
+    selectedDate?: string;
+  }>();
   const profile = useAuthStore((state) => state.profile);
   const role = useAuthStore((state) => state.role);
   const router = useRouter();
@@ -25,6 +31,25 @@ export default function CreateTrainingScreen() {
   const settlementsQuery = useSettlementsQuery();
   const shouldLoadProfiles = isSuperAdmin(role);
   const profilesQuery = useActiveProfilesQuery(shouldLoadProfiles);
+  const routeSelectedDate = Array.isArray(selectedDate)
+    ? selectedDate[0]
+    : selectedDate ?? (Array.isArray(date) ? date[0] : date);
+  const initialTrainingDate =
+    routeSelectedDate && /^\d{4}-\d{2}-\d{2}$/.test(routeSelectedDate)
+      ? routeSelectedDate
+      : dayjs().format('YYYY-MM-DD');
+  const initialFormValues = useMemo(
+    () =>
+      isSuperAdmin(role) || !profile
+        ? {
+            training_date: initialTrainingDate,
+          }
+        : {
+            instructor_id: profile.id,
+            training_date: initialTrainingDate,
+          },
+    [initialTrainingDate, profile, role]
+  );
 
   if (!canCreateTrainings(role)) {
     return (
@@ -104,13 +129,7 @@ export default function CreateTrainingScreen() {
       <AppCard description="הגדירו פרטי אימון, שיוך יישובים, מדריך וסטטוס." title="פרטי אימון">
         <TrainingForm
           allowEmptyInstructor={isSuperAdmin(role)}
-          initialValues={
-            isSuperAdmin(role) || !profile
-              ? undefined
-              : {
-                  instructor_id: profile.id,
-                }
-          }
+          initialValues={initialFormValues}
           instructorOptions={
             isSuperAdmin(role)
               ? (profilesQuery.data ?? []).map((profileItem) => ({

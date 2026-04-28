@@ -44,6 +44,7 @@ export async function getCalendarOverview(monthKey: string): Promise<CalendarOve
     .select(
       `
         id,
+        end_time,
         title,
         training_type,
         location,

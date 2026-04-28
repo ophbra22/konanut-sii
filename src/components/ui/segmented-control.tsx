@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { rtlRow } from '@/src/lib/rtl';
 import { createThemedStyles, type AppTheme } from '@/src/theme';
 
 type SegmentedOption<T extends string> = {
@@ -79,7 +80,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   segmentContent: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.xs,
     justifyContent: 'center',
   },
@@ -92,7 +93,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderColor: theme.colors.borderStrong,
     borderRadius: 16,
     borderWidth: 1,
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 6,
     padding: 4,
   },

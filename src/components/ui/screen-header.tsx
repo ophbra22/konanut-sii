@@ -34,6 +34,7 @@ export function ScreenHeader({
 const styles = createThemedStyles((theme: AppTheme) => ({
   actions: {
     alignItems: 'center',
+    direction: 'ltr',
     flexDirection: 'row-reverse',
     gap: theme.spacing.xs,
     minHeight: 36,
@@ -43,9 +44,11 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     ...theme.typography.eyebrow,
     color: theme.colors.textMuted,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   row: {
     alignItems: 'flex-start',
+    direction: 'ltr',
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
@@ -53,11 +56,13 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     ...theme.typography.caption,
     color: theme.colors.textDim,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   title: {
     ...theme.typography.screenTitle,
     color: theme.colors.textPrimary,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   titleBlock: {
     alignItems: 'flex-end',

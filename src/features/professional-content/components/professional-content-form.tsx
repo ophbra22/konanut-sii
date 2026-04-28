@@ -16,6 +16,7 @@ import {
   professionalContentFormSchema,
   type ProfessionalContentFormValues,
 } from '@/src/features/professional-content/schemas/professional-content-form-schema';
+import { rtlRow } from '@/src/lib/rtl';
 import { createThemedStyles, type AppTheme } from '@/src/theme';
 
 type ProfessionalContentFormProps = {
@@ -147,7 +148,7 @@ export function ProfessionalContentForm({
             onBlur={onBlur}
             onChangeText={onChange}
             placeholder="https://..."
-            textAlign="left"
+            textAlign="right"
             value={value}
             writingDirection="ltr"
           />
@@ -167,7 +168,7 @@ export function ProfessionalContentForm({
             onBlur={onBlur}
             onChangeText={onChange}
             placeholder="https://..."
-            textAlign="left"
+            textAlign="right"
             value={value ?? ''}
             writingDirection="ltr"
           />
@@ -201,7 +202,7 @@ export function ProfessionalContentForm({
 
 const styles = createThemedStyles((theme: AppTheme) => ({
   chips: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.xs,
   },

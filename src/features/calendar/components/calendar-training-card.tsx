@@ -5,7 +5,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppBadge } from '@/src/components/ui/app-badge';
 import type { CalendarTrainingItem } from '@/src/features/calendar/api/calendar-service';
 import { getTrainingStatusTone } from '@/src/features/trainings/lib/training-presenters';
-import { formatDisplayTime } from '@/src/lib/date-utils';
+import { formatDisplayTimeRange } from '@/src/lib/date-utils';
+import { rtlRow } from '@/src/lib/rtl';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type CalendarTrainingCardProps = {
@@ -45,7 +46,9 @@ export function CalendarTrainingCard({ training }: CalendarTrainingCardProps) {
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
               <Clock3 color={theme.colors.textMuted} size={14} />
-              <Text style={styles.metaText}>{formatDisplayTime(training.training_time)}</Text>
+              <Text style={styles.metaText}>
+                {formatDisplayTimeRange(training.training_time, training.end_time)}
+              </Text>
             </View>
             <View style={styles.metaItem}>
               <MapPinned color={theme.colors.textMuted} size={14} />
@@ -96,13 +99,13 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   footer: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     justifyContent: 'space-between',
   },
   footerItem: {
     alignItems: 'center',
     flex: 1,
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.xs,
   },
   footerText: {
@@ -114,7 +117,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   header: {
     alignItems: 'flex-start',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
     justifyContent: 'space-between',
   },
@@ -125,11 +128,11 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   metaItem: {
     alignItems: 'center',
     flex: 1,
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.xs,
   },
   metaRow: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 8,
   },
   metaText: {

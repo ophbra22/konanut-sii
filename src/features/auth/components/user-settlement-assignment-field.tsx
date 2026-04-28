@@ -1,6 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
-import { AppChip } from '@/src/components/ui/app-chip';
+import { SettlementPicker } from '@/src/components/ui/settlement-picker';
+import { rtlRow } from '@/src/lib/rtl';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 import type { LinkedSettlement } from '@/src/types/database';
 
@@ -30,43 +31,32 @@ export function UserSettlementAssignmentField({
 
       {helperText ? <Text style={styles.helperText}>{helperText}</Text> : null}
 
-      <View style={styles.chips}>
-        {settlements.map((settlement) => {
-          const isSelected = selectedSettlementIds.includes(settlement.id);
+      <SettlementPicker
+        errorMessage={errorMessage}
+        multiple
+        onChange={(nextSettlementIds) => {
+          const nextIdSet = new Set(nextSettlementIds);
+          const currentIdSet = new Set(selectedSettlementIds);
+          const changedIds = new Set([...selectedSettlementIds, ...nextSettlementIds]);
 
-          return (
-            <AppChip
-              key={settlement.id}
-              label={settlement.name}
-              onPress={() => {
-                onToggleSettlement(settlement.id);
-              }}
-              selected={isSelected}
-              tone={isSelected ? 'accent' : 'neutral'}
-            />
-          );
-        })}
-      </View>
-
-      {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+          changedIds.forEach((settlementId) => {
+            if (currentIdSet.has(settlementId) !== nextIdSet.has(settlementId)) {
+              onToggleSettlement(settlementId);
+            }
+          });
+        }}
+        placeholder="בחר יישובים"
+        selectedSettlementIds={selectedSettlementIds}
+        settlements={settlements}
+      />
     </View>
   );
 }
 
 const styles = createThemedStyles((theme: AppTheme) => ({
-  chips: {
-    flexDirection: 'row-reverse',
-    flexWrap: 'wrap',
-    gap: theme.spacing.xs,
-  },
-  error: {
-    ...theme.typography.caption,
-    color: theme.colors.danger,
-    textAlign: 'right',
-  },
   header: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     justifyContent: 'space-between',
   },
   helperText: {
@@ -82,7 +72,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   meta: {
     ...theme.typography.badge,
     color: theme.colors.textDim,
-    textAlign: 'left',
+    textAlign: 'right',
   },
   section: {
     gap: theme.spacing.xs,

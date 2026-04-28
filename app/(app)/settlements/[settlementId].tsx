@@ -34,7 +34,8 @@ import {
 import { getRankingTone } from '@/src/features/rankings/lib/ranking-presenters';
 import { useDeleteSettlementMutation } from '@/src/features/settlements/hooks/use-settlement-mutations';
 import { useSettlementDetailsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
-import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
+import { formatDisplayDate, formatDisplayTimeRange } from '@/src/lib/date-utils';
+import { rtlRow } from '@/src/lib/rtl';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
@@ -229,7 +230,7 @@ export default function SettlementDetailsScreen() {
     isActive: settlement.is_active,
     shootingCompleted: ranking.shootingCompleted,
   });
-  const headerMeta = [settlement.regional_council?.trim(), settlement.area.trim()]
+  const headerMeta = [settlement.councilName?.trim(), settlement.area.trim()]
     .filter(Boolean)
     .join(' • ');
   const coordinatorLine = getCoordinatorLine(
@@ -269,7 +270,7 @@ export default function SettlementDetailsScreen() {
   async function handleShareReport() {
     const reportMessage = [
       `יישוב: ${settlement.name}`,
-      `מועצה: ${settlement.regional_council?.trim() || 'לא הוגדר'}`,
+      `מועצה: ${settlement.councilName?.trim() || 'לא הוגדר'}`,
       `פלגה: ${settlement.area}`,
       `סטטוס: ${headerStatus.label}`,
       `ציון כללי: ${ranking.finalScore}`,
@@ -403,7 +404,7 @@ export default function SettlementDetailsScreen() {
               <Text style={styles.nextTrainingTitle}>{nextTraining.title}</Text>
               <Text style={styles.nextTrainingMeta}>
                 {formatDisplayDate(nextTraining.training_date)} •{' '}
-                {formatDisplayTime(nextTraining.training_time)}
+                {formatDisplayTimeRange(nextTraining.training_time, nextTraining.end_time)}
               </Text>
               <Text style={styles.nextTrainingDescription}>
                 משתתפים: {getSettlementsLabel(
@@ -636,7 +637,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   activityHeader: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.xs,
     justifyContent: 'space-between',
   },
@@ -699,11 +700,11 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   headerSupportItem: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 6,
   },
   headerSupportRow: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.md,
   },
@@ -726,7 +727,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   headerTopRow: {
     alignItems: 'flex-start',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
     justifyContent: 'space-between',
   },
@@ -752,7 +753,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     textAlign: 'center',
   },
   kpiStrip: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
     paddingHorizontal: theme.spacing.md,
     paddingVertical: 14,
@@ -765,7 +766,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     textAlign: 'center',
   },
   nextTrainingActions: {
-    alignItems: 'flex-start',
+    alignItems: 'flex-end',
     marginTop: theme.spacing.xs,
   },
   nextTrainingCard: {
@@ -799,7 +800,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     paddingTop: theme.spacing.xs,
   },
   secondaryActionsRow: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
   },
   sectionTitle: {
@@ -810,7 +811,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   sectionTitleRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.xs,
   },
   statusCard: {
@@ -819,7 +820,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     paddingVertical: theme.spacing.md,
   },
   statusCardTopRow: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.md,
   },
   statusContent: {
@@ -849,7 +850,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   statusIndicatorRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     justifyContent: 'space-between',
   },
   statusIndicatorTextBlock: {
@@ -909,7 +910,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   statusTitleRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.xs,
     justifyContent: 'space-between',
     marginBottom: 2,

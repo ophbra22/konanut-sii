@@ -23,6 +23,10 @@ const trainingSettlementAttendanceSchema = z.object({
 export const trainingFormSchema = z
   .object({
     instructor_id: z.string().optional(),
+    end_time: z
+      .string()
+      .optional()
+      .refine((value) => !value || timeRegex.test(value), 'יש להזין שעה בפורמט HH:MM'),
     location: z.string().trim().optional(),
     notes: z.string().trim().optional(),
     settlement_attendance: z.array(trainingSettlementAttendanceSchema),
@@ -96,6 +100,14 @@ export const trainingFormSchema = z
         });
       }
     });
+
+    if (values.training_time && values.end_time && values.end_time <= values.training_time) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'שעת הסיום חייבת להיות אחרי שעת ההתחלה',
+        path: ['end_time'],
+      });
+    }
   });
 
 export type TrainingFormValues = z.infer<typeof trainingFormSchema>;

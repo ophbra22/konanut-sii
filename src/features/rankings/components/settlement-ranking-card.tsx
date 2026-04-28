@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 
 import { ListCard } from '@/src/components/ui/list-card';
 import type { SettlementRankingListItem } from '@/src/features/rankings/api/rankings-service';
+import { rtlRow, rtlRowReverse } from '@/src/lib/rtl';
 import { createThemedStyles, type AppTheme } from '@/src/theme';
 
 type SettlementRankingCardProps = {
@@ -25,12 +26,16 @@ function getScoreTone(score: number) {
   return 'danger' as const;
 }
 
+function getParticipationLabel(value: number | null) {
+  return value === null ? 'אין נתון' : `${value}%`;
+}
+
 export function SettlementRankingCard({
   ranking,
 }: SettlementRankingCardProps) {
   const router = useRouter();
   const scoreTone = getScoreTone(ranking.finalScore);
-  const subtitle = [ranking.regionalCouncil?.trim(), ranking.area?.trim()]
+  const subtitle = [ranking.councilName?.trim(), ranking.area?.trim()]
     .filter(Boolean)
     .join(' • ');
 
@@ -44,7 +49,62 @@ export function SettlementRankingCard({
         </View>
       }
       footer={
-        <View style={styles.bottomRow}>
+        <View style={styles.footer}>
+          <View style={styles.metricsGrid}>
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>מועצה</Text>
+              <Text numberOfLines={1} style={styles.metricValue}>
+                {ranking.councilName?.trim() || 'לא הוגדר'}
+              </Text>
+            </View>
+
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>מטווח חציוני</Text>
+              <Text
+                style={[
+                  styles.metricValue,
+                  ranking.medianRangeParticipationPercent !== null &&
+                  ranking.medianRangeParticipationPercent >= 70
+                    ? styles.positive
+                    : styles.negative,
+                ]}
+              >
+                {getParticipationLabel(ranking.medianRangeParticipationPercent)}
+              </Text>
+            </View>
+
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>הגנת יישוב</Text>
+              <Text
+                style={[
+                  styles.metricValue,
+                  ranking.settlementDefenseParticipationPercent !== null &&
+                  ranking.settlementDefenseParticipationPercent >= 70
+                    ? styles.positive
+                    : styles.negative,
+                ]}
+              >
+                {getParticipationLabel(ranking.settlementDefenseParticipationPercent)}
+              </Text>
+            </View>
+
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>ציון בסיס</Text>
+              <Text style={styles.metricValue}>{ranking.baseScore}</Text>
+            </View>
+
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>תוספת משוב מדריך</Text>
+              <Text style={styles.metricValue}>{ranking.instructorFeedbackPoints}</Text>
+            </View>
+
+            <View style={styles.metricItem}>
+              <Text style={styles.metricLabel}>ציון סופי</Text>
+              <Text style={styles.metricValueStrong}>{ranking.finalScore}</Text>
+            </View>
+          </View>
+
+          <View style={styles.bottomRow}>
           {subtitle ? (
             <Text numberOfLines={1} style={styles.meta}>
               {subtitle}
@@ -77,6 +137,7 @@ export function SettlementRankingCard({
             </View>
           </View>
         </View>
+        </View>
       }
       onPress={() => {
         router.push(`/settlements/${ranking.settlementId}` as never);
@@ -90,16 +151,19 @@ export function SettlementRankingCard({
 const styles = createThemedStyles((theme: AppTheme) => ({
   bottomRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
     justifyContent: 'space-between',
   },
   card: {
     minHeight: 60,
   },
+  footer: {
+    gap: theme.spacing.sm,
+  },
   indicator: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRowReverse,
     gap: 3,
   },
   indicatorLabel: {
@@ -114,10 +178,37 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   indicators: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexShrink: 0,
     gap: 8,
     justifyContent: 'flex-end',
+  },
+  metricItem: {
+    gap: 3,
+    minWidth: '31%',
+  },
+  metricLabel: {
+    ...theme.typography.caption,
+    color: theme.colors.textMuted,
+    textAlign: 'right',
+  },
+  metricValue: {
+    ...theme.typography.badge,
+    color: theme.colors.textPrimary,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+  metricValueStrong: {
+    ...theme.typography.badge,
+    color: theme.colors.textPrimary,
+    fontSize: 12,
+    fontWeight: '900',
+    textAlign: 'right',
+  },
+  metricsGrid: {
+    ...rtlRow,
+    flexWrap: 'wrap',
+    gap: theme.spacing.sm,
   },
   meta: {
     ...theme.typography.badge,

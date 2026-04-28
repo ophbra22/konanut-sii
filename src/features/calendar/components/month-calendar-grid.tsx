@@ -8,6 +8,7 @@ import {
   isSameCalendarDay,
   isSameCalendarMonth,
 } from '@/src/features/calendar/lib/calendar-utils';
+import { rtlRow } from '@/src/lib/rtl';
 import type { TrainingStatus } from '@/src/types/database';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
@@ -148,7 +149,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     color: theme.colors.background,
   },
   grid: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     rowGap: 12,
   },
@@ -162,12 +163,12 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   indicators: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 4,
     minHeight: 8,
   },
   weekHeader: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     marginBottom: 12,
   },
   weekday: {

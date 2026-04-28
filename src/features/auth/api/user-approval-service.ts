@@ -20,12 +20,8 @@ export type ManagedUserProfile = UserProfile & {
 };
 
 const fullProfileSelect =
-  'id, full_name, email, phone, requested_role, requested_area, assigned_plaga, deletion_requested_at, role, is_active, created_at';
+  'id, full_name, email, phone, requested_role, requested_area, requested_settlement_id, requested_council_id, requested_plaga_id, approval_status, approved_by, approved_at, rejected_at, rejection_reason, assigned_plaga, deletion_requested_at, role, is_active, created_at';
 const legacyProfileSelect = 'id, full_name, email, phone, role, is_active, created_at';
-const deletionRequestedProfileSelect =
-  'id, full_name, email, phone, assigned_plaga, deletion_requested_at, role, is_active, created_at';
-const deletionRequestedLegacyProfileSelect =
-  'id, full_name, email, phone, deletion_requested_at, role, is_active, created_at';
 const settlementLinksSelect = `
   user_id,
   settlement:settlements (
@@ -43,6 +39,14 @@ function shouldFallbackToLegacyProfileSelect(error: unknown) {
   return (
     message.includes('requested_role') ||
     message.includes('requested_area') ||
+    message.includes('requested_settlement_id') ||
+    message.includes('requested_council_id') ||
+    message.includes('requested_plaga_id') ||
+    message.includes('approval_status') ||
+    message.includes('approved_by') ||
+    message.includes('approved_at') ||
+    message.includes('rejected_at') ||
+    message.includes('rejection_reason') ||
     message.includes('assigned_plaga') ||
     message.includes('deletion_requested_at') ||
     message.includes('column') ||
@@ -71,10 +75,18 @@ function normalizeLegacyProfile<T extends {
 }>(profile: T): PendingUserProfile {
   return {
     ...profile,
+    approval_status: profile.is_active ? 'approved' : 'pending_approval',
     assigned_plaga: null,
+    approved_at: null,
+    approved_by: null,
     deletion_requested_at: null,
+    rejected_at: null,
+    rejection_reason: null,
     requested_area: null,
+    requested_council_id: null,
+    requested_plaga_id: null,
     requested_role: null,
+    requested_settlement_id: null,
   };
 }
 
@@ -116,7 +128,7 @@ function assertAccessScopeSelection(params: {
     requiresRegionalCouncilAssignment(params.role) &&
     params.regionalCouncils.length === 0
   ) {
-    throw new Error('יש לבחור לפחות מועצה אזורית אחת עבור מחב״ל או מש״ק אשכול');
+    throw new Error('יש לבחור לפחות מועצה אזורית אחת עבור מחב״ל או מש״ק מועצה');
   }
 
   if (requiresPlagaAssignment(params.role) && !params.assignedPlaga) {
@@ -247,7 +259,8 @@ export async function listPendingUsers(): Promise<PendingUserProfile[]> {
   const { data, error } = await supabase
     .from('users_profile')
     .select(fullProfileSelect)
-    .eq('is_active', false)
+    .eq('approval_status', 'pending_approval')
+    .not('requested_role', 'is', null)
     .order('created_at', { ascending: false });
 
   if (error && shouldFallbackToLegacyProfileSelect(error)) {
@@ -271,83 +284,6 @@ export async function listPendingUsers(): Promise<PendingUserProfile[]> {
   return data ?? [];
 }
 
-export async function listDeletionRequestedUsers(): Promise<UserProfile[]> {
-  const { data, error } = await supabase
-    .from('users_profile')
-    .select(deletionRequestedProfileSelect)
-    .not('deletion_requested_at', 'is', null)
-    .order('deletion_requested_at', { ascending: false });
-
-  if (error && shouldFallbackToLegacyProfileSelect(error)) {
-    const { data: legacyData, error: legacyError } = await supabase
-      .from('users_profile')
-      .select(deletionRequestedLegacyProfileSelect)
-      .not('deletion_requested_at', 'is', null)
-      .order('deletion_requested_at', { ascending: false });
-
-    if (legacyError) {
-      throw createDataAccessError(legacyError, 'לא ניתן לטעון את בקשות מחיקת החשבון');
-    }
-
-    return (legacyData ?? []).map((item) => ({
-      ...item,
-      assigned_plaga: null,
-      requested_area: null,
-      requested_role: null,
-    }));
-  }
-
-  if (error) {
-    throw createDataAccessError(error, 'לא ניתן לטעון את בקשות מחיקת החשבון');
-  }
-
-  return (data ?? []).map((item) => ({
-    ...item,
-    requested_area: null,
-    requested_role: null,
-  }));
-}
-
-export async function deleteRequestedUserAccount(userId: string) {
-  const { error } = await supabase.rpc('admin_delete_requested_user_account', {
-    target_user_id: userId,
-  });
-
-  if (!error) {
-    return;
-  }
-
-  const message = getErrorMessage(error, '');
-
-  if (message.includes('deletion_request_not_found')) {
-    throw new Error('לא נמצאה בקשת מחיקת חשבון פעילה עבור המשתמש');
-  }
-
-  if (message.includes('cannot_delete_current_session')) {
-    throw new Error('לא ניתן למחוק את החשבון שממנו את/ה מחובר/ת כרגע');
-  }
-
-  if (message.includes('not_authorized')) {
-    throw new Error('אין לך הרשאה למחוק את החשבון הזה');
-  }
-
-  if (message.includes('profile_not_found')) {
-    throw new Error('המשתמש כבר לא זמין למחיקה');
-  }
-
-  if (
-    message.includes('admin_delete_requested_user_account') ||
-    message.includes('function public.admin_delete_requested_user_account') ||
-    message.includes('Could not find the function')
-  ) {
-    throw new Error(
-      'פונקציית מחיקת המשתמש עדיין לא הותקנה בשרת. צריך להחיל את מיגרציית המחיקה ב-Supabase.'
-    );
-  }
-
-  throw createDataAccessError(error, 'לא ניתן למחוק את המשתמש כרגע');
-}
-
 export async function approvePendingUser(params: {
   assignedPlaga?: string | null;
   regionalCouncils?: string[];
@@ -355,6 +291,7 @@ export async function approvePendingUser(params: {
   settlementIds?: string[];
   userId: string;
 }) {
+  const { data: currentUser } = await supabase.auth.getUser();
   const settlementIds = requiresSettlementAssignment(params.role)
     ? normalizeSettlementIds(params.settlementIds)
     : [];
@@ -376,9 +313,17 @@ export async function approvePendingUser(params: {
     .from('users_profile')
     .update({
       assigned_plaga: assignedPlaga,
+      approval_status: 'approved',
+      approved_at: new Date().toISOString(),
+      approved_by: currentUser.user?.id ?? null,
       is_active: true,
+      rejected_at: null,
+      rejection_reason: null,
       requested_area: null,
+      requested_council_id: null,
+      requested_plaga_id: null,
       requested_role: null,
+      requested_settlement_id: null,
       role: params.role,
     })
     .eq('id', params.userId);
@@ -398,9 +343,15 @@ export async function rejectPendingUser(userId: string) {
     .from('users_profile')
     .update({
       assigned_plaga: null,
+      approval_status: 'rejected',
       is_active: false,
+      rejected_at: new Date().toISOString(),
+      rejection_reason: null,
       requested_area: null,
+      requested_council_id: null,
+      requested_plaga_id: null,
       requested_role: null,
+      requested_settlement_id: null,
     })
     .eq('id', userId);
 
@@ -500,11 +451,13 @@ export async function listManagedUsers(): Promise<ManagedUserProfile[]> {
 
 export async function updateManagedUserAccess(params: {
   assignedPlaga?: string | null;
+  fullName: string;
   regionalCouncils?: string[];
   role: UserRole;
   settlementIds?: string[];
   userId: string;
 }) {
+  const fullName = params.fullName.trim();
   const settlementIds = requiresSettlementAssignment(params.role)
     ? normalizeSettlementIds(params.settlementIds)
     : [];
@@ -522,10 +475,15 @@ export async function updateManagedUserAccess(params: {
     settlementIds,
   });
 
+  if (fullName.length < 2) {
+    throw new Error('יש להזין שם משתמש');
+  }
+
   const { error } = await supabase
     .from('users_profile')
     .update({
       assigned_plaga: assignedPlaga,
+      full_name: fullName,
       role: params.role,
     })
     .eq('id', params.userId);
@@ -538,4 +496,48 @@ export async function updateManagedUserAccess(params: {
     replaceUserSettlementAssignments(params.userId, settlementIds),
     replaceUserRegionalCouncilAssignments(params.userId, regionalCouncils),
   ]);
+}
+
+function translateAdminDeleteUserError(error: unknown) {
+  const message = getErrorMessage(error, 'לא ניתן למחוק את המשתמש כרגע');
+
+  if (message.includes('not_authenticated')) {
+    return 'יש להתחבר מחדש לפני מחיקת משתמשים';
+  }
+
+  if (message.includes('not_authorized')) {
+    return 'אין לך הרשאה למחוק משתמשים';
+  }
+
+  if (message.includes('cannot_delete_current_session')) {
+    return 'לא ניתן למחוק את המשתמש שממנו מחוברים כרגע';
+  }
+
+  if (message.includes('user_not_found') || message.includes('profile_not_found')) {
+    return 'המשתמש כבר לא קיים במערכת';
+  }
+
+  if (
+    message.includes('admin_delete_user_account') ||
+    message.includes('Could not find the function') ||
+    message.includes('schema cache')
+  ) {
+    return 'פונקציית מחיקת המשתמש עדיין לא הותקנה ב-Supabase. יש להריץ את המיגרציה האחרונה.';
+  }
+
+  return message || 'לא ניתן למחוק את המשתמש כרגע';
+}
+
+export async function deleteManagedUserAccount(userId: string) {
+  if (!userId) {
+    throw new Error('לא נבחר משתמש למחיקה');
+  }
+
+  const { error } = await supabase.rpc('admin_delete_user_account', {
+    target_user_id: userId,
+  });
+
+  if (error) {
+    throw new Error(translateAdminDeleteUserError(error));
+  }
 }

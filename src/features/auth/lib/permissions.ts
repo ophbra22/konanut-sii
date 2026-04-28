@@ -34,8 +34,8 @@ const roleDefinitions: Record<UserRole, RoleDefinition> = {
   eshkol_officer: {
     description:
       'צפייה בכל היישובים והדירוגים, ובאימונים של המועצות האזוריות המשויכות בלבד.',
-    label: 'מש״ק אשכול',
-    shortLabel: 'מש״ק אשכול',
+    label: 'מש״ק מועצה',
+    shortLabel: 'מש״ק מועצה',
     scope: 'regional_councils',
   },
   mashkabat: {
@@ -178,6 +178,10 @@ export function canManageUserApprovals(role: UserRole | null) {
 
 export function canManageTrainings(role: UserRole | null) {
   return canManageOperationalData(role);
+}
+
+export function canDeleteTrainings(role: UserRole | null) {
+  return isSuperAdmin(role);
 }
 
 export function canManageProfessionalContent(role: UserRole | null) {

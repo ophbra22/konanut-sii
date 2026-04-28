@@ -35,7 +35,7 @@ export function StatusBadge({
 const styles = createThemedStyles((theme: AppTheme) => ({
   base: {
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-end',
     borderRadius: theme.radius.pill,
     borderWidth: 1,
     justifyContent: 'center',

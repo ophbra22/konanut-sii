@@ -1,8 +1,10 @@
+import { Platform } from 'react-native';
+
+import { getPasswordMinLengthMessage } from '@/src/features/auth/lib/auth-constants';
 import { getErrorMessage } from '@/src/lib/error-utils';
 import { supabase } from '@/src/lib/supabase';
 import { translateAuthError } from '@/src/features/auth/api/profile-service';
 
-const PASSWORD_RESET_REDIRECT_URL = 'konanut-sii://reset-password';
 const handledRecoveryLinks = new Set<string>();
 
 type PasswordRecoveryResult =
@@ -36,11 +38,23 @@ function getPasswordResetErrorMessage(error: unknown, fallbackMessage: string) {
 
   const translatedMessage = translateAuthError(error);
 
+  if (/Password should be at least/i.test(rawMessage) || /Password is too short/i.test(rawMessage)) {
+    return getPasswordMinLengthMessage();
+  }
+
   if (translatedMessage === rawMessage && /[A-Za-z]/.test(rawMessage)) {
     return fallbackMessage;
   }
 
   return translatedMessage || fallbackMessage;
+}
+
+function getPasswordResetRedirectUrl() {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return new URL('/reset-password', window.location.origin).toString();
+  }
+
+  return 'konanut-sii://reset-password';
 }
 
 function getUrlMetadata(url: string) {
@@ -87,7 +101,7 @@ export function isPasswordRecoveryLink(url: string) {
 
 export async function requestPasswordReset(email: string) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: PASSWORD_RESET_REDIRECT_URL,
+    redirectTo: getPasswordResetRedirectUrl(),
   });
 
   if (error) {

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { AppBadge } from '@/src/components/ui/app-badge';
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppChip } from '@/src/components/ui/app-chip';
+import { AppTextField } from '@/src/components/ui/app-text-field';
 import { DataRow } from '@/src/components/ui/data-row';
 import { UserPlagaAssignmentField } from '@/src/features/auth/components/user-plaga-assignment-field';
 import { UserRegionalCouncilAssignmentField } from '@/src/features/auth/components/user-regional-council-assignment-field';
@@ -17,14 +18,19 @@ import {
   requiresSettlementAssignment,
 } from '@/src/features/auth/lib/permissions';
 import { formatDisplayDate } from '@/src/lib/date-utils';
+import { rtlRow } from '@/src/lib/rtl';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 import type { ManagedUserProfile } from '@/src/features/auth/api/user-approval-service';
 import type { LinkedSettlement, UserRole } from '@/src/types/database';
 
 type ManagedUserAccessCardProps = {
+  canDelete?: boolean;
+  isDeleting?: boolean;
   isSaving?: boolean;
+  onDelete?: () => void;
   onSave: (payload: {
     assignedPlaga: string | null;
+    fullName: string;
     regionalCouncils: string[];
     role: UserRole;
     settlementIds: string[];
@@ -36,13 +42,17 @@ type ManagedUserAccessCardProps = {
 };
 
 export function ManagedUserAccessCard({
+  canDelete = false,
+  isDeleting = false,
   isSaving = false,
+  onDelete,
   onSave,
   plagaOptions,
   regionalCouncilOptions,
   settlementOptions,
   user,
 }: ManagedUserAccessCardProps) {
+  const [fullName, setFullName] = useState(user.full_name);
   const [selectedRole, setSelectedRole] = useState<UserRole>(user.role);
   const [selectedPlaga, setSelectedPlaga] = useState<string | null>(
     user.assigned_plaga ?? null
@@ -53,13 +63,17 @@ export function ManagedUserAccessCard({
   const [selectedSettlementIds, setSelectedSettlementIds] = useState<string[]>(
     user.linkedSettlementIds
   );
+  const [nameError, setNameError] = useState<string | null>(null);
   const [assignmentError, setAssignmentError] = useState<string | null>(null);
+  const displayName = fullName.trim() || user.full_name;
 
   useEffect(() => {
+    setFullName(user.full_name);
     setSelectedRole(user.role);
     setSelectedPlaga(user.assigned_plaga ?? null);
     setSelectedRegionalCouncils(user.linkedRegionalCouncils);
     setSelectedSettlementIds(user.linkedSettlementIds);
+    setNameError(null);
     setAssignmentError(null);
   }, [user]);
 
@@ -85,7 +99,7 @@ export function ManagedUserAccessCard({
         </View>
 
         <Text numberOfLines={1} style={styles.title}>
-          {user.full_name}
+          {displayName}
         </Text>
       </View>
 
@@ -95,6 +109,18 @@ export function ManagedUserAccessCard({
         {user.assigned_plaga ? <DataRow label="פלגה" value={user.assigned_plaga} /> : null}
         <DataRow label="נוצר" value={formatDisplayDate(user.created_at)} />
       </View>
+
+      <AppTextField
+        errorMessage={nameError ?? undefined}
+        label="שם משתמש"
+        onChangeText={(value) => {
+          setNameError(null);
+          setFullName(value);
+        }}
+        placeholder="שם מלא"
+        returnKeyType="done"
+        value={fullName}
+      />
 
       <View style={styles.roleSection}>
         <Text style={styles.sectionLabel}>תפקיד פעיל</Text>
@@ -147,7 +173,7 @@ export function ManagedUserAccessCard({
       {requiresRegionalCouncilAssignment(selectedRole) ? (
         <UserRegionalCouncilAssignmentField
           errorMessage={assignmentError ?? undefined}
-          helperText="מחב״ל ומש״ק אשכול חייבים שיוך למועצה אזורית אחת לפחות."
+          helperText="מחב״ל ומש״ק מועצה חייבים שיוך למועצה אזורית אחת לפחות."
           onToggleRegionalCouncil={(regionalCouncil) => {
             setAssignmentError(null);
             setSelectedRegionalCouncils((currentRegionalCouncils) =>
@@ -195,10 +221,17 @@ export function ManagedUserAccessCard({
       ) : null}
 
       <AppButton
-        disabled={isSaving}
+        disabled={isSaving || isDeleting}
         label="שמירת הרשאות"
         loading={isSaving}
         onPress={() => {
+          const normalizedFullName = fullName.trim();
+
+          if (normalizedFullName.length < 2) {
+            setNameError('יש להזין שם משתמש');
+            return;
+          }
+
           if (
             requiresPlagaAssignment(selectedRole) &&
             !selectedPlaga
@@ -219,12 +252,13 @@ export function ManagedUserAccessCard({
             requiresRegionalCouncilAssignment(selectedRole) &&
             selectedRegionalCouncils.length === 0
           ) {
-            setAssignmentError('יש לבחור לפחות מועצה אזורית אחת עבור מחב״ל או מש״ק אשכול');
+            setAssignmentError('יש לבחור לפחות מועצה אזורית אחת עבור מחב״ל או מש״ק מועצה');
             return;
           }
 
           onSave({
             assignedPlaga: requiresPlagaAssignment(selectedRole) ? selectedPlaga : null,
+            fullName: normalizedFullName,
             regionalCouncils: selectedRegionalCouncils,
             role: selectedRole,
             settlementIds: selectedSettlementIds,
@@ -232,13 +266,23 @@ export function ManagedUserAccessCard({
         }}
         variant="secondary"
       />
+
+      {canDelete && onDelete ? (
+        <AppButton
+          disabled={isSaving || isDeleting}
+          label="מחק משתמש"
+          loading={isDeleting}
+          onPress={onDelete}
+          variant="danger"
+        />
+      ) : null}
     </AppCard>
   );
 }
 
 const styles = createThemedStyles((theme: AppTheme) => ({
   badges: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.xs,
   },
@@ -250,12 +294,12 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   headerRow: {
     alignItems: 'flex-start',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
     justifyContent: 'space-between',
   },
   roleChips: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.xs,
   },

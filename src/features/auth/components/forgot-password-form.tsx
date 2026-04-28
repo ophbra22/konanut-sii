@@ -15,6 +15,7 @@ import {
   type ForgotPasswordFormValues,
 } from '@/src/features/auth/schemas/forgot-password-schema';
 import { getPresentableErrorMessage } from '@/src/lib/error-utils';
+import { rtlRowReverse } from '@/src/lib/rtl';
 import {
   createThemedStyles,
   theme,
@@ -126,7 +127,7 @@ export function ForgotPasswordForm() {
               }}
               placeholder='הזינו דוא"ל'
               returnKeyType="done"
-              textAlign="left"
+              textAlign="right"
               textContentType="emailAddress"
               value={value}
               writingDirection="ltr"
@@ -164,7 +165,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   linkRow: {
     alignItems: 'center',
     alignSelf: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRowReverse,
     gap: 6,
   },
   linkText: {

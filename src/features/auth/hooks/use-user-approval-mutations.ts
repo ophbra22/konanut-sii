@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 
 import {
   approvePendingUser,
-  deleteRequestedUserAccount,
+  deleteManagedUserAccount,
   rejectPendingUser,
   updateManagedUserAccess,
 } from '@/src/features/auth/api/user-approval-service';
@@ -60,27 +60,6 @@ export function useRejectPendingUserMutation() {
   });
 }
 
-export function useDeleteRequestedUserMutation() {
-  const showToast = useFeedbackStore((state) => state.showToast);
-
-  return useMutation({
-    mutationFn: (userId: string) => deleteRequestedUserAccount(userId),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.deletionRequestedUsers });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.pendingUsers });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.activeProfiles });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.managedUsers });
-      showToast('המשתמש נמחק בהצלחה', 'success');
-    },
-    onError: (error: unknown) => {
-      showToast(
-        error instanceof Error ? error.message : 'לא ניתן למחוק את המשתמש כרגע',
-        'error'
-      );
-    },
-  });
-}
-
 export function useUpdateManagedUserAccessMutation() {
   const showToast = useFeedbackStore((state) => state.showToast);
   const refreshProfile = useAuthStore((state) => state.refreshProfile);
@@ -88,12 +67,14 @@ export function useUpdateManagedUserAccessMutation() {
   return useMutation({
     mutationFn: ({
       assignedPlaga,
+      fullName,
       regionalCouncils,
       role,
       settlementIds,
       userId,
     }: {
       assignedPlaga?: string | null;
+      fullName: string;
       regionalCouncils?: string[];
       role: UserRole;
       settlementIds?: string[];
@@ -101,6 +82,7 @@ export function useUpdateManagedUserAccessMutation() {
     }) =>
       updateManagedUserAccess({
         assignedPlaga,
+        fullName,
         regionalCouncils,
         role,
         settlementIds,
@@ -112,6 +94,26 @@ export function useUpdateManagedUserAccessMutation() {
       void queryClient.invalidateQueries({ queryKey: queryKeys.auth.profile });
       await refreshProfile();
       showToast('הרשאות המשתמש עודכנו בהצלחה', 'success');
+    },
+  });
+}
+
+export function useDeleteManagedUserMutation() {
+  const showToast = useFeedbackStore((state) => state.showToast);
+
+  return useMutation({
+    mutationFn: (userId: string) => deleteManagedUserAccount(userId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.activeProfiles });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.managedUsers });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.auth.pendingUsers });
+      showToast('המשתמש נמחק בהצלחה', 'success');
+    },
+    onError: (error) => {
+      showToast(
+        error instanceof Error ? error.message : 'לא ניתן למחוק את המשתמש כרגע',
+        'error'
+      );
     },
   });
 }

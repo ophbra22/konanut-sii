@@ -1,10 +1,11 @@
 import { z } from 'zod';
+import { MIN_PASSWORD_LENGTH } from '@/src/features/auth/lib/auth-constants';
 
 export const resetPasswordSchema = z
   .object({
     password: z
       .string()
-      .min(6, 'יש להזין סיסמה באורך 6 תווים לפחות'),
+      .min(MIN_PASSWORD_LENGTH, `יש להזין סיסמה באורך ${MIN_PASSWORD_LENGTH} תווים לפחות`),
     password_confirmation: z.string().min(1, 'יש לאמת את הסיסמה'),
   })
   .superRefine((values, context) => {
@@ -18,4 +19,3 @@ export const resetPasswordSchema = z
   });
 
 export type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
-

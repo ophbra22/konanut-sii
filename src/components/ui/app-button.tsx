@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router/build/hooks';
+import { useRouter } from 'expo-router';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { Pressable, StyleSheet, Text } from 'react-native';
 

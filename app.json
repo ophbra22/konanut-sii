@@ -30,7 +30,8 @@
       "bundleIdentifier": "com.konanut.sia",
       "buildNumber": "1.0.0",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCalendarsUsageDescription": "האפליקציה משתמשת ביומן כדי להוסיף אימונים שהמשתמש בוחר לשמור ביומן המכשיר."
       },
       "supportsTablet": false
     },
@@ -38,7 +39,9 @@
       "package": "com.konanut.sia",
       "permissions": [
         "READ_CALENDAR",
-        "WRITE_CALENDAR"
+        "WRITE_CALENDAR",
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -48,7 +51,18 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "name": "Konanut",
+      "shortName": "Konanut",
+      "display": "standalone",
+      "favicon": "./assets/favicon.png",
+      "backgroundColor": "#070B0D",
+      "themeColor": "#070B0D"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "853568e9-9482-4c77-84e2-240e98d14071"
+      }
     }
   }
 }

@@ -45,6 +45,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderColor: theme.colors.borderStrong,
     borderRadius: theme.radius.xl,
     borderWidth: 1,
+    direction: 'ltr',
     gap: theme.spacing.xs,
   },
   compact: {

@@ -4,11 +4,11 @@ import { PLAGA_VALUES } from '@/src/lib/plaga';
 
 export const settlementFormSchema = z.object({
   area: z.enum(PLAGA_VALUES, 'יש לבחור פלגה'),
+  council_id: z.string().trim().nullable(),
   coordinator_name: z.string().trim().optional(),
   coordinator_phone: z.string().trim().optional(),
   is_active: z.boolean(),
   name: z.string().trim().min(2, 'יש להזין שם יישוב'),
-  regional_council: z.string().trim().optional(),
   total_squad_members: z
     .number()
     .int('יש להזין מספר שלם ללא שברים')

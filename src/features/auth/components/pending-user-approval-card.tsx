@@ -17,6 +17,7 @@ import {
   requiresSettlementAssignment,
 } from '@/src/features/auth/lib/permissions';
 import { formatDisplayDate } from '@/src/lib/date-utils';
+import { rtlRow } from '@/src/lib/rtl';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 import type { PendingUserProfile } from '@/src/features/auth/api/user-approval-service';
 import type { LinkedSettlement, UserRole } from '@/src/types/database';
@@ -66,18 +67,27 @@ export function PendingUserApprovalCard({
   user,
 }: PendingUserApprovalCardProps) {
   const [selectedRole, setSelectedRole] = useState<UserRole>(() => getDefaultRole(user));
-  const [selectedPlaga, setSelectedPlaga] = useState<string | null>(user.assigned_plaga ?? null);
+  const [selectedPlaga, setSelectedPlaga] = useState<string | null>(
+    user.requested_plaga_id ?? user.assigned_plaga ?? null
+  );
   const [selectedRegionalCouncils, setSelectedRegionalCouncils] = useState<string[]>([]);
   const [selectedSettlementIds, setSelectedSettlementIds] = useState<string[]>([]);
   const [assignmentError, setAssignmentError] = useState<string | null>(null);
 
   useEffect(() => {
     setSelectedRole(getDefaultRole(user));
-    setSelectedPlaga(user.assigned_plaga ?? null);
-    setSelectedRegionalCouncils([]);
-    setSelectedSettlementIds([]);
+    setSelectedPlaga(user.requested_plaga_id ?? user.assigned_plaga ?? null);
+    setSelectedRegionalCouncils(
+      user.requested_council_id
+        ? settlementOptions
+            .filter((settlement) => settlement.council_id === user.requested_council_id)
+            .map((settlement) => settlement.regional_council)
+            .filter((regionalCouncil): regionalCouncil is string => Boolean(regionalCouncil))
+        : []
+    );
+    setSelectedSettlementIds(user.requested_settlement_id ? [user.requested_settlement_id] : []);
     setAssignmentError(null);
-  }, [user]);
+  }, [settlementOptions, user]);
 
   useEffect(() => {
     if (
@@ -97,6 +107,13 @@ export function PendingUserApprovalCard({
 
     return `בקשה: ${getRoleLabel(user.requested_role)}`;
   }, [user.requested_role]);
+  const requestedSettlementName = user.requested_settlement_id
+    ? settlementOptions.find((settlement) => settlement.id === user.requested_settlement_id)?.name
+    : null;
+  const requestedCouncilName = user.requested_council_id
+    ? settlementOptions.find((settlement) => settlement.council_id === user.requested_council_id)
+        ?.regional_council
+    : null;
 
   return (
     <AppCard style={styles.card}>
@@ -120,6 +137,16 @@ export function PendingUserApprovalCard({
       <View style={styles.details}>
         <DataRow label="דוא״ל" value={user.email?.trim() || 'לא הוגדר'} />
         <DataRow label="טלפון" value={user.phone?.trim() || 'לא הוגדר'} />
+        <DataRow label="תפקיד מבוקש" value={getRoleLabel(user.requested_role)} />
+        {requestedSettlementName ? (
+          <DataRow label="יישוב מבוקש" value={requestedSettlementName} />
+        ) : null}
+        {requestedCouncilName ? (
+          <DataRow label="מועצה מבוקשת" value={requestedCouncilName} />
+        ) : null}
+        {user.requested_plaga_id ? (
+          <DataRow label="פלגה מבוקשת" value={user.requested_plaga_id} />
+        ) : null}
         {user.assigned_plaga ? <DataRow label="פלגה" value={user.assigned_plaga} /> : null}
         <DataRow label="נרשם" value={formatDisplayDate(user.created_at)} />
       </View>
@@ -175,7 +202,7 @@ export function PendingUserApprovalCard({
       {requiresRegionalCouncilAssignment(selectedRole) ? (
         <UserRegionalCouncilAssignmentField
           errorMessage={assignmentError ?? undefined}
-          helperText="למחב״ל ולמש״ק אשכול חייבת להיות לפחות מועצה אזורית אחת משויכת."
+          helperText="למחב״ל ולמש״ק מועצה חייבת להיות לפחות מועצה אזורית אחת משויכת."
           onToggleRegionalCouncil={(regionalCouncil) => {
             setAssignmentError(null);
             setSelectedRegionalCouncils((currentRegionalCouncils) =>
@@ -246,12 +273,12 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     flex: 1,
   },
   actions: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
   },
   badges: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.xs,
     justifyContent: 'flex-start',
@@ -264,12 +291,12 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   headerRow: {
     alignItems: 'flex-start',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
     justifyContent: 'space-between',
   },
   roleChips: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.xs,
   },

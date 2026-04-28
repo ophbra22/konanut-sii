@@ -7,6 +7,7 @@ import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import { getProfessionalContentTypeLabel } from '@/src/features/professional-content/constants';
 import type { ProfessionalContentListItem } from '@/src/features/professional-content/api/professional-content-service';
+import { rtlRow, rtlRowReverse } from '@/src/lib/rtl';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type ProfessionalContentCardProps = {
@@ -143,13 +144,13 @@ export function ProfessionalContentCard({
 
 const styles = createThemedStyles((theme: AppTheme) => ({
   actionsRow: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.xs,
     justifyContent: 'flex-start',
   },
   badgesRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.xs,
     justifyContent: 'flex-end',
@@ -174,13 +175,13 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   metaRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.xs,
     justifyContent: 'space-between',
   },
   manageLink: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRowReverse,
     gap: 4,
     paddingHorizontal: 2,
     paddingVertical: 2,
@@ -229,7 +230,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   topRow: {
     alignItems: 'flex-start',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
   },
 }));

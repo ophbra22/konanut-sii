@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 
 import { AppButton } from '@/src/components/ui/app-button';
+import { rtlRow } from '@/src/lib/rtl';
 import {
   createThemedStyles,
   theme,
@@ -241,7 +242,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderColor: theme.colors.borderStrong,
     borderRadius: theme.radius.xl,
     borderWidth: 1,
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
     justifyContent: 'space-between',
     minHeight: 46,
@@ -274,7 +275,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   modalActions: {
     borderTopColor: theme.colors.separator,
     borderTopWidth: 1,
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
     paddingTop: theme.spacing.sm,
   },
@@ -321,7 +322,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     color: theme.colors.textMuted,
   },
   selectedDateBadge: {
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-start',
     backgroundColor: theme.colors.infoSurface,
     borderColor: theme.colors.infoBorder,
     borderRadius: theme.radius.pill,
@@ -338,7 +339,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     ...theme.typography.body,
     color: theme.colors.textPrimary,
     flex: 1,
-    textAlign: 'left',
+    textAlign: 'right',
     writingDirection: 'ltr',
   },
   wrapper: {

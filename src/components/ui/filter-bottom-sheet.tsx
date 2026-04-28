@@ -1,6 +1,7 @@
 import type { PropsWithChildren, ReactNode } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { rtlRow } from '@/src/lib/rtl';
 import { createThemedStyles, type AppTheme } from '@/src/theme';
 
 type FilterBottomSheetProps = PropsWithChildren<{
@@ -48,7 +49,7 @@ export function FilterBottomSheet({
 
 const styles = createThemedStyles((theme: AppTheme) => ({
   actions: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
     marginTop: theme.spacing.sm,
   },

@@ -9,6 +9,7 @@ import {
 } from '@/src/components/ui/app-button';
 import { AppScreen } from '@/src/components/ui/app-screen';
 import { PageHeader } from '@/src/components/ui/page-header';
+import { rtlRow } from '@/src/lib/rtl';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type MetricTone = 'accent' | 'danger' | 'default' | 'warning';
@@ -107,7 +108,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   listItem: {
     alignItems: 'flex-start',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
   },
   listText: {
@@ -133,7 +134,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     textAlign: 'right',
   },
   metricsGrid: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.md,
   },

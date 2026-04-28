@@ -1,4 +1,4 @@
-import dayjs from 'dayjs';
+import dayjs, { type Dayjs } from 'dayjs';
 import * as Calendar from 'expo-calendar';
 import { Platform } from 'react-native';
 
@@ -58,6 +58,18 @@ function buildTrainingStartDate(training: TrainingDetails) {
   }
 
   return dayjs(`${training.training_date}T${training.training_time}`);
+}
+
+function buildTrainingEndDate(training: TrainingDetails, startDate: Dayjs) {
+  if (training.end_time) {
+    const endDate = dayjs(`${training.training_date}T${training.end_time}`);
+
+    if (endDate.isAfter(startDate)) {
+      return endDate;
+    }
+  }
+
+  return startDate.add(DEFAULT_EVENT_DURATION_MINUTES, 'minute');
 }
 
 function buildTrainingNotes(training: TrainingDetails) {
@@ -177,7 +189,7 @@ export async function addTrainingToDeviceCalendar(training: TrainingDetails) {
     await ensureCalendarPermission();
     const calendarId = await resolveWritableCalendarId();
     const startDate = buildTrainingStartDate(training);
-    const endDate = startDate.add(DEFAULT_EVENT_DURATION_MINUTES, 'minute');
+    const endDate = buildTrainingEndDate(training, startDate);
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     return await Calendar.createEventAsync(calendarId, {

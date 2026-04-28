@@ -1,5 +1,8 @@
 import { createDataAccessError, getErrorMessage } from '@/src/lib/error-utils';
 import { supabase } from '@/src/lib/supabase';
+import { listCouncils } from '@/src/features/councils/api/councils-service';
+import { normalizeTrainingSettlementAttendance } from '@/src/features/trainings/lib/training-attendance-utils';
+import { listComputedSettlementRankings } from '@/src/features/rankings/api/rankings-service';
 import {
   calculateSettlementRanking,
   getCurrentRankingPeriod,
@@ -7,8 +10,6 @@ import {
 } from '@/src/features/rankings/utils/ranking-calculator';
 import {
   getCurrentHalfYearPeriod,
-  getYearDateRange,
-  isDateInHalfYear,
   type HalfYearPeriod,
 } from '@/src/lib/date-utils';
 import type {
@@ -20,10 +21,13 @@ import type {
   TablesInsert,
   TablesUpdate,
   Training,
+  TrainingSettlementAttendance,
   UserProfile,
 } from '@/src/types/database';
 
 export type SettlementListItem = Settlement & {
+  council: Pick<RegionalCouncil, 'id' | 'name' | 'plaga_name' | 'regional_squad_name'> | null;
+  councilName: string | null;
   defenseCompletedCurrentYear: boolean;
   readinessCalculatedAt: string | null;
   readinessLevel: string | null;
@@ -33,9 +37,10 @@ export type SettlementListItem = Settlement & {
 
 export type SettlementTrainingSummary = Pick<
   Training,
-  'id' | 'status' | 'title' | 'training_date' | 'training_time' | 'training_type'
+  'end_time' | 'id' | 'status' | 'title' | 'training_date' | 'training_time' | 'training_type'
 > & {
   location: string | null;
+  settlement_attendance: TrainingSettlementAttendance[];
   settlements: Array<Pick<Settlement, 'id' | 'name'>>;
 };
 
@@ -55,9 +60,20 @@ export type SettlementAlertSummary = Pick<
 export type SettlementDetails = Settlement & {
   alerts: SettlementAlertSummary[];
   compliance: ComputedSettlementRanking;
+  council: Pick<RegionalCouncil, 'id' | 'name' | 'plaga_name' | 'regional_squad_name'> | null;
+  councilName: string | null;
   feedbacks: SettlementFeedbackSummary[];
   rankings: SettlementRanking[];
   trainings: SettlementTrainingSummary[];
+};
+
+type CouncilSummary = Pick<
+  RegionalCouncil,
+  'id' | 'name' | 'plaga_name' | 'regional_squad_name'
+>;
+
+type SettlementQueryRow = Settlement & {
+  council: CouncilSummary | null;
 };
 
 function shouldIgnoreRegionalCouncilSyncError(error: unknown) {
@@ -70,6 +86,7 @@ function shouldIgnoreRegionalCouncilSyncError(error: unknown) {
 }
 
 async function syncRegionalCouncilPlaga(
+  councilId: string | null | undefined,
   regionalCouncil: string | null | undefined,
   area: string | null | undefined
 ) {
@@ -82,8 +99,11 @@ async function syncRegionalCouncilPlaga(
 
   const { error } = await supabase.from('regional_councils').upsert(
     {
+      id: councilId ?? undefined,
       name: normalizedRegionalCouncil,
       plaga_name: normalizedPlaga as RegionalCouncil['plaga_name'],
+      regional_squad_name: 'כיתת כוננות אזורית',
+      updated_at: new Date().toISOString(),
     },
     {
       onConflict: 'name',
@@ -97,102 +117,41 @@ async function syncRegionalCouncilPlaga(
 
 export async function listSettlements(): Promise<SettlementListItem[]> {
   const currentHalfYear = getCurrentHalfYearPeriod();
-  const currentYearRange = getYearDateRange();
 
   const [
     { data: settlements, error: settlementsError },
-    { data: rankings, error: rankingsError },
-    { data: completedTrainings, error: completedTrainingsError },
+    councils,
+    rankings,
   ] = await Promise.all([
     supabase
       .from('settlements')
       .select('*')
       .order('is_active', { ascending: false })
       .order('name', { ascending: true }),
-    supabase
-      .from('settlement_rankings')
-      .select('settlement_id, final_score, ranking_level, calculated_at')
-      .order('calculated_at', { ascending: false }),
-    supabase
-      .from('trainings')
-      .select(
-        `
-          training_date,
-          training_type,
-          training_settlements (
-            settlement_id
-          )
-        `
-      )
-      .eq('status', 'הושלם')
-      .in('training_type', ['מטווח', 'הגנת יישוב'])
-      .gte('training_date', currentYearRange.start.format('YYYY-MM-DD'))
-      .lte('training_date', currentYearRange.end.format('YYYY-MM-DD')),
+    listCouncils(),
+    listComputedSettlementRankings(currentHalfYear),
   ]);
 
   if (settlementsError) {
     throw createDataAccessError(settlementsError, 'לא ניתן לטעון את רשימת היישובים');
   }
 
-  if (rankingsError) {
-    throw createDataAccessError(rankingsError, 'לא ניתן לטעון את נתוני המוכנות של היישובים');
-  }
+  const rankingBySettlement = new Map(rankings.map((ranking) => [ranking.settlementId, ranking]));
+  const councilById = new Map(councils.map((council) => [council.id, council]));
 
-  if (completedTrainingsError) {
-    throw createDataAccessError(
-      completedTrainingsError,
-      'לא ניתן לטעון את נתוני העמידה בדרישות האימונים'
-    );
-  }
-
-  const latestRankingBySettlement = new Map<
-    string,
-    Pick<
-      SettlementRanking,
-      'calculated_at' | 'final_score' | 'ranking_level' | 'settlement_id'
-    >
-  >();
-
-  (rankings ?? []).forEach((ranking) => {
-    if (!latestRankingBySettlement.has(ranking.settlement_id)) {
-      latestRankingBySettlement.set(ranking.settlement_id, ranking);
-    }
-  });
-
-  const shootingCompletedSettlementIds = new Set<string>();
-  const defenseCompletedSettlementIds = new Set<string>();
-
-  (
-    (completedTrainings ?? []) as Array<
-      Pick<Training, 'training_date' | 'training_type'> & {
-        training_settlements: Array<Pick<TablesInsert<'training_settlements'>, 'settlement_id'>>;
-      }
-    >
-  ).forEach((training) => {
-    training.training_settlements.forEach((link) => {
-      if (
-        training.training_type === 'מטווח' &&
-        isDateInHalfYear(training.training_date, currentHalfYear)
-      ) {
-        shootingCompletedSettlementIds.add(link.settlement_id);
-      }
-
-      if (training.training_type === 'הגנת יישוב') {
-        defenseCompletedSettlementIds.add(link.settlement_id);
-      }
-    });
-  });
-
-  return (settlements ?? []).map((settlement) => {
-    const ranking = latestRankingBySettlement.get(settlement.id);
+  return ((settlements ?? []) as Settlement[]).map((settlement) => {
+    const ranking = rankingBySettlement.get(settlement.id);
+    const council = settlement.council_id ? councilById.get(settlement.council_id) ?? null : null;
 
     return {
-      defenseCompletedCurrentYear: defenseCompletedSettlementIds.has(settlement.id),
       ...settlement,
-      readinessCalculatedAt: ranking?.calculated_at ?? null,
-      readinessLevel: ranking?.ranking_level ?? null,
-      readinessScore: ranking?.final_score ?? null,
-      shootingCompletedCurrentHalfYear: shootingCompletedSettlementIds.has(settlement.id),
+      council,
+      councilName: council?.name ?? settlement.regional_council ?? null,
+      defenseCompletedCurrentYear: ranking?.defenseCompleted ?? false,
+      readinessCalculatedAt: null,
+      readinessLevel: ranking?.rankingLevel ?? null,
+      readinessScore: ranking?.finalScore ?? 0,
+      shootingCompletedCurrentHalfYear: ranking?.shootingCompleted ?? false,
     };
   });
 }
@@ -203,6 +162,7 @@ export async function getSettlementDetails(
 ): Promise<SettlementDetails> {
   const [
     { data: settlement, error: settlementError },
+    councils,
     { data: rankings, error: rankingsError },
     { data: trainingLinks, error: trainingLinksError },
     { data: feedbacks, error: feedbacksError },
@@ -213,6 +173,7 @@ export async function getSettlementDetails(
         .select('*')
         .eq('id', settlementId)
         .maybeSingle(),
+      listCouncils(),
       supabase
         .from('settlement_rankings')
         .select('*')
@@ -225,12 +186,14 @@ export async function getSettlementDetails(
             settlement_id,
             training:trainings (
               id,
+              end_time,
               title,
               training_type,
               location,
               training_date,
               training_time,
               status,
+              settlement_attendance,
               training_settlements (
                 settlement:settlements (
                   id,
@@ -306,10 +269,10 @@ export async function getSettlementDetails(
         | null;
     }>
   )
-    .map((item) => {
-      if (!item.training) {
-        return null;
-      }
+      .map((item) => {
+        if (!item.training) {
+          return null;
+        }
 
       const settlements = (item.training.training_settlements ?? [])
         .map((link) => link.settlement)
@@ -318,9 +281,13 @@ export async function getSettlementDetails(
       return {
         id: item.training.id,
         location: item.training.location,
+        settlement_attendance: normalizeTrainingSettlementAttendance(
+          item.training.settlement_attendance
+        ),
         settlements,
         status: item.training.status,
         title: item.training.title,
+        end_time: item.training.end_time,
         training_date: item.training.training_date,
         training_time: item.training.training_time,
         training_type: item.training.training_type,
@@ -333,21 +300,31 @@ export async function getSettlementDetails(
       )
     );
 
+  const councilById = new Map(councils.map((council) => [council.id, council]));
+  const resolvedCouncil = settlement.council_id
+    ? councilById.get(settlement.council_id) ?? null
+    : null;
   const typedFeedbacks = (feedbacks ?? []) as SettlementFeedbackSummary[];
+  const feedbackLinks = typedFeedbacks
+    .filter((feedback) => Boolean(feedback.training?.id))
+    .map((feedback) => ({
+      rating: feedback.rating,
+      settlement_id: settlementId,
+      training_id: feedback.training!.id,
+    }));
+
   const compliance = calculateSettlementRanking({
-    feedbacks: typedFeedbacks
-      .filter((feedback) => Boolean(feedback.training))
-      .map((feedback) => ({
-        created_at: feedback.created_at,
-        rating: feedback.rating,
-        settlement_id: settlementId,
-    })),
+    feedbacks: feedbackLinks,
     period,
-    settlement,
+    settlement: {
+      ...settlement,
+      councilName: resolvedCouncil?.name ?? settlement.regional_council ?? null,
+    },
     trainings: trainings.map((training) => ({
       settlement_id: settlementId,
       training: {
         id: training.id,
+        settlement_attendance: training.settlement_attendance,
         status: training.status,
         title: training.title,
         training_date: training.training_date,
@@ -360,6 +337,8 @@ export async function getSettlementDetails(
     alerts: (alerts ?? []) as SettlementAlertSummary[],
     ...settlement,
     compliance,
+    council: resolvedCouncil,
+    councilName: resolvedCouncil?.name ?? settlement.regional_council ?? null,
     feedbacks: typedFeedbacks,
     rankings: rankings ?? [],
     trainings,
@@ -379,7 +358,7 @@ export async function createSettlement(
     throw createDataAccessError(error, 'לא ניתן ליצור יישוב חדש');
   }
 
-  await syncRegionalCouncilPlaga(values.regional_council, values.area);
+  await syncRegionalCouncilPlaga(values.council_id, values.regional_council, values.area);
 
   return data;
 }
@@ -399,7 +378,7 @@ export async function updateSettlement(
     throw createDataAccessError(error, 'לא ניתן לעדכן את פרטי היישוב');
   }
 
-  await syncRegionalCouncilPlaga(values.regional_council, values.area);
+  await syncRegionalCouncilPlaga(values.council_id, values.regional_council, values.area);
 
   return data;
 }

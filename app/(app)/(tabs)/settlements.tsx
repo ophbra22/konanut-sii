@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Plus, SlidersHorizontal, Trophy } from 'lucide-react-native';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { AppLoader } from '@/src/components/feedback/app-loader';
 import { StateCard } from '@/src/components/feedback/state-card';
@@ -30,6 +30,7 @@ import {
   getCurrentYear,
   getHalfYearLabel,
 } from '@/src/lib/date-utils';
+import { rtlRow } from '@/src/lib/rtl';
 import { matchesSearchQuery } from '@/src/lib/search-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { createThemedStyles, type AppTheme } from '@/src/theme';
@@ -50,6 +51,7 @@ export default function SettlementsScreen() {
     : incomingRequestParam;
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<ComplianceFilterKey>(initialFilter);
+  const [activeCouncilFilter, setActiveCouncilFilter] = useState<string>('all');
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const lastAppliedShortcutKeyRef = useRef<string | null>(initialRequestKey ?? null);
   const { data, error, isLoading, refetch } = useSettlementsQuery();
@@ -60,6 +62,39 @@ export default function SettlementsScreen() {
     COMPLIANCE_FILTERS.find((filterOption) => filterOption.key === activeFilter)?.label ??
     'כל היישובים';
   const hasActiveFilter = activeFilter !== 'all';
+  const councilOptions = useMemo(() => {
+    const councilsMap = new Map<string, { count: number; id: string; name: string }>();
+    let unassignedCount = 0;
+
+    settlements.forEach((settlement) => {
+      if (settlement.council_id && settlement.councilName) {
+        const existing = councilsMap.get(settlement.council_id);
+        councilsMap.set(settlement.council_id, {
+          count: (existing?.count ?? 0) + 1,
+          id: settlement.council_id,
+          name: settlement.councilName,
+        });
+        return;
+      }
+
+      unassignedCount += 1;
+    });
+
+    return {
+      items: Array.from(councilsMap.values()).sort((left, right) =>
+        left.name.localeCompare(right.name, 'he')
+      ),
+      unassignedCount,
+    };
+  }, [settlements]);
+  const activeCouncilLabel =
+    activeCouncilFilter === 'all'
+      ? 'כל המועצות'
+      : activeCouncilFilter === 'unassigned'
+        ? 'ללא מועצה'
+        : councilOptions.items.find((item) => item.id === activeCouncilFilter)?.name ??
+          'כל המועצות';
+  const hasActiveCouncilFilter = activeCouncilFilter !== 'all';
 
   useEffect(() => {
     const nextRequestKey = Array.isArray(incomingRequestParam)
@@ -77,17 +112,24 @@ export default function SettlementsScreen() {
   const searchedSettlements = useMemo(() => {
     return settlements.filter((settlement) => {
       return matchesSearchQuery(
-        [settlement.name, settlement.regional_council, settlement.area],
+        [settlement.name, settlement.councilName, settlement.regional_council, settlement.area],
         searchTerm
       );
     });
   }, [searchTerm, settlements]);
 
   const filteredSettlements = useMemo(() => {
-    return searchedSettlements.filter((settlement) =>
-      matchesComplianceFilter(settlement, activeFilter)
-    );
-  }, [activeFilter, searchedSettlements]);
+    return searchedSettlements.filter((settlement) => {
+      const matchesCouncil =
+        activeCouncilFilter === 'all'
+          ? true
+          : activeCouncilFilter === 'unassigned'
+            ? !settlement.council_id
+            : settlement.council_id === activeCouncilFilter;
+
+      return matchesCouncil && matchesComplianceFilter(settlement, activeFilter);
+    });
+  }, [activeCouncilFilter, activeFilter, searchedSettlements]);
 
   const filterCounts = useMemo(() => {
     return {
@@ -123,12 +165,12 @@ export default function SettlementsScreen() {
                 <>
                   <OpsIconButton
                     accessibilityLabel="סינון יישובים"
-                    accent={hasActiveFilter}
+                    accent={hasActiveFilter || hasActiveCouncilFilter}
                     icon={SlidersHorizontal}
                     onPress={() => {
                       setIsFilterSheetOpen(true);
                     }}
-                    showIndicator={hasActiveFilter}
+                    showIndicator={hasActiveFilter || hasActiveCouncilFilter}
                   />
                   <OpsIconButton
                     accessibilityLabel="מעבר לדירוג יישובים"
@@ -150,8 +192,8 @@ export default function SettlementsScreen() {
                 </>
               }
               subtitle={
-                hasActiveFilter
-                  ? `${settlements.length} יישובים פעילים • מסונן: ${activeFilterLabel}`
+                hasActiveFilter || hasActiveCouncilFilter
+                  ? `${settlements.length} יישובים פעילים • ${activeCouncilLabel} • ${activeFilterLabel}`
                   : `${settlements.length} יישובים פעילים`
               }
               title="יישובים"
@@ -215,11 +257,12 @@ export default function SettlementsScreen() {
         actions={
           <>
             <AppButton
-              disabled={!hasActiveFilter}
+              disabled={!hasActiveFilter && !hasActiveCouncilFilter}
               fullWidth={false}
               label="איפוס"
               onPress={() => {
                 setActiveFilter('all');
+                setActiveCouncilFilter('all');
               }}
               size="sm"
               style={styles.modalAction}
@@ -244,6 +287,46 @@ export default function SettlementsScreen() {
         title="סינון יישובים"
         visible={isFilterSheetOpen}
       >
+        <View style={styles.modalSection}>
+          <Text style={styles.modalSectionTitle}>מועצה</Text>
+          <View style={styles.modalChips}>
+            <AppChip
+              count={searchedSettlements.length}
+              label="כל המועצות"
+              onPress={() => {
+                setActiveCouncilFilter('all');
+              }}
+              selected={activeCouncilFilter === 'all'}
+              tone={activeCouncilFilter === 'all' ? 'accent' : 'neutral'}
+            />
+            {councilOptions.unassignedCount ? (
+              <AppChip
+                count={councilOptions.unassignedCount}
+                label="ללא מועצה"
+                onPress={() => {
+                  setActiveCouncilFilter('unassigned');
+                }}
+                selected={activeCouncilFilter === 'unassigned'}
+                tone={activeCouncilFilter === 'unassigned' ? 'accent' : 'neutral'}
+              />
+            ) : null}
+            {councilOptions.items.map((council) => (
+              <AppChip
+                key={council.id}
+                count={council.count}
+                label={council.name}
+                onPress={() => {
+                  setActiveCouncilFilter(council.id);
+                }}
+                selected={activeCouncilFilter === council.id}
+                tone={activeCouncilFilter === council.id ? 'accent' : 'neutral'}
+              />
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.modalSection}>
+          <Text style={styles.modalSectionTitle}>עמידה בדרישות</Text>
         <View style={styles.modalChips}>
           {COMPLIANCE_FILTERS.map((filterOption) => (
             <AppChip
@@ -252,12 +335,12 @@ export default function SettlementsScreen() {
               label={filterOption.label}
               onPress={() => {
                 setActiveFilter(filterOption.key);
-                setIsFilterSheetOpen(false);
               }}
               selected={activeFilter === filterOption.key}
               tone={activeFilter === filterOption.key ? 'accent' : filterOption.tone}
             />
           ))}
+        </View>
         </View>
       </FilterBottomSheet>
     </>
@@ -270,18 +353,27 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   content: {
     gap: theme.spacing.section,
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: theme.spacing.sm,
   },
   list: {
+    alignItems: 'stretch',
     gap: theme.spacing.sm,
   },
   modalAction: {
     flex: 1,
   },
   modalChips: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.sm,
+  },
+  modalSection: {
+    gap: theme.spacing.sm,
+  },
+  modalSectionTitle: {
+    ...theme.typography.badge,
+    color: theme.colors.textSecondary,
+    textAlign: 'right',
   },
   screenContent: {
     flex: 1,

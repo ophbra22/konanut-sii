@@ -1,7 +1,6 @@
 export const queryKeys = {
   auth: {
     activeProfiles: ['auth', 'active-profiles'] as const,
-    deletionRequestedUsers: ['auth', 'deletion-requested-users'] as const,
     managedUsers: ['auth', 'managed-users'] as const,
     pendingUsers: ['auth', 'pending-users'] as const,
     profile: ['auth', 'profile'] as const,
@@ -9,6 +8,9 @@ export const queryKeys = {
   calendar: {
     all: ['calendar'] as const,
     month: (monthKey: string) => ['calendar', monthKey] as const,
+  },
+  councils: {
+    all: ['councils'] as const,
   },
   dashboard: {
     overview: ['dashboard', 'overview'] as const,

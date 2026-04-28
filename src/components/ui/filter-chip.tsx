@@ -54,7 +54,7 @@ export function FilterChip({
 const styles = createThemedStyles((theme: AppTheme) => ({
   base: {
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-end',
     borderColor: theme.colors.border,
     borderRadius: theme.radius.pill,
     borderWidth: 1,

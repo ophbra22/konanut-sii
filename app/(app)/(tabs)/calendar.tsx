@@ -17,6 +17,7 @@ import { AppCard } from '@/src/components/ui/app-card';
 import { AppChip } from '@/src/components/ui/app-chip';
 import { AppRevealView } from '@/src/components/ui/app-reveal-view';
 import { AppScreen } from '@/src/components/ui/app-screen';
+import { SettlementPicker } from '@/src/components/ui/settlement-picker';
 import { CalendarTrainingCard } from '@/src/features/calendar/components/calendar-training-card';
 import { MonthCalendarGrid } from '@/src/features/calendar/components/month-calendar-grid';
 import { useCalendarOverviewQuery } from '@/src/features/calendar/hooks/use-calendar-query';
@@ -25,6 +26,7 @@ import {
   formatCalendarSelectedDateLabel,
 } from '@/src/features/calendar/lib/calendar-utils';
 import { canCreateTrainings } from '@/src/features/auth/lib/permissions';
+import { rtlRow, rtlRowReverse } from '@/src/lib/rtl';
 import { trainingStatuses } from '@/src/features/trainings/constants';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
@@ -170,6 +172,15 @@ export default function CalendarScreen() {
     setMonthCursor(dayjs(dateKey).startOf('month'));
   };
 
+  const openCreateTraining = () => {
+    router.push({
+      params: {
+        selectedDate: selectedDate || currentDateKey,
+      },
+      pathname: '/trainings/create',
+    } as never);
+  };
+
   const changeMonth = (diff: number) => {
     const nextMonth = monthCursor.add(diff, 'month').startOf('month');
     const nextMonthKey = nextMonth.format('YYYY-MM');
@@ -199,9 +210,7 @@ export default function CalendarScreen() {
           <View style={styles.heroHeader}>
             {canCreate ? (
               <Pressable
-                onPress={() => {
-                  router.push('/trainings/create' as never);
-                }}
+                onPress={openCreateTraining}
                 style={({ pressed }) => [
                   styles.plusButton,
                   pressed && styles.pressed,
@@ -315,9 +324,7 @@ export default function CalendarScreen() {
 
                   {canCreate ? (
                     <Pressable
-                      onPress={() => {
-                        router.push('/trainings/create' as never);
-                      }}
+                      onPress={openCreateTraining}
                       style={({ pressed }) => [styles.addAction, pressed && styles.pressed]}
                     >
                       <Text style={styles.addActionText}>+ הוסף</Text>
@@ -377,28 +384,17 @@ export default function CalendarScreen() {
               title="סינון יומן"
             >
               <View style={styles.filterGroup}>
-                <Text style={styles.filterTitle}>יישוב</Text>
-                <View style={styles.filterChips}>
-                  <AppChip
-                    label="הכול"
-                    onPress={() => {
-                      setSelectedSettlementId(allFilterValue);
-                    }}
-                    selected={selectedSettlementId === allFilterValue}
-                    tone={selectedSettlementId === allFilterValue ? 'accent' : 'neutral'}
-                  />
-                  {(data?.settlements ?? []).map((settlement) => (
-                    <AppChip
-                      key={settlement.id}
-                      label={settlement.name}
-                      onPress={() => {
-                        setSelectedSettlementId(settlement.id);
-                      }}
-                      selected={selectedSettlementId === settlement.id}
-                      tone={selectedSettlementId === settlement.id ? 'accent' : 'neutral'}
-                    />
-                  ))}
-                </View>
+                <SettlementPicker
+                  label="יישוב"
+                  onChange={(settlementIds) => {
+                    setSelectedSettlementId(settlementIds[0] ?? allFilterValue);
+                  }}
+                  placeholder="כל היישובים"
+                  selectedSettlementIds={
+                    selectedSettlementId === allFilterValue ? [] : [selectedSettlementId]
+                  }
+                  settlements={data?.settlements ?? []}
+                />
               </View>
 
               <View style={styles.filterGroup}>
@@ -517,7 +513,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     color: theme.colors.info,
     fontSize: 14,
     fontWeight: '800',
-    textAlign: 'left',
+    textAlign: 'right',
   },
   calendarShell: {
     ...theme.elevation.card,
@@ -542,12 +538,12 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   content: {
     gap: theme.spacing.section,
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: theme.spacing.sm,
     paddingTop: theme.spacing.xs,
   },
   dayFocus: {
     alignItems: 'center',
-    flexDirection: 'row',
+    ...rtlRow,
     justifyContent: 'space-between',
     minHeight: 248,
   },
@@ -591,7 +587,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     gap: theme.spacing.sm,
   },
   filterChips: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: 8,
   },
@@ -609,6 +605,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   heroHeader: {
     alignItems: 'center',
+    direction: 'ltr',
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
@@ -616,7 +613,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     flex: 1,
   },
   modalActions: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
   },
   modalBackdrop: {
@@ -630,7 +627,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   monthNavRow: {
     alignItems: 'center',
-    flexDirection: 'row',
+    ...rtlRowReverse,
     justifyContent: 'space-between',
   },
   monthTitle: {
@@ -665,7 +662,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderColor: theme.colors.borderStrong,
     borderRadius: 999,
     borderWidth: 1,
-    flexDirection: 'row-reverse',
+    ...rtlRowReverse,
     gap: 6,
     minHeight: 32,
     paddingHorizontal: 12,
@@ -679,7 +676,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderColor: theme.colors.borderStrong,
     borderRadius: 18,
     borderWidth: 1,
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     padding: 3,
   },
   segment: {
@@ -702,7 +699,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   selectionActions: {
     alignItems: 'center',
-    flexDirection: 'row',
+    ...rtlRow,
     gap: theme.spacing.xs,
   },
   selectionMeta: {
@@ -713,6 +710,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     alignItems: 'center',
     borderColor: theme.colors.borderStrong,
     borderTopWidth: 1,
+    direction: 'ltr',
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingTop: 10,

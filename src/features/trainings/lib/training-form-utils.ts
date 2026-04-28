@@ -32,6 +32,7 @@ export function getTrainingFormValues(
     : normalizedAttendance;
 
   return {
+    end_time: training?.end_time ? training.end_time.slice(0, 5) : '',
     instructor_id: training?.instructor_id ?? '',
     location: training?.location ?? '',
     notes: training?.notes ?? '',
@@ -80,6 +81,7 @@ export function toTrainingInsertInput(
 ): TablesInsert<'trainings'> {
   return {
     instructor_id: toOptionalText(values.instructor_id),
+    end_time: toOptionalText(values.end_time),
     location: toOptionalText(values.location),
     notes: toOptionalText(values.notes),
     settlement_attendance: toTrainingSettlementAttendanceInput(values),

@@ -10,6 +10,7 @@ import type { TextInputProps } from 'react-native';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { useKeyboardSafeFocus } from '@/src/components/ui/keyboard-safe-scroll-view';
+import { rtlRowReverse } from '@/src/lib/rtl';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type FieldIconElement = ReactElement<{
@@ -86,20 +87,6 @@ export function AppTextField({
           !isEditable ? styles.fieldDisabled : null,
         ]}
       >
-        {renderedIcon ? (
-          <View
-            pointerEvents="none"
-            style={[
-              styles.iconSlot,
-              isAuthAppearance ? styles.iconSlotAuth : null,
-              errorMessage && !isFocused ? styles.iconSlotError : null,
-              isFocused ? styles.iconSlotFocused : null,
-            ]}
-          >
-            {renderedIcon}
-          </View>
-        ) : null}
-
         <TextInput
           ref={(node) => {
             internalInputRef.current = node;
@@ -134,6 +121,19 @@ export function AppTextField({
           underlineColorAndroid="transparent"
           {...props}
         />
+        {renderedIcon ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.iconSlot,
+              isAuthAppearance ? styles.iconSlotAuth : null,
+              errorMessage && !isFocused ? styles.iconSlotError : null,
+              isFocused ? styles.iconSlotFocused : null,
+            ]}
+          >
+            {renderedIcon}
+          </View>
+        ) : null}
       </Pressable>
       {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
       {!errorMessage && hint ? <Text style={styles.hint}>{hint}</Text> : null}
@@ -154,7 +154,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderColor: theme.colors.border,
     borderRadius: theme.radius.lg,
     borderWidth: 1,
-    flexDirection: 'row-reverse',
+    ...rtlRowReverse,
     gap: theme.spacing.sm,
     minHeight: 56,
     paddingHorizontal: theme.spacing.md,

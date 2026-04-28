@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { ArrowRight } from 'lucide-react-native';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { AppLoader } from '@/src/components/feedback/app-loader';
 import { StateCard } from '@/src/components/feedback/state-card';
@@ -11,9 +11,15 @@ import { KeyboardSafeScrollView } from '@/src/components/ui/keyboard-safe-scroll
 import { OpsIconButton } from '@/src/components/ui/ops-icon-button';
 import { OpsListHeader } from '@/src/components/ui/ops-list-header';
 import { ManagedUserAccessCard } from '@/src/features/auth/components/managed-user-access-card';
-import { canManageUserApprovals } from '@/src/features/auth/lib/permissions';
+import {
+  canManageUserApprovals,
+  isSuperAdmin,
+} from '@/src/features/auth/lib/permissions';
 import { useManagedUsersQuery } from '@/src/features/auth/hooks/use-managed-users-query';
-import { useUpdateManagedUserAccessMutation } from '@/src/features/auth/hooks/use-user-approval-mutations';
+import {
+  useDeleteManagedUserMutation,
+  useUpdateManagedUserAccessMutation,
+} from '@/src/features/auth/hooks/use-user-approval-mutations';
 import { useSettlementsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
 import { PLAGA_VALUES } from '@/src/lib/plaga';
 import { useAuthStore } from '@/src/stores/auth-store';
@@ -22,10 +28,12 @@ import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 export default function UsersManagementScreen() {
   const router = useRouter();
   const role = useAuthStore((state) => state.role);
+  const currentUserId = useAuthStore((state) => state.user?.id);
   const canManage = canManageUserApprovals(role);
   const managedUsersQuery = useManagedUsersQuery(canManage);
   const settlementsQuery = useSettlementsQuery(canManage);
   const updateMutation = useUpdateManagedUserAccessMutation();
+  const deleteMutation = useDeleteManagedUserMutation();
 
   const settlementOptions = useMemo(
     () =>
@@ -33,6 +41,7 @@ export default function UsersManagementScreen() {
         .filter((settlement) => settlement.is_active)
         .map((settlement) => ({
           area: settlement.area,
+          council_id: settlement.council_id,
           id: settlement.id,
           name: settlement.name,
           regional_council: settlement.regional_council,
@@ -87,6 +96,27 @@ export default function UsersManagementScreen() {
 
   const managedUsers = managedUsersQuery.data ?? [];
   const savingUserId = updateMutation.isPending ? updateMutation.variables?.userId : null;
+  const deletingUserId = deleteMutation.isPending ? deleteMutation.variables : null;
+
+  const confirmDeleteUser = (userId: string) => {
+    Alert.alert(
+      'מחיקת משתמש',
+      'האם אתה בטוח שברצונך למחוק את המשתמש? פעולה זו אינה ניתנת לשחזור.',
+      [
+        {
+          style: 'cancel',
+          text: 'ביטול',
+        },
+        {
+          onPress: () => {
+            void deleteMutation.mutateAsync(userId).catch(() => undefined);
+          },
+          style: 'destructive',
+          text: 'מחק',
+        },
+      ]
+    );
+  };
 
   return (
     <AppScreen contentContainerStyle={styles.screenContent} scroll={false}>
@@ -148,15 +178,22 @@ export default function UsersManagementScreen() {
               {managedUsers.map((user) => (
                 <ManagedUserAccessCard
                   key={user.id}
+                  canDelete={isSuperAdmin(role) && currentUserId !== user.id}
+                  isDeleting={deletingUserId === user.id}
                   isSaving={savingUserId === user.id}
+                  onDelete={() => {
+                    confirmDeleteUser(user.id);
+                  }}
                   onSave={({
                     assignedPlaga,
+                    fullName,
                     regionalCouncils,
                     role: selectedRole,
                     settlementIds,
                   }) => {
                     void updateMutation.mutateAsync({
                       assignedPlaga,
+                      fullName,
                       regionalCouncils,
                       role: selectedRole,
                       settlementIds,

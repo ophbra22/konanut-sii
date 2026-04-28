@@ -13,7 +13,7 @@ type SettlementListCardProps = {
 type ReadinessTone = 'danger' | 'neutral' | 'success' | 'warning';
 
 function getMetaLabel(settlement: SettlementListItem) {
-  const parts = [settlement.regional_council?.trim(), settlement.area.trim()].filter(Boolean);
+  const parts = [settlement.councilName?.trim(), settlement.area.trim()].filter(Boolean);
   return parts.join(' • ');
 }
 
@@ -50,12 +50,6 @@ function ComplianceIndicator({
 }) {
   return (
     <View style={styles.complianceItem}>
-      <View
-        style={[
-          styles.complianceDot,
-          completed ? styles.complianceDotSuccess : styles.complianceDotMissing,
-        ]}
-      />
       <Text
         style={[
           styles.complianceText,
@@ -64,6 +58,12 @@ function ComplianceIndicator({
       >
         {label}: {completed ? 'בוצע' : 'חסר'}
       </Text>
+      <View
+        style={[
+          styles.complianceDot,
+          completed ? styles.complianceDotSuccess : styles.complianceDotMissing,
+        ]}
+      />
     </View>
   );
 }
@@ -102,12 +102,12 @@ export function SettlementListCard({ settlement }: SettlementListCardProps) {
       footer={
         <View style={styles.complianceRow}>
           <ComplianceIndicator
-            completed={settlement.shootingCompletedCurrentHalfYear}
-            label="מטווח"
-          />
-          <ComplianceIndicator
             completed={settlement.defenseCompletedCurrentYear}
             label="הגנת יישוב"
+          />
+          <ComplianceIndicator
+            completed={settlement.shootingCompletedCurrentHalfYear}
+            label="מטווח"
           />
         </View>
       }
@@ -118,6 +118,8 @@ export function SettlementListCard({ settlement }: SettlementListCardProps) {
 
 const styles = createThemedStyles((theme: AppTheme) => ({
   card: {
+    alignItems: 'stretch',
+    direction: 'ltr',
     minHeight: 82,
   },
   cardInactive: {
@@ -136,18 +138,24 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   complianceItem: {
     alignItems: 'center',
+    direction: 'ltr',
     flexDirection: 'row-reverse',
     gap: 5,
   },
   complianceRow: {
-    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    alignSelf: 'stretch',
+    direction: 'ltr',
+    flexDirection: 'row',
     flexWrap: 'wrap',
     gap: theme.spacing.sm,
+    justifyContent: 'flex-end',
     paddingTop: theme.spacing.xxs,
   },
   complianceText: {
     ...theme.typography.badge,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   complianceTextMissing: {
     color: theme.colors.danger,

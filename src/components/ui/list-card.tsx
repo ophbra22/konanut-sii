@@ -37,10 +37,6 @@ export function ListCard({
       ]}
     >
       <View style={styles.topRow}>
-        <Text numberOfLines={1} style={styles.title}>
-          {title}
-        </Text>
-
         {badge || statusDotColor ? (
           <View style={styles.leadingBlock}>
             {badge}
@@ -49,6 +45,10 @@ export function ListCard({
             ) : null}
           </View>
         ) : null}
+
+        <Text numberOfLines={1} style={styles.title}>
+          {title}
+        </Text>
       </View>
 
       {subtitle ? (
@@ -65,10 +65,12 @@ export function ListCard({
 const styles = createThemedStyles((theme: AppTheme) => ({
   card: {
     ...theme.elevation.card,
+    alignItems: 'stretch',
     backgroundColor: theme.colors.surfaceElevated,
     borderColor: theme.colors.borderStrong,
     borderRadius: theme.radius.xl,
     borderWidth: 1,
+    direction: 'ltr',
     gap: 5,
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 9,
@@ -77,11 +79,12 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     opacity: 0.6,
   },
   footer: {
+    alignItems: 'flex-end',
     minHeight: 14,
   },
   leadingBlock: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    flexDirection: 'row',
     gap: 5,
   },
   pressed: {
@@ -97,16 +100,19 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     ...theme.typography.meta,
     color: theme.colors.textSecondary,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   title: {
     ...theme.typography.cardTitle,
     color: theme.colors.textPrimary,
     flex: 1,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   topRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    direction: 'ltr',
+    flexDirection: 'row',
     gap: theme.spacing.xs,
     justifyContent: 'space-between',
   },

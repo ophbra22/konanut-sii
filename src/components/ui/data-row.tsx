@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
+import { rtlRow } from '@/src/lib/rtl';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type DataRowProps = {
@@ -24,7 +25,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   row: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.sm,
     justifyContent: 'space-between',
   },
@@ -32,6 +33,6 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     ...theme.typography.caption,
     color: theme.colors.textPrimary,
     flex: 1,
-    textAlign: 'left',
+    textAlign: 'right',
   },
 }));

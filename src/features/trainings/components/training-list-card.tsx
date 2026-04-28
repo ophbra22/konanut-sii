@@ -11,7 +11,7 @@ import { AppBadge } from '@/src/components/ui/app-badge';
 import { ListCard } from '@/src/components/ui/list-card';
 import type { TrainingListItem } from '@/src/features/trainings/api/trainings-service';
 import { getTrainingStatusTone } from '@/src/features/trainings/lib/training-presenters';
-import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
+import { formatDisplayDate, formatDisplayTimeRange } from '@/src/lib/date-utils';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type TrainingListCardProps = {
@@ -24,6 +24,10 @@ function getLocationLabel(training: TrainingListItem) {
 
 function getInstructorLabel(training: TrainingListItem) {
   return training.instructor?.full_name || 'ללא מדריך';
+}
+
+function formatStableTimeRange(startTime: string | null, endTime?: string | null) {
+  return `\u200E${formatDisplayTimeRange(startTime, endTime)}\u200E`;
 }
 
 export function TrainingListCard({ training }: TrainingListCardProps) {
@@ -49,8 +53,8 @@ export function TrainingListCard({ training }: TrainingListCardProps) {
 
           <View style={styles.metaItem}>
             <Clock3 color={theme.colors.textMuted} size={12} />
-            <Text numberOfLines={1} style={styles.metaText}>
-              {formatDisplayTime(training.training_time)}
+            <Text numberOfLines={1} style={[styles.metaText, styles.timeText]}>
+              {formatStableTimeRange(training.training_time, training.end_time)}
             </Text>
           </View>
 
@@ -80,6 +84,8 @@ export function TrainingListCard({ training }: TrainingListCardProps) {
 
 const styles = createThemedStyles((theme: AppTheme) => ({
   card: {
+    alignItems: 'stretch',
+    direction: 'ltr',
     minHeight: 62,
   },
   locationItem: {
@@ -87,12 +93,15 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   metaItem: {
     alignItems: 'center',
+    direction: 'ltr',
     flex: 1,
     flexDirection: 'row-reverse',
     gap: 4,
     minWidth: 0,
   },
   metaRow: {
+    alignItems: 'center',
+    direction: 'ltr',
     flexDirection: 'row-reverse',
     gap: 6,
   },
@@ -101,5 +110,9 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     color: theme.colors.textSecondary,
     flex: 1,
     textAlign: 'right',
+    writingDirection: 'rtl',
+  },
+  timeText: {
+    writingDirection: 'ltr',
   },
 }));

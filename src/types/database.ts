@@ -155,38 +155,50 @@ export type Database = {
       };
       settlement_rankings: {
         Row: {
+          base_score: number;
           calculated_at: string;
           defense_completed: boolean;
           feedback_score: number;
           final_score: number;
           half_year_period: string;
           id: string;
+          instructor_feedback_points: number;
+          median_range_participation_percent: number | null;
           ranking_level: string;
           settlement_id: string;
+          settlement_defense_participation_percent: number | null;
           shooting_completed: boolean;
           training_score: number;
         };
         Insert: {
+          base_score?: number;
           calculated_at?: string;
           defense_completed?: boolean;
           feedback_score?: number;
           final_score?: number;
           half_year_period: string;
           id?: string;
+          instructor_feedback_points?: number;
+          median_range_participation_percent?: number | null;
           ranking_level: string;
           settlement_id: string;
+          settlement_defense_participation_percent?: number | null;
           shooting_completed?: boolean;
           training_score?: number;
         };
         Update: {
+          base_score?: number;
           calculated_at?: string;
           defense_completed?: boolean;
           feedback_score?: number;
           final_score?: number;
           half_year_period?: string;
           id?: string;
+          instructor_feedback_points?: number;
+          median_range_participation_percent?: number | null;
           ranking_level?: string;
           settlement_id?: string;
+          settlement_defense_participation_percent?: number | null;
           shooting_completed?: boolean;
           training_score?: number;
         };
@@ -202,6 +214,7 @@ export type Database = {
       settlements: {
         Row: {
           area: string;
+          council_id: string | null;
           coordinator_name: string | null;
           coordinator_phone: string | null;
           created_at: string;
@@ -213,6 +226,7 @@ export type Database = {
         };
         Insert: {
           area: string;
+          council_id?: string | null;
           coordinator_name?: string | null;
           coordinator_phone?: string | null;
           created_at?: string;
@@ -224,6 +238,7 @@ export type Database = {
         };
         Update: {
           area?: string;
+          council_id?: string | null;
           coordinator_name?: string | null;
           coordinator_phone?: string | null;
           created_at?: string;
@@ -238,18 +253,27 @@ export type Database = {
       regional_councils: {
         Row: {
           created_at: string;
+          id: string;
           name: string;
           plaga_name: 'פלגת לכיש' | 'פלגת נגב';
+          regional_squad_name: string | null;
+          updated_at: string;
         };
         Insert: {
           created_at?: string;
+          id?: string;
           name: string;
           plaga_name: 'פלגת לכיש' | 'פלגת נגב';
+          regional_squad_name?: string | null;
+          updated_at?: string;
         };
         Update: {
           created_at?: string;
+          id?: string;
           name?: string;
           plaga_name?: 'פלגת לכיש' | 'פלגת נגב';
+          regional_squad_name?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -290,6 +314,7 @@ export type Database = {
       trainings: {
         Row: {
           created_at: string;
+          end_time: string | null;
           id: string;
           instructor_id: string | null;
           location: string | null;
@@ -310,6 +335,7 @@ export type Database = {
         };
         Insert: {
           created_at?: string;
+          end_time?: string | null;
           id?: string;
           instructor_id?: string | null;
           location?: string | null;
@@ -330,6 +356,7 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          end_time?: string | null;
           id?: string;
           instructor_id?: string | null;
           location?: string | null;
@@ -421,7 +448,10 @@ export type Database = {
       };
       users_profile: {
         Row: {
+          approval_status: 'pending_approval' | 'approved' | 'rejected';
           assigned_plaga: 'פלגת לכיש' | 'פלגת נגב' | null;
+          approved_at: string | null;
+          approved_by: string | null;
           created_at: string;
           deletion_requested_at: string | null;
           email: string | null;
@@ -429,7 +459,11 @@ export type Database = {
           id: string;
           is_active: boolean;
           phone: string | null;
+          rejected_at: string | null;
+          rejection_reason: string | null;
           requested_area: string | null;
+          requested_council_id: string | null;
+          requested_plaga_id: string | null;
           requested_role:
             | 'super_admin'
             | 'instructor'
@@ -441,6 +475,7 @@ export type Database = {
             | 'razar'
             | 'sarazar'
             | null;
+          requested_settlement_id: string | null;
           role:
             | 'super_admin'
             | 'instructor'
@@ -453,7 +488,10 @@ export type Database = {
             | 'sarazar';
         };
         Insert: {
+          approval_status?: 'pending_approval' | 'approved' | 'rejected';
           assigned_plaga?: 'פלגת לכיש' | 'פלגת נגב' | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
           created_at?: string;
           deletion_requested_at?: string | null;
           email?: string | null;
@@ -461,7 +499,11 @@ export type Database = {
           id: string;
           is_active?: boolean;
           phone?: string | null;
+          rejected_at?: string | null;
+          rejection_reason?: string | null;
           requested_area?: string | null;
+          requested_council_id?: string | null;
+          requested_plaga_id?: string | null;
           requested_role?:
             | 'super_admin'
             | 'instructor'
@@ -473,6 +515,7 @@ export type Database = {
             | 'razar'
             | 'sarazar'
             | null;
+          requested_settlement_id?: string | null;
           role:
             | 'super_admin'
             | 'instructor'
@@ -485,7 +528,10 @@ export type Database = {
             | 'sarazar';
         };
         Update: {
+          approval_status?: 'pending_approval' | 'approved' | 'rejected';
           assigned_plaga?: 'פלגת לכיש' | 'פלגת נגב' | null;
+          approved_at?: string | null;
+          approved_by?: string | null;
           created_at?: string;
           deletion_requested_at?: string | null;
           email?: string | null;
@@ -493,7 +539,11 @@ export type Database = {
           id?: string;
           is_active?: boolean;
           phone?: string | null;
+          rejected_at?: string | null;
+          rejection_reason?: string | null;
           requested_area?: string | null;
+          requested_council_id?: string | null;
+          requested_plaga_id?: string | null;
           requested_role?:
             | 'super_admin'
             | 'instructor'
@@ -505,6 +555,7 @@ export type Database = {
             | 'razar'
             | 'sarazar'
             | null;
+          requested_settlement_id?: string | null;
           role?:
             | 'super_admin'
             | 'instructor'
@@ -521,12 +572,6 @@ export type Database = {
     };
     Views: Record<string, never>;
     Functions: {
-      admin_delete_requested_user_account: {
-        Args: {
-          target_user_id: string;
-        };
-        Returns: boolean;
-      };
       can_insert_feedback: {
         Args: {
           target_instructor_id: string;
@@ -549,24 +594,71 @@ export type Database = {
         Args: Record<PropertyKey, never>;
         Returns: string | null;
       };
-      request_account_deletion: {
+      delete_regional_council: {
+        Args: {
+          target_council_id: string;
+        };
+        Returns: boolean;
+      };
+      delete_current_user_account: {
         Args: Record<PropertyKey, never>;
         Returns: boolean;
+      };
+      admin_delete_user_account: {
+        Args: {
+          target_user_id: string;
+        };
+        Returns: boolean;
+      };
+      complete_phone_registration: {
+        Args: {
+          requested_council_id_input: string | null;
+          requested_plaga_id_input: string | null;
+          requested_role_input: string;
+          requested_settlement_id_input: string | null;
+          user_full_name: string;
+        };
+        Returns: boolean;
+      };
+      complete_email_registration: {
+        Args: {
+          requested_council_id_input: string | null;
+          requested_plaga_id_input: string | null;
+          requested_role_input: string;
+          requested_settlement_id_input: string | null;
+          user_full_name: string;
+        };
+        Returns: boolean;
+      };
+      list_phone_registration_options: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      list_email_registration_options: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
       };
       list_global_settlement_rankings: {
         Args: {
           period_key: string;
         };
         Returns: {
+          base_score: number;
           calculated_at: string;
+          council_id: string | null;
+          council_name: string | null;
           defense_completed: boolean;
           feedback_score: number;
           final_score: number;
           half_year_period: string;
+          instructor_feedback_points: number;
+          median_range_participation_percent: number | null;
           plaga_name: string | null;
           ranking_level: string;
           regional_council: string | null;
+          regional_squad_name: string | null;
           settlement_id: string;
+          settlement_defense_participation_percent: number | null;
           settlement_name: string;
           shooting_completed: boolean;
           training_score: number;
@@ -642,6 +734,7 @@ export type Alert = Tables<'alerts'>;
 export type Feedback = Tables<'feedbacks'>;
 export type ProfessionalContent = Tables<'professional_content'>;
 export type RegionalCouncil = Tables<'regional_councils'>;
+export type Council = RegionalCouncil;
 export type Settlement = Tables<'settlements'>;
 export type SettlementRanking = Tables<'settlement_rankings'>;
 export type Training = Tables<'trainings'>;
@@ -671,7 +764,7 @@ export type TrainingParticipationSummary = {
 
 export type LinkedSettlement = Pick<
   Settlement,
-  'area' | 'id' | 'name' | 'regional_council'
+  'area' | 'council_id' | 'id' | 'name' | 'regional_council'
 > & {
   plaga_name?: string | null;
 };

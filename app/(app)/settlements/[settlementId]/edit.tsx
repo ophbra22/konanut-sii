@@ -7,6 +7,7 @@ import { AppButton } from '@/src/components/ui/app-button';
 import { AppScreen } from '@/src/components/ui/app-screen';
 import { PageHeader } from '@/src/components/ui/page-header';
 import { isSuperAdmin } from '@/src/features/auth/lib/permissions';
+import { useCouncilsQuery } from '@/src/features/councils/hooks/use-councils-query';
 import { SettlementForm } from '@/src/features/settlements/components/settlement-form';
 import { useUpdateSettlementMutation } from '@/src/features/settlements/hooks/use-settlement-mutations';
 import { useSettlementDetailsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
@@ -22,6 +23,7 @@ export default function EditSettlementScreen() {
   const router = useRouter();
   const mutation = useUpdateSettlementMutation();
   const { data, error, isLoading } = useSettlementDetailsQuery(settlementId);
+  const councilsQuery = useCouncilsQuery();
 
   if (isLoading) {
     return <AppLoader label="טוען את פרטי היישוב לעריכה..." />;
@@ -85,14 +87,23 @@ export default function EditSettlementScreen() {
         />
       ) : null}
 
+      {councilsQuery.error ? (
+        <StateCard
+          description={councilsQuery.error.message}
+          title="לא ניתן לטעון את המועצות"
+          variant="warning"
+        />
+      ) : null}
+
       <AppCard description="השינויים ישפיעו מיידית על מסכי הדשבורד והדירוגים." title="עדכון יישוב">
         <SettlementForm
+          councilOptions={councilsQuery.data ?? []}
           initialValues={getSettlementFormValues(data)}
           isSubmitting={mutation.isPending}
           onSubmit={async (values) => {
             await mutation.mutateAsync({
               settlementId: data.id,
-              values: toSettlementUpdateInput(values),
+              values: toSettlementUpdateInput(values, councilsQuery.data ?? []),
             });
             router.replace(`/settlements/${data.id}` as never);
           }}

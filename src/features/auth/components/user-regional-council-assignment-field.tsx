@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { AppChip } from '@/src/components/ui/app-chip';
+import { rtlRow } from '@/src/lib/rtl';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type UserRegionalCouncilAssignmentFieldProps = {
@@ -54,7 +55,7 @@ export function UserRegionalCouncilAssignmentField({
 
 const styles = createThemedStyles((theme: AppTheme) => ({
   chips: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.xs,
   },
@@ -65,7 +66,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   header: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     justifyContent: 'space-between',
   },
   helperText: {
@@ -81,7 +82,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   meta: {
     ...theme.typography.badge,
     color: theme.colors.textDim,
-    textAlign: 'left',
+    textAlign: 'right',
   },
   section: {
     gap: theme.spacing.xs,

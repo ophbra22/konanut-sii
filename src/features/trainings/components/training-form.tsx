@@ -1,13 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo } from 'react';
 import { Controller, useForm, useWatch } from 'react-hook-form';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppChip } from '@/src/components/ui/app-chip';
 import { AppDateField } from '@/src/components/ui/app-date-field';
 import { AppTextField } from '@/src/components/ui/app-text-field';
+import { SettlementPicker } from '@/src/components/ui/settlement-picker';
 import { SectionBlock } from '@/src/components/ui/section-block';
 import { trainingStatuses, trainingTypes } from '@/src/features/trainings/constants';
 import {
@@ -18,6 +19,7 @@ import {
   trainingFormSchema,
   type TrainingFormValues,
 } from '@/src/features/trainings/schemas/training-form-schema';
+import { rtlRow } from '@/src/lib/rtl';
 import type { Settlement, UserProfile } from '@/src/types/database';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
@@ -32,6 +34,7 @@ type TrainingFormProps = {
 };
 
 const defaultValues: TrainingFormValues = {
+  end_time: '',
   instructor_id: '',
   location: '',
   notes: '',
@@ -189,28 +192,14 @@ export function TrainingForm({
             description="יש לבחור את היישובים המשתתפים באימון."
             title="יישובים משתתפים"
           >
-            <View style={styles.chips}>
-              {settlementOptions.map((settlement) => {
-                const isSelected = value.includes(settlement.id);
-
-                return (
-                  <AppChip
-                    key={settlement.id}
-                    label={`${settlement.name} • ${settlement.area}`}
-                    onPress={() => {
-                      onChange(
-                        isSelected
-                          ? value.filter((item) => item !== settlement.id)
-                          : [...value, settlement.id]
-                      );
-                    }}
-                    selected={isSelected}
-                    tone={isSelected ? 'accent' : 'neutral'}
-                  />
-                );
-              })}
-            </View>
-            <FieldError message={errors.settlement_ids?.message} />
+            <SettlementPicker
+              errorMessage={errors.settlement_ids?.message}
+              multiple
+              onChange={onChange}
+              placeholder="בחר יישובים"
+              selectedSettlementIds={value}
+              settlements={settlementOptions}
+            />
           </SectionBlock>
         )}
       />
@@ -265,7 +254,7 @@ export function TrainingForm({
                           onChange(sanitized ? Number(sanitized) : 0);
                         }}
                         placeholder="0"
-                        textAlign="left"
+                        textAlign="right"
                         value={String(value ?? trainedCount ?? 0)}
                         writingDirection="ltr"
                       />
@@ -321,7 +310,7 @@ export function TrainingForm({
               <AppDateField
                 errorMessage={errors.training_date?.message}
                 hint="התאריך יישמר אוטומטית בפורמט המערכת."
-                label="תאריך"
+                label="תאריך אימון"
                 onChange={onChange}
                 placeholder="בחרו תאריך"
                 value={value}
@@ -338,11 +327,31 @@ export function TrainingForm({
               <AppTextField
                 errorMessage={errors.training_time?.message}
                 hint="אופציונלי"
-                label="שעה"
+                label="שעת התחלה"
                 onBlur={onBlur}
                 onChangeText={onChange}
                 placeholder="19:30"
-                textAlign="left"
+                textAlign="right"
+                value={value ?? ''}
+                writingDirection="ltr"
+              />
+            )}
+          />
+        </View>
+
+        <View style={styles.inlineField}>
+          <Controller
+            control={control}
+            name="end_time"
+            render={({ field: { onBlur, onChange, value } }) => (
+              <AppTextField
+                errorMessage={errors.end_time?.message}
+                hint="אופציונלי"
+                label="שעת סיום"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                placeholder="21:00"
+                textAlign="right"
                 value={value ?? ''}
                 writingDirection="ltr"
               />
@@ -440,7 +449,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     textAlign: 'right',
   },
   chips: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.sm,
   },
@@ -458,7 +467,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     minWidth: 130,
   },
   inlineFields: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.md,
   },

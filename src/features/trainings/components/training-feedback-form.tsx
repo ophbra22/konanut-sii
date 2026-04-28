@@ -1,17 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { Controller, useWatch, useForm } from 'react-hook-form';
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppChip } from '@/src/components/ui/app-chip';
 import { AppTextField } from '@/src/components/ui/app-text-field';
+import { SettlementPicker } from '@/src/components/ui/settlement-picker';
 import type { TrainingFeedbackItem } from '@/src/features/trainings/api/trainings-service';
 import {
   trainingFeedbackFormSchema,
   type TrainingFeedbackFormValues,
 } from '@/src/features/trainings/schemas/training-feedback-form-schema';
+import { rtlRow } from '@/src/lib/rtl';
 import type { Settlement } from '@/src/types/database';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
@@ -94,32 +96,20 @@ export function TrainingFeedbackForm({
     >
       <View style={styles.form}>
         <View style={styles.field}>
-          <Text style={styles.label}>יישוב</Text>
-          <View style={styles.chips}>
-            {settlementOptions.map((settlement) => {
-              const isSelected = selectedSettlementId === settlement.id;
-              const isDisabled = lockSettlement && !isSelected;
-
-              return (
-                <AppChip
-                  key={settlement.id}
-                  disabled={isDisabled}
-                  label={`${settlement.name} • ${settlement.area}`}
-                  onPress={() => {
-                    if (!lockSettlement) {
-                      setValue('settlement_id', settlement.id, {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                      });
-                    }
-                  }}
-                  selected={isSelected}
-                  tone={isSelected ? 'accent' : 'neutral'}
-                />
-              );
-            })}
-          </View>
-          <FieldError message={errors.settlement_id?.message} />
+          <SettlementPicker
+            disabled={lockSettlement}
+            errorMessage={errors.settlement_id?.message}
+            label="יישוב"
+            onChange={(settlementIds) => {
+              setValue('settlement_id', settlementIds[0] ?? '', {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+            placeholder="בחר יישוב"
+            selectedSettlementIds={selectedSettlementId ? [selectedSettlementId] : []}
+            settlements={settlementOptions}
+          />
           {!isUpdating && existingFeedbackForSettlement ? (
             <Text style={styles.hint}>
               כבר קיים משוב עבור היישוב הזה. השמירה תעדכן את המשוב הקיים במקום ליצור כפילות.
@@ -201,12 +191,12 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     flex: 1,
   },
   actions: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: 8,
   },
   chips: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: 8,
   },

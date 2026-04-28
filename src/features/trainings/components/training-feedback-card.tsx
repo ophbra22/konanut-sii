@@ -5,6 +5,7 @@ import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import type { TrainingFeedbackItem } from '@/src/features/trainings/api/trainings-service';
 import { formatDisplayDate } from '@/src/lib/date-utils';
+import { rtlRow } from '@/src/lib/rtl';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type TrainingFeedbackCardProps = {
@@ -85,11 +86,11 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     flex: 1,
   },
   actions: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 8,
   },
   badges: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: 6,
   },
@@ -111,7 +112,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   metaRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 5,
   },
   metaText: {
@@ -130,7 +131,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   topRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 8,
     justifyContent: 'space-between',
   },

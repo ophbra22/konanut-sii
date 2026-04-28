@@ -6,6 +6,7 @@ import { AppButton } from '@/src/components/ui/app-button';
 import { AppScreen } from '@/src/components/ui/app-screen';
 import { PageHeader } from '@/src/components/ui/page-header';
 import { SettlementForm } from '@/src/features/settlements/components/settlement-form';
+import { useCouncilsQuery } from '@/src/features/councils/hooks/use-councils-query';
 import { useCreateSettlementMutation } from '@/src/features/settlements/hooks/use-settlement-mutations';
 import { isSuperAdmin } from '@/src/features/auth/lib/permissions';
 import { toSettlementInsertInput } from '@/src/features/settlements/lib/settlement-form-utils';
@@ -15,6 +16,7 @@ export default function CreateSettlementScreen() {
   const role = useAuthStore((state) => state.role);
   const router = useRouter();
   const mutation = useCreateSettlementMutation();
+  const councilsQuery = useCouncilsQuery();
 
   if (!isSuperAdmin(role)) {
     return (
@@ -53,14 +55,25 @@ export default function CreateSettlementScreen() {
         />
       ) : null}
 
+      {councilsQuery.error ? (
+        <StateCard
+          description={councilsQuery.error.message}
+          title="לא ניתן לטעון את המועצות"
+          variant="warning"
+        />
+      ) : null}
+
       <AppCard
         description="מלאו את פרטי היישוב, הרכז והסטטוס המבצעי הראשוני."
         title="פרטי יישוב"
       >
         <SettlementForm
+          councilOptions={councilsQuery.data ?? []}
           isSubmitting={mutation.isPending}
           onSubmit={async (values) => {
-            const created = await mutation.mutateAsync(toSettlementInsertInput(values));
+            const created = await mutation.mutateAsync(
+              toSettlementInsertInput(values, councilsQuery.data ?? [])
+            );
             router.replace(`/settlements/${created.id}` as never);
           }}
           submitLabel="שמירת יישוב"

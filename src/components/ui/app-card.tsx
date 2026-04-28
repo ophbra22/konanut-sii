@@ -39,6 +39,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     textAlign: 'right',
   },
   header: {
+    alignItems: 'flex-end',
     gap: 4,
   },
   title: {

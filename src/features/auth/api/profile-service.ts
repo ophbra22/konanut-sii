@@ -5,9 +5,10 @@ import type {
   LinkedSettlement,
   UserProfile,
 } from '@/src/types/database';
+import { getPasswordMinLengthMessage } from '@/src/features/auth/lib/auth-constants';
 
 const fullProfileSelect =
-  'id, full_name, email, phone, requested_role, requested_area, assigned_plaga, deletion_requested_at, role, is_active, created_at';
+  'id, full_name, email, phone, requested_role, requested_area, requested_settlement_id, requested_council_id, requested_plaga_id, approval_status, approved_by, approved_at, rejected_at, rejection_reason, assigned_plaga, deletion_requested_at, role, is_active, created_at';
 const legacyProfileSelect = 'id, full_name, email, phone, role, is_active, created_at';
 const settlementLinksSelect = `
   user_id,
@@ -26,6 +27,14 @@ function shouldFallbackToLegacyProfileSelect(error: unknown) {
   return (
     message.includes('requested_role') ||
     message.includes('requested_area') ||
+    message.includes('requested_settlement_id') ||
+    message.includes('requested_council_id') ||
+    message.includes('requested_plaga_id') ||
+    message.includes('approval_status') ||
+    message.includes('approved_by') ||
+    message.includes('approved_at') ||
+    message.includes('rejected_at') ||
+    message.includes('rejection_reason') ||
     message.includes('assigned_plaga') ||
     message.includes('deletion_requested_at') ||
     message.includes('column') ||
@@ -54,10 +63,18 @@ function normalizeLegacyProfile<T extends {
 }>(profile: T): UserProfile {
   return {
     ...profile,
+    approval_status: profile.is_active ? 'approved' : 'pending_approval',
     assigned_plaga: null,
+    approved_at: null,
+    approved_by: null,
     deletion_requested_at: null,
+    rejected_at: null,
+    rejection_reason: null,
     requested_area: null,
+    requested_council_id: null,
+    requested_plaga_id: null,
     requested_role: null,
+    requested_settlement_id: null,
   };
 }
 
@@ -71,14 +88,18 @@ function getAuthErrorMessage(message: string) {
   }
 
   if (message.includes('Email not confirmed')) {
-    return 'יש לאשר את כתובת הדוא"ל לפני הכניסה';
+    return 'יש להשלים את אימות כתובת האימייל לפני הכניסה';
+  }
+
+  if (message.includes('Phone') || message.includes('phone')) {
+    return 'מספר טלפון לא תקין';
   }
 
   if (
     message.includes('Password should be at least') ||
     message.includes('Password is too short')
   ) {
-    return 'יש לבחור סיסמה באורך 6 תווים לפחות';
+    return getPasswordMinLengthMessage();
   }
 
   if (
@@ -112,6 +133,14 @@ function getAuthErrorMessage(message: string) {
 
   if (message.includes('Signup is disabled')) {
     return 'ההרשמה למערכת אינה זמינה כרגע';
+  }
+
+  if (message.includes('User not found')) {
+    return 'לא נמצא חשבון תואם במערכת';
+  }
+
+  if (message.includes('For security purposes, you can only request this after')) {
+    return 'נשלחו יותר מדי בקשות. נסו שוב בעוד כמה רגעים';
   }
 
   if (message.includes('network')) {
@@ -268,13 +297,29 @@ export async function listActiveProfiles(): Promise<UserProfile[]> {
   return data ?? [];
 }
 
-export async function requestAccountDeletion() {
-  const { error } = await supabase.rpc('request_account_deletion');
+export async function deleteCurrentUserAccount() {
+  const { error } = await supabase.rpc('delete_current_user_account');
 
   if (error) {
-    throw createDataAccessError(
-      error,
-      'לא ניתן לשלוח את בקשת מחיקת החשבון כרגע'
-    );
+    const message = getErrorMessage(error, '');
+
+    if (message.includes('not_authenticated')) {
+      throw new Error('יש להתחבר מחדש לפני מחיקת החשבון');
+    }
+
+    if (message.includes('user_not_found')) {
+      throw new Error('החשבון כבר לא קיים במערכת');
+    }
+
+    if (
+      message.includes('delete_current_user_account') ||
+      message.includes('Could not find the function')
+    ) {
+      throw new Error(
+        'פונקציית מחיקת החשבון עדיין לא הותקנה ב-Supabase. יש להריץ את המיגרציה האחרונה.'
+      );
+    }
+
+    throw createDataAccessError(error, 'לא ניתן למחוק את החשבון כרגע');
   }
 }

@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { AppRevealView } from '@/src/components/ui/app-reveal-view';
 import { AppScreen } from '@/src/components/ui/app-screen';
+import { rtlRowReverse } from '@/src/lib/rtl';
 import {
   createThemedStyles,
   type AppTheme,
@@ -195,7 +196,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     height: 300,
     opacity: 0.42,
     position: 'absolute',
-    right: -120,
+    end: -120,
     top: -72,
     width: 300,
   },
@@ -203,9 +204,9 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     backgroundColor: theme.colors.glowStrong,
     borderRadius: 260,
     height: 220,
-    left: -70,
     opacity: 0.24,
     position: 'absolute',
+    start: -70,
     top: 132,
     width: 220,
   },
@@ -223,18 +224,18 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     backgroundColor: theme.colors.overlay,
     borderRadius: 260,
     bottom: 36,
+    end: 18,
     height: 180,
     opacity: 0.26,
     position: 'absolute',
-    right: 18,
     width: 180,
   },
   backgroundBand: {
+    end: -40,
     height: 260,
-    left: -40,
     opacity: 0.62,
     position: 'absolute',
-    right: -40,
+    start: -40,
     top: 74,
     transform: [{ rotate: '-6deg' }],
   },
@@ -251,6 +252,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderColor: theme.colors.borderSoft,
     borderRadius: 24,
     borderWidth: 1,
+    direction: 'ltr',
     gap: theme.spacing.xl,
     padding: theme.spacing.xl,
     position: 'relative',
@@ -264,11 +266,11 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   cardAccent: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    end: 0,
     height: 112,
-    left: 0,
     opacity: 0.78,
     position: 'absolute',
-    right: 0,
+    start: 0,
     top: 0,
   },
   cardBadge: {
@@ -278,7 +280,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderColor: theme.colors.infoBorder,
     borderRadius: theme.radius.pill,
     borderWidth: 1,
-    flexDirection: 'row-reverse',
+    ...rtlRowReverse,
     gap: theme.spacing.xs,
     paddingHorizontal: 12,
     paddingVertical: 7,
@@ -313,6 +315,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     gap: 9,
   },
   cardHeading: {
+    alignItems: 'flex-end',
     gap: 7,
   },
   cardHeadingCompact: {
@@ -328,11 +331,11 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   cardTopEdge: {
     backgroundColor: theme.colors.highlightOverlay,
     borderRadius: theme.radius.pill,
+    end: 22,
     height: 1,
-    left: 22,
     opacity: 0.8,
     position: 'absolute',
-    right: 22,
+    start: 22,
     top: 0,
   },
   content: {
@@ -364,6 +367,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     width: '100%',
   },
   header: {
+    alignItems: 'flex-end',
     gap: theme.spacing.sm,
     maxWidth: 520,
     width: '100%',
@@ -376,7 +380,10 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   shell: {
     flex: 1,
+    maxWidth: '100%',
+    minWidth: 0,
     position: 'relative',
+    width: '100%',
   },
   subtitle: {
     ...theme.typography.sectionTitle,
@@ -416,6 +423,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     alignSelf: 'center',
     gap: 24,
     maxWidth: 520,
+    minWidth: 0,
     minHeight: '100%',
     paddingBottom: theme.spacing.xl,
     paddingTop: 22,

@@ -15,6 +15,7 @@ import { useSyncSettlementRankingsMutation } from '@/src/features/rankings/api/r
 import { SettlementRankingCard } from '@/src/features/rankings/components/settlement-ranking-card';
 import { useRankingsQuery } from '@/src/features/rankings/hooks/use-rankings-query';
 import { getCurrentHalfYearPeriod, getHalfYearLabel } from '@/src/lib/date-utils';
+import { rtlRow } from '@/src/lib/rtl';
 import { matchesSearchQuery } from '@/src/lib/search-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { createThemedStyles, type AppTheme } from '@/src/theme';
@@ -134,7 +135,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   content: {
     gap: 8,
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: theme.spacing.sm,
   },
   list: {
     gap: 7,
@@ -155,7 +156,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   summaryRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.xs,
     justifyContent: 'flex-end',
   },

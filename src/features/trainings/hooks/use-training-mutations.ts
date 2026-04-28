@@ -97,8 +97,15 @@ export function useDeleteTrainingMutation() {
 
   return useMutation({
     mutationFn: (trainingId: string) => deleteTraining(trainingId),
-    onSuccess: () => {
+    onSuccess: (result, trainingId) => {
+      if (!result.success) {
+        return;
+      }
+
       void queryClient.invalidateQueries({ queryKey: queryKeys.trainings.all });
+      void queryClient.invalidateQueries({
+        queryKey: queryKeys.trainings.detail(trainingId),
+      });
       void queryClient.invalidateQueries({ queryKey: queryKeys.calendar.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.overview });
       void queryClient.invalidateQueries({ queryKey: queryKeys.rankings.all });

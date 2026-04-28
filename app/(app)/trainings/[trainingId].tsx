@@ -30,11 +30,13 @@ import { PageHeader } from '@/src/components/ui/page-header';
 import { SectionBlock } from '@/src/components/ui/section-block';
 import {
   canCreateFeedbacks,
+  canDeleteTrainings,
   canManageTrainings,
 } from '@/src/features/auth/lib/permissions';
 import { TrainingFeedbackCard } from '@/src/features/trainings/components/training-feedback-card';
 import { TrainingFeedbackForm } from '@/src/features/trainings/components/training-feedback-form';
 import {
+  useDeleteTrainingMutation,
   useDeleteTrainingFeedbackMutation,
   useSaveTrainingFeedbackMutation,
   useUpdateTrainingStatusMutation,
@@ -46,7 +48,8 @@ import {
 } from '@/src/features/trainings/lib/device-calendar';
 import { buildTrainingCompletionSummary } from '@/src/features/trainings/lib/training-completion-summary';
 import { getTrainingStatusTone } from '@/src/features/trainings/lib/training-presenters';
-import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
+import { formatDisplayDate, formatDisplayTimeRange } from '@/src/lib/date-utils';
+import { rtlRow, rtlRowReverse } from '@/src/lib/rtl';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { useFeedbackStore } from '@/src/stores/feedback-store';
 import type { TrainingSettlementAttendance, TrainingStatus } from '@/src/types/database';
@@ -256,6 +259,7 @@ export default function TrainingDetailsScreen() {
   const role = useAuthStore((state) => state.role);
   const showToast = useFeedbackStore((state) => state.showToast);
   const router = useRouter();
+  const deleteTrainingMutation = useDeleteTrainingMutation();
   const deleteFeedbackMutation = useDeleteTrainingFeedbackMutation();
   const feedbackMutation = useSaveTrainingFeedbackMutation();
   const statusMutation = useUpdateTrainingStatusMutation();
@@ -264,6 +268,7 @@ export default function TrainingDetailsScreen() {
   const [isFeedbackFormVisible, setIsFeedbackFormVisible] = useState(false);
   const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
   const canManageFeedback = canCreateFeedbacks(role);
+  const canDeleteTraining = canDeleteTrainings(role);
   const canEditTraining = canManageTrainings(role);
 
   useEffect(() => {
@@ -311,7 +316,7 @@ export default function TrainingDetailsScreen() {
     training.missingFeedbackSettlements.length === 0;
   const metadataSummary = [
     formatDisplayDate(training.training_date),
-    formatDisplayTime(training.training_time),
+    formatDisplayTimeRange(training.training_time, training.end_time),
     training.instructor?.full_name || 'ללא מדריך',
     training.location?.trim() || 'ללא מיקום',
   ].join(' • ');
@@ -327,19 +332,19 @@ export default function TrainingDetailsScreen() {
   const shareMessage = [
     `📍 ${training.title}`,
     `📅 ${formatDisplayDate(training.training_date)}`,
-    `🕒 ${formatDisplayTime(training.training_time)}`,
+    `🕒 ${formatDisplayTimeRange(training.training_time, training.end_time)}`,
     `📊 ציון: ${trainingScore}`,
     `📌 סטטוס: ${getStatusLabelValue(training.status)}`,
   ].join('\n');
 
   const executionChecklist = [
     {
-      completed: training.training_type === 'מטווח' && training.status === 'הושלם',
-      label: 'מטווח',
+      completed: training.status === 'הושלם',
+      label: training.training_type,
     },
     {
-      completed: training.training_type === 'הגנת יישוב' && training.status === 'הושלם',
-      label: 'הגנת יישוב',
+      completed: hasAttendanceData,
+      label: 'השתתפות',
     },
     {
       completed: feedbackCoverageComplete,
@@ -420,6 +425,46 @@ export default function TrainingDetailsScreen() {
     } finally {
       setIsAddingToCalendar(false);
     }
+  }
+
+  function handleDeleteTraining() {
+    if (deleteTrainingMutation.isPending) {
+      return;
+    }
+
+    Alert.alert(
+      'מחיקת אימון',
+      'האם אתה בטוח שברצונך למחוק את האימון? לא ניתן לשחזר פעולה זו.',
+      [
+        { style: 'cancel', text: 'ביטול' },
+        {
+          style: 'destructive',
+          text: 'מחק',
+          onPress: () => {
+            void deleteTrainingMutation
+              .mutateAsync(training.id)
+              .then((result) => {
+                if (!result.success) {
+                  Alert.alert('לא ניתן למחוק את האימון', result.message);
+                  return;
+                }
+
+                Alert.alert('מחיקת אימון', 'האימון נמחק בהצלחה', [
+                  {
+                    text: 'אישור',
+                    onPress: () => {
+                      router.replace('/trainings');
+                    },
+                  },
+                ]);
+              })
+              .catch(() => {
+                Alert.alert('לא ניתן למחוק את האימון', 'אירעה שגיאה לא צפויה. נסו שוב.');
+              });
+          },
+        },
+      ]
+    );
   }
 
   return (
@@ -782,6 +827,22 @@ export default function TrainingDetailsScreen() {
           </SectionBlock>
         </AppRevealView>
       ) : null}
+
+      {canDeleteTraining ? (
+        <AppRevealView delay={170}>
+          <SectionBlock title="מחיקת אימון">
+            <AppCard style={styles.footerCard}>
+              <AppButton
+                disabled={deleteTrainingMutation.isPending}
+                label="מחק אימון"
+                loading={deleteTrainingMutation.isPending}
+                onPress={handleDeleteTraining}
+                variant="danger"
+              />
+            </AppCard>
+          </SectionBlock>
+        </AppRevealView>
+      ) : null}
     </AppScreen>
   );
 }
@@ -792,7 +853,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderRadius: theme.radius.lg,
     borderWidth: 1,
     flex: 1,
-    flexDirection: 'row-reverse',
+    ...rtlRowReverse,
     gap: 5,
     height: 36,
     justifyContent: 'center',
@@ -838,7 +899,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   checklistState: {
     ...theme.typography.badge,
     fontWeight: '700',
-    textAlign: 'left',
+    textAlign: 'right',
   },
   checklistStateComplete: {
     color: theme.colors.accentStrong,
@@ -872,7 +933,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   completeFeedbackRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 6,
   },
   completeFeedbackText: {
@@ -884,7 +945,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   completeTrainingRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 8,
     justifyContent: 'center',
   },
@@ -907,7 +968,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   feedbackSummaryTopRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     justifyContent: 'space-between',
     gap: 10,
   },
@@ -924,7 +985,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     paddingVertical: 12,
   },
   headerBadges: {
-    alignSelf: 'flex-start',
+    alignSelf: 'flex-end',
   },
   headerCard: {
     gap: 6,
@@ -933,7 +994,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   headerTopRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 8,
     justifyContent: 'space-between',
   },
@@ -968,7 +1029,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     gap: 5,
   },
   missingFeedbackChips: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: 5,
   },
@@ -1048,7 +1109,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     alignItems: 'center',
     borderBottomColor: theme.colors.border,
     borderBottomWidth: 1,
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 12,
     justifyContent: 'space-between',
     paddingVertical: 10,
@@ -1108,7 +1169,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     textAlign: 'right',
   },
   quickActionsRow: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.xs,
   },
   scoreCard: {
@@ -1139,7 +1200,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     gap: theme.spacing.section,
   },
   settlementBadges: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: 5,
   },
@@ -1151,14 +1212,14 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     alignItems: 'center',
     borderBottomColor: theme.colors.border,
     borderBottomWidth: 1,
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     justifyContent: 'space-between',
     minHeight: 40,
     paddingVertical: 6,
   },
   statusStateGroup: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 6,
   },
   statusCard: {

@@ -7,6 +7,7 @@ import {
   UserRound,
 } from 'lucide-react-native';
 import { Tabs } from 'expo-router/tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TabBarIcon } from '@/src/components/ui/tab-bar-icon';
 import { useAppTheme, useThemeMode } from '@/src/theme';
@@ -14,6 +15,8 @@ import { useAppTheme, useThemeMode } from '@/src/theme';
 export default function TabsLayout() {
   const theme = useAppTheme();
   const themeMode = useThemeMode();
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = 62 + Math.max(insets.bottom, 10);
 
   return (
     <Tabs
@@ -26,13 +29,18 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: theme.colors.tabBarBackground,
           borderTopColor: theme.colors.tabBarBorder,
-          height: 78,
-          paddingTop: 10,
-          paddingBottom: 12,
+          flexDirection: 'row-reverse',
+          height: tabBarHeight,
+          paddingTop: 8,
+          paddingBottom: Math.max(insets.bottom, 10),
+        },
+        tabBarItemStyle: {
+          direction: 'rtl',
         },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
+          writingDirection: 'rtl',
         },
         sceneStyle: {
           backgroundColor: theme.colors.background,

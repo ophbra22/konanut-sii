@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { Linking, Pressable, Text, View } from 'react-native';
 
 import { appReviewLinks } from '@/src/config/app-review-links';
+import { rtlRow } from '@/src/lib/rtl';
 import { createThemedStyles, type AppTheme } from '@/src/theme';
 
 export function AuthUtilityLinks() {
@@ -66,7 +67,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   linksRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: 8,
     justifyContent: 'center',
   },

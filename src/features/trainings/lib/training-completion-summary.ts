@@ -1,5 +1,5 @@
 import type { TrainingDetails } from '@/src/features/trainings/api/trainings-service';
-import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
+import { formatDisplayDate, formatDisplayTimeRange } from '@/src/lib/date-utils';
 
 function normalizeText(value: string | null | undefined) {
   const normalized = value?.trim();
@@ -51,7 +51,7 @@ function getTimeRange(training: TrainingDetails) {
     return 'לא הוזן';
   }
 
-  return `${formatDisplayTime(training.training_time)} - לא הוזן`;
+  return formatDisplayTimeRange(training.training_time, training.end_time);
 }
 
 function formatAttendanceLine(training: TrainingDetails) {

@@ -40,9 +40,9 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   wrapper: {
     alignItems: 'center',
     bottom: theme.spacing.lg,
-    left: theme.spacing.lg,
+    end: theme.spacing.lg,
     position: 'absolute',
-    right: theme.spacing.lg,
+    start: theme.spacing.lg,
   },
 }));
 

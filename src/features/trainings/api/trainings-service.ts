@@ -77,8 +77,13 @@ type SaveTrainingFeedbackParams = {
   trainingId: string;
 };
 
+export type TrainingDeleteResult =
+  | { success: true }
+  | { message: string; success: false };
+
 const trainingsListSelect = `
   id,
+  end_time,
   title,
   training_type,
   location,
@@ -179,6 +184,7 @@ export async function getTrainingDetails(
     .select(
       `
         id,
+        end_time,
         title,
         training_type,
         location,
@@ -414,8 +420,13 @@ export async function deleteTraining(trainingId: string) {
   const { error } = await supabase.from('trainings').delete().eq('id', trainingId);
 
   if (error) {
-    throw createDataAccessError(error, 'לא ניתן למחוק את האימון');
+    return {
+      message: createDataAccessError(error, 'לא ניתן למחוק את האימון').message,
+      success: false as const,
+    };
   }
+
+  return { success: true as const };
 }
 
 export async function deleteTrainingFeedback(params: {

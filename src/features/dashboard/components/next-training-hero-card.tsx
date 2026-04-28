@@ -8,7 +8,7 @@ import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import type { DashboardUpcomingTraining } from '@/src/features/dashboard/api/dashboard-service';
 import { getTrainingStatusTone } from '@/src/features/trainings/lib/training-presenters';
-import { formatDisplayDate, formatDisplayTime } from '@/src/lib/date-utils';
+import { formatDisplayDate, formatDisplayTimeRange } from '@/src/lib/date-utils';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type HeroStatusTone = 'accent' | 'danger' | 'info' | 'neutral' | 'warning';
@@ -68,6 +68,10 @@ function getCountdownText(scheduledAt: Dayjs, now: Dayjs) {
   return `בעוד ${days} ימים`;
 }
 
+function formatStableTimeRange(startTime: string | null, endTime?: string | null) {
+  return `\u200E${formatDisplayTimeRange(startTime, endTime)}\u200E`;
+}
+
 export function NextTrainingHeroCard({
   training,
 }: {
@@ -105,8 +109,8 @@ export function NextTrainingHeroCard({
 
       <View style={styles.content}>
         <View style={styles.topRow}>
-          <AppBadge label={heroStatus.label} size="sm" tone={heroStatus.tone} />
           <Text style={styles.eyebrow}>האימון הבא</Text>
+          <AppBadge label={heroStatus.label} size="sm" tone={heroStatus.tone} />
         </View>
 
         <Text numberOfLines={2} style={styles.title}>
@@ -125,7 +129,9 @@ export function NextTrainingHeroCard({
 
           <View style={styles.metaItem}>
             <Clock3 color={theme.colors.textMuted} size={13} />
-            <Text style={styles.metaText}>{formatDisplayTime(training.training_time)}</Text>
+            <Text style={styles.metaText}>
+              {formatStableTimeRange(training.training_time, training.end_time)}
+            </Text>
           </View>
         </View>
 
@@ -152,6 +158,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderColor: theme.colors.cardOutline,
     borderRadius: 16,
     borderWidth: 1,
+    direction: 'ltr',
     overflow: 'hidden',
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -162,6 +169,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     shadowRadius: 18,
   },
   content: {
+    alignItems: 'stretch',
     gap: 10,
     position: 'relative',
     zIndex: 1,
@@ -174,6 +182,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     alignSelf: 'stretch',
     backgroundColor: theme.colors.infoSurface,
     borderRadius: 14,
+    direction: 'ltr',
     flexDirection: 'row-reverse',
     justifyContent: 'center',
     minHeight: 30,
@@ -186,14 +195,17 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     fontSize: 12,
     fontWeight: '800',
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   eyebrow: {
     ...theme.typography.meta,
     color: theme.colors.textMuted,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   metaItem: {
     alignItems: 'center',
+    direction: 'ltr',
     flexDirection: 'row-reverse',
     gap: 4,
   },
@@ -201,13 +213,16 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     ...theme.typography.meta,
     color: theme.colors.textSecondary,
     textAlign: 'right',
+    writingDirection: 'ltr',
   },
   subline: {
     ...theme.typography.meta,
     color: theme.colors.textDim,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   timeRow: {
+    direction: 'ltr',
     flexDirection: 'row-reverse',
     gap: theme.spacing.sm,
     flexWrap: 'wrap',
@@ -218,7 +233,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     height: 120,
     opacity: 0.8,
     position: 'absolute',
-    right: -34,
+    end: -34,
     top: -48,
     width: 120,
   },
@@ -228,9 +243,11 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     fontWeight: '900',
     lineHeight: 25,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   topRow: {
     alignItems: 'center',
+    direction: 'ltr',
     flexDirection: 'row-reverse',
     gap: theme.spacing.xs,
     justifyContent: 'space-between',

@@ -107,6 +107,17 @@ export function formatDisplayTime(value: string | null) {
   return value ? value.slice(0, 5) : 'ללא שעה';
 }
 
+export function formatDisplayTimeRange(startTime: string | null, endTime?: string | null) {
+  if (!startTime) {
+    return 'ללא שעה';
+  }
+
+  const startLabel = formatDisplayTime(startTime);
+  const endLabel = endTime ? formatDisplayTime(endTime) : null;
+
+  return endLabel ? `${startLabel}–${endLabel}` : startLabel;
+}
+
 export function getMonthDateRange(referenceDate = dayjs()) {
   return {
     end: referenceDate.endOf('month'),

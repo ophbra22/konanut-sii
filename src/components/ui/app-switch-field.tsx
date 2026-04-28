@@ -1,5 +1,6 @@
 import { StyleSheet, Switch, Text, View } from 'react-native';
 
+import { rtlRow } from '@/src/lib/rtl';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type AppSwitchFieldProps = {
@@ -59,7 +60,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderColor: theme.colors.borderStrong,
     borderRadius: theme.radius.xl,
     borderWidth: 1,
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.md,
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.md,

@@ -19,6 +19,7 @@ import {
   type ResetPasswordFormValues,
 } from '@/src/features/auth/schemas/reset-password-schema';
 import { getPresentableErrorMessage } from '@/src/lib/error-utils';
+import { rtlRowReverse } from '@/src/lib/rtl';
 import { useAuthStore } from '@/src/stores/auth-store';
 import {
   createThemedStyles,
@@ -184,7 +185,7 @@ export function ResetPasswordForm() {
               placeholder="בחרו סיסמה חדשה"
               returnKeyType="next"
               secureTextEntry
-              textAlign="left"
+              textAlign="right"
               textContentType="newPassword"
               value={value}
               writingDirection="ltr"
@@ -215,7 +216,7 @@ export function ResetPasswordForm() {
               placeholder="הזינו שוב את הסיסמה החדשה"
               returnKeyType="done"
               secureTextEntry
-              textAlign="left"
+              textAlign="right"
               textContentType="password"
               value={value}
               writingDirection="ltr"
@@ -269,7 +270,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   linkRow: {
     alignItems: 'center',
     alignSelf: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRowReverse,
     gap: 6,
   },
   linkText: {

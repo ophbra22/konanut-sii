@@ -21,6 +21,7 @@ import {
   type ProfessionalContentFilter,
 } from '@/src/features/professional-content/constants';
 import { useProfessionalContentQuery } from '@/src/features/professional-content/hooks/use-professional-content-query';
+import { rtlRow } from '@/src/lib/rtl';
 import { matchesSearchQuery } from '@/src/lib/search-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { useFeedbackStore } from '@/src/stores/feedback-store';
@@ -272,7 +273,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   content: {
     gap: theme.spacing.md,
-    paddingBottom: theme.spacing.xl,
+    paddingBottom: theme.spacing.sm,
   },
   list: {
     gap: 8,
@@ -281,7 +282,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     flex: 1,
   },
   modalChips: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.sm,
   },
@@ -298,7 +299,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   summaryRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     gap: theme.spacing.xs,
     justifyContent: 'flex-end',
   },

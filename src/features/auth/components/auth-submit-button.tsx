@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { rtlRowReverse } from '@/src/lib/rtl';
 import {
   createThemedStyles,
   type AppTheme,
@@ -100,11 +101,11 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   highlight: {
     backgroundColor: theme.colors.highlightOverlay,
     borderRadius: theme.radius.pill,
+    end: 16,
     height: 34,
-    left: 16,
     opacity: 0.66,
     position: 'absolute',
-    right: 16,
+    start: 16,
     top: 1,
   },
   label: {
@@ -118,15 +119,15 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     backgroundColor: 'rgba(0, 0, 0, 0.08)',
     borderRadius: theme.radius.pill,
     bottom: -8,
+    end: 18,
     height: 24,
-    left: 18,
     opacity: 0.34,
     position: 'absolute',
-    right: 18,
+    start: 18,
   },
   loadingRow: {
     alignItems: 'center',
-    flexDirection: 'row-reverse',
+    ...rtlRowReverse,
     gap: theme.spacing.xs,
   },
 }));

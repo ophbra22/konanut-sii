@@ -125,8 +125,10 @@ export function DashboardMetricCard({
 
 const styles = createThemedStyles((theme: AppTheme) => ({
   card: {
+    alignItems: 'flex-end',
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
+    direction: 'ltr',
     gap: 4,
     justifyContent: 'center',
     minHeight: 62,
@@ -143,13 +145,16 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     color: theme.colors.textMuted,
     marginTop: 2,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   label: {
     ...theme.typography.meta,
     color: theme.colors.textSecondary,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
   skeleton: {
+    alignItems: 'flex-end',
     gap: 6,
     justifyContent: 'center',
     minHeight: 38,
@@ -173,6 +178,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     letterSpacing: -0.8,
     lineHeight: 30,
     textAlign: 'right',
+    writingDirection: 'rtl',
   },
 }));
 

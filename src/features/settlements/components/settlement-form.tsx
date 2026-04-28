@@ -13,9 +13,12 @@ import {
   type SettlementFormValues,
 } from '@/src/features/settlements/schemas/settlement-form-schema';
 import { PLAGA_VALUES } from '@/src/lib/plaga';
+import { rtlRow } from '@/src/lib/rtl';
+import type { Council } from '@/src/types/database';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
 type SettlementFormProps = {
+  councilOptions?: Pick<Council, 'id' | 'name' | 'regional_squad_name'>[];
   initialValues?: Partial<SettlementFormValues>;
   isSubmitting?: boolean;
   onSubmit: (values: SettlementFormValues) => Promise<void> | void;
@@ -24,15 +27,16 @@ type SettlementFormProps = {
 
 const defaultValues: SettlementFormValues = {
   area: PLAGA_VALUES[0],
+  council_id: null,
   coordinator_name: '',
   coordinator_phone: '',
   is_active: true,
   name: '',
-  regional_council: '',
   total_squad_members: null,
 };
 
 export function SettlementForm({
+  councilOptions = [],
   initialValues,
   isSubmitting = false,
   onSubmit,
@@ -77,17 +81,38 @@ export function SettlementForm({
 
       <Controller
         control={control}
-        name="regional_council"
-        render={({ field: { onBlur, onChange, value } }) => (
-          <AppTextField
-            errorMessage={errors.regional_council?.message}
-            hint="אופציונלי"
-            label="מועצה אזורית"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            placeholder="הזינו מועצה אזורית"
-            value={value ?? ''}
-          />
+        name="council_id"
+        render={({ field: { onChange, value } }) => (
+          <SectionBlock
+            description={
+              councilOptions.length
+                ? 'בחרו את המועצה שאליה היישוב משויך. ניתן גם להשאיר ללא שיוך זמני.'
+                : 'עדיין אין מועצות מוגדרות במערכת. אפשר לשמור את היישוב ללא שיוך ולהשלים אחר כך.'
+            }
+            title="מועצה"
+          >
+            <View style={styles.plagaChips}>
+              <AppChip
+                label="ללא מועצה"
+                onPress={() => {
+                  onChange(null);
+                }}
+                selected={!value}
+                tone={!value ? 'accent' : 'neutral'}
+              />
+              {councilOptions.map((council) => (
+                <AppChip
+                  key={council.id}
+                  label={council.name}
+                  onPress={() => {
+                    onChange(council.id);
+                  }}
+                  selected={value === council.id}
+                  tone={value === council.id ? 'accent' : 'neutral'}
+                />
+              ))}
+            </View>
+          </SectionBlock>
         )}
       />
 
@@ -148,7 +173,7 @@ export function SettlementForm({
               onChange(sanitized ? Number(sanitized) : null);
             }}
             placeholder="לדוגמה: 18"
-            textAlign="left"
+            textAlign="right"
             value={value === null ? '' : String(value)}
             writingDirection="ltr"
           />
@@ -167,7 +192,7 @@ export function SettlementForm({
             onBlur={onBlur}
             onChangeText={onChange}
             placeholder="050-0000000"
-            textAlign="left"
+            textAlign="right"
             value={value ?? ''}
             writingDirection="ltr"
           />
@@ -204,7 +229,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     gap: theme.spacing.md,
   },
   plagaChips: {
-    flexDirection: 'row-reverse',
+    ...rtlRow,
     flexWrap: 'wrap',
     gap: theme.spacing.xs,
   },

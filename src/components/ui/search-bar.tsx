@@ -39,9 +39,6 @@ export function SearchBar({
       }}
       style={[styles.wrapper, isFocused && styles.wrapperFocused, !isEditable && styles.wrapperDisabled]}
     >
-      <View pointerEvents="none" style={styles.iconSlot}>
-        <Search color={isFocused ? theme.colors.info : theme.colors.textMuted} size={16} />
-      </View>
       <TextInput
         ref={inputRef}
         autoCapitalize="none"
@@ -69,6 +66,9 @@ export function SearchBar({
         underlineColorAndroid="transparent"
         {...props}
       />
+      <View pointerEvents="none" style={styles.iconSlot}>
+        <Search color={isFocused ? theme.colors.info : theme.colors.textMuted} size={16} />
+      </View>
     </Pressable>
   );
 }
@@ -87,6 +87,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     minWidth: 0,
     paddingHorizontal: 0,
     paddingVertical: 0,
+    textAlign: 'right',
     writingDirection: 'rtl',
   },
   wrapper: {
@@ -95,6 +96,7 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     borderColor: theme.colors.borderStrong,
     borderRadius: theme.radius.xl,
     borderWidth: 1,
+    direction: 'rtl',
     flexDirection: 'row-reverse',
     gap: theme.spacing.xs,
     minHeight: 46,

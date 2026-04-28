@@ -2,16 +2,36 @@ import type { Session, User } from '@supabase/supabase-js';
 import { create } from 'zustand';
 
 import {
+  deleteCurrentUserAccount,
   fetchUserProfile,
   translateAuthError,
 } from '@/src/features/auth/api/profile-service';
+import {
+  completePhoneRegistration,
+  sendPhoneOtp,
+  verifyPhoneOtp,
+  type CompletePhoneRegistrationPayload,
+} from '@/src/features/auth/api/phone-auth-service';
+import {
+  completeEmailRegistration,
+  normalizeEmailAddress,
+  sendEmailOtp,
+  setAuthenticatedUserPassword,
+  verifyEmailOtp,
+  type CompleteEmailRegistrationPayload,
+} from '@/src/features/auth/api/email-auth-service';
 import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { queryClient } from '@/src/lib/query-client';
 import { queryKeys } from '@/src/lib/query-keys';
 import { supabase } from '@/src/lib/supabase';
 import type { AuthProfile, UserRole } from '@/src/types/database';
 
-type AuthStatus = 'authenticated' | 'idle' | 'loading' | 'unauthenticated';
+type AuthStatus =
+  | 'authenticated'
+  | 'idle'
+  | 'loading'
+  | 'needs_registration'
+  | 'unauthenticated';
 
 type Credentials = {
   email: string;
@@ -27,7 +47,13 @@ type SignUpPayload = Credentials & {
 
 type AuthActionResult = {
   message?: string;
-  reason?: 'inactive_account' | 'invalid_credentials' | 'unknown';
+  reason?:
+    | 'inactive_account'
+    | 'invalid_credentials'
+    | 'needs_registration'
+    | 'pending_approval'
+    | 'rejected'
+    | 'unknown';
   success: boolean;
 };
 
@@ -35,6 +61,12 @@ type AuthState = {
   beginPasswordRecovery: () => void;
   clearError: () => void;
   clearPasswordRecoveryState: () => void;
+  completeEmailRegistrationWithPassword: (
+    payload: CompleteEmailRegistrationPayload & {
+      password: string;
+    }
+  ) => Promise<AuthActionResult>;
+  deleteAccount: () => Promise<AuthActionResult>;
   errorMessage: string | null;
   failPasswordRecovery: (message: string) => void;
   initialize: () => Promise<void>;
@@ -45,9 +77,25 @@ type AuthState = {
   profile: AuthProfile | null;
   refreshProfile: () => Promise<void>;
   role: UserRole | null;
+  sendEmailOtp: (email: string) => Promise<AuthActionResult & { email?: string }>;
+  sendPhoneOtp: (phone: string) => Promise<AuthActionResult & { phone?: string }>;
   session: Session | null;
   signIn: (credentials: Credentials) => Promise<AuthActionResult>;
+  signInWithEmailOtp: (params: {
+    email: string;
+    token: string;
+  }) => Promise<AuthActionResult>;
+  signInWithPhoneOtp: (params: {
+    phone: string;
+    token: string;
+  }) => Promise<AuthActionResult>;
   signUp: (payload: SignUpPayload) => Promise<AuthActionResult>;
+  completeEmailRegistration: (
+    payload: CompleteEmailRegistrationPayload
+  ) => Promise<AuthActionResult>;
+  completePhoneRegistration: (
+    payload: CompletePhoneRegistrationPayload
+  ) => Promise<AuthActionResult>;
   signOut: () => Promise<AuthActionResult>;
   status: AuthStatus;
   user: User | null;
@@ -56,6 +104,25 @@ type AuthState = {
 let authSubscription: { unsubscribe: () => void } | null = null;
 let initializePromise: Promise<void> | null = null;
 let pendingRegistrationEmail: string | null = null;
+
+function isProfileRegistrationIncomplete(profile: AuthProfile | null) {
+  if (!profile) {
+    return true;
+  }
+
+  return (
+    profile.approval_status === 'pending_approval' &&
+    !profile.requested_role
+  );
+}
+
+function getApprovalStatus(profile: AuthProfile) {
+  if (profile.approval_status) {
+    return profile.approval_status;
+  }
+
+  return profile.is_active ? 'approved' : 'pending_approval';
+}
 
 export const useAuthStore = create<AuthState>((set, get) => {
   const applyUnauthenticatedState = (errorMessage: string | null = null) => {
@@ -102,21 +169,33 @@ export const useAuthStore = create<AuthState>((set, get) => {
     }
 
     if (!isPasswordRecovery) {
-      if (!profile) {
-        await supabase.auth.signOut();
-        applyUnauthenticatedState('לא נמצא פרופיל משתמש עבור החשבון הזה');
+      if (!profile || isProfileRegistrationIncomplete(profile)) {
+        pendingRegistrationEmail = null;
+
+        set({
+          errorMessage: null,
+          isInitialized: true,
+          isPasswordRecovery: false,
+          linkedSettlementIds: [],
+          passwordRecoveryError: null,
+          profile,
+          role: null,
+          session,
+          status: 'needs_registration',
+          user: session.user,
+        });
         return;
       }
 
-      if (profile.deletion_requested_at) {
+      const approvalStatus = getApprovalStatus(profile);
+
+      if (approvalStatus === 'rejected') {
         await supabase.auth.signOut();
-        applyUnauthenticatedState(
-          'בקשת מחיקת החשבון התקבלה וממתינה לטיפול. אפשר לפנות לתמיכה לפרטים נוספים.'
-        );
+        applyUnauthenticatedState('המשתמש שלך נדחה, פנה למנהל מערכת');
         return;
       }
 
-      if (!profile.is_active) {
+      if (approvalStatus === 'pending_approval' || !profile.is_active) {
         const shouldSilenceInactiveError =
           normalizedPendingRegistrationEmail !== null &&
           normalizedSessionEmail === normalizedPendingRegistrationEmail;
@@ -125,7 +204,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
         applyUnauthenticatedState(
           shouldSilenceInactiveError
             ? null
-            : 'החשבון הזה אינו פעיל כרגע. יש לפנות למנהל המערכת'
+            : 'ההרשמה התקבלה וממתינה לאישור מנהל מערכת'
         );
         return;
       }
@@ -190,6 +269,39 @@ export const useAuthStore = create<AuthState>((set, get) => {
         isPasswordRecovery: false,
         passwordRecoveryError: null,
       });
+    },
+    deleteAccount: async () => {
+      set((state) => ({
+        ...state,
+        errorMessage: null,
+        status: 'loading',
+      }));
+
+      try {
+        await deleteCurrentUserAccount();
+        await supabase.auth
+          .signOut({ scope: 'local' })
+          .catch(() => supabase.auth.signOut().catch(() => undefined));
+        applyUnauthenticatedState();
+
+        return {
+          message: 'החשבון נמחק בהצלחה',
+          success: true,
+        };
+      } catch (error) {
+        const message = getPresentableErrorMessage(error, 'לא ניתן למחוק את החשבון כרגע');
+
+        set((state) => ({
+          ...state,
+          errorMessage: message,
+          status: state.session ? 'authenticated' : 'unauthenticated',
+        }));
+
+        return {
+          message,
+          success: false,
+        };
+      }
     },
     errorMessage: null,
     failPasswordRecovery: (message) => {
@@ -269,6 +381,54 @@ export const useAuthStore = create<AuthState>((set, get) => {
       }
     },
     role: null,
+    sendEmailOtp: async (email) => {
+      set((state) => ({
+        ...state,
+        errorMessage: null,
+      }));
+
+      try {
+        const normalizedEmail = await sendEmailOtp(email);
+
+        return {
+          email: normalizedEmail,
+          message: 'נשלח אליך קוד אימות למייל',
+          success: true,
+        };
+      } catch (error) {
+        const message = getPresentableErrorMessage(error, 'לא ניתן לשלוח בקשת אימות כעת');
+        set({ errorMessage: message });
+
+        return {
+          message,
+          success: false,
+        };
+      }
+    },
+    sendPhoneOtp: async (phone) => {
+      set((state) => ({
+        ...state,
+        errorMessage: null,
+      }));
+
+      try {
+        const normalizedPhone = await sendPhoneOtp(phone);
+
+        return {
+          message: 'נשלח אליך קוד אימות',
+          phone: normalizedPhone,
+          success: true,
+        };
+      } catch (error) {
+        const message = getPresentableErrorMessage(error, 'לא ניתן לשלוח בקשת אימות כעת');
+        set({ errorMessage: message });
+
+        return {
+          message,
+          success: false,
+        };
+      }
+    },
     session: null,
     signIn: async ({ email, password }) => {
       pendingRegistrationEmail = null;
@@ -281,11 +441,25 @@ export const useAuthStore = create<AuthState>((set, get) => {
         status: 'loading',
       }));
 
+      let normalizedEmail: string;
+
+      try {
+        normalizedEmail = normalizeEmailAddress(email);
+      } catch (error) {
+        const message = getPresentableErrorMessage(error, 'יש להזין כתובת אימייל תקינה');
+        applyUnauthenticatedState(message);
+
+        return {
+          message,
+          reason: 'unknown',
+          success: false,
+        };
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+        email: normalizedEmail,
+        password,
       });
-      
 
       if (error) {
         const message = translateAuthError(error);
@@ -323,6 +497,108 @@ export const useAuthStore = create<AuthState>((set, get) => {
         return {
           message,
           reason: message.includes('אינו פעיל') ? 'inactive_account' : 'unknown',
+          success: false,
+        };
+      }
+
+      return { success: true };
+    },
+    signInWithEmailOtp: async ({ email, token }) => {
+      pendingRegistrationEmail = null;
+
+      set((state) => ({
+        ...state,
+        errorMessage: null,
+        isPasswordRecovery: false,
+        passwordRecoveryError: null,
+        status: 'loading',
+      }));
+
+      try {
+        const session = await verifyEmailOtp({ email, token });
+        await syncSession(session);
+      } catch (error) {
+        const message = getPresentableErrorMessage(error, 'הקוד שגוי או פג תוקף');
+        await supabase.auth.signOut();
+        applyUnauthenticatedState(message);
+
+        return {
+          message,
+          reason: 'unknown',
+          success: false,
+        };
+      }
+
+      const state = get();
+
+      if (state.status === 'needs_registration') {
+        return {
+          reason: 'needs_registration',
+          success: true,
+        };
+      }
+
+      if (state.status !== 'authenticated') {
+        const message = state.errorMessage ?? 'לא ניתן להשלים את הכניסה';
+
+        return {
+          message,
+          reason: message.includes('נדחה')
+            ? 'rejected'
+            : message.includes('ממתינה לאישור')
+              ? 'pending_approval'
+              : 'unknown',
+          success: false,
+        };
+      }
+
+      return { success: true };
+    },
+    signInWithPhoneOtp: async ({ phone, token }) => {
+      pendingRegistrationEmail = null;
+
+      set((state) => ({
+        ...state,
+        errorMessage: null,
+        isPasswordRecovery: false,
+        passwordRecoveryError: null,
+        status: 'loading',
+      }));
+
+      try {
+        const session = await verifyPhoneOtp({ phone, token });
+        await syncSession(session);
+      } catch (error) {
+        const message = getPresentableErrorMessage(error, 'הקוד שגוי או פג תוקף');
+        await supabase.auth.signOut();
+        applyUnauthenticatedState(message);
+
+        return {
+          message,
+          reason: 'unknown',
+          success: false,
+        };
+      }
+
+      const state = get();
+
+      if (state.status === 'needs_registration') {
+        return {
+          reason: 'needs_registration',
+          success: true,
+        };
+      }
+
+      if (state.status !== 'authenticated') {
+        const message = state.errorMessage ?? 'לא ניתן להשלים את הכניסה';
+
+        return {
+          message,
+          reason: message.includes('נדחה')
+            ? 'rejected'
+            : message.includes('ממתינה לאישור')
+              ? 'pending_approval'
+              : 'unknown',
           success: false,
         };
       }
@@ -398,6 +674,142 @@ export const useAuthStore = create<AuthState>((set, get) => {
       }
 
       return { success: true };
+    },
+    completeEmailRegistrationWithPassword: async ({ password, ...payload }) => {
+      const session = get().session;
+
+      if (!session) {
+        applyUnauthenticatedState('יש לאמת כתובת אימייל לפני השלמת ההרשמה');
+
+        return {
+          message: 'יש לאמת כתובת אימייל לפני השלמת ההרשמה',
+          success: false,
+        };
+      }
+
+      set((state) => ({
+        ...state,
+        errorMessage: null,
+        status: 'loading',
+      }));
+
+      try {
+        await setAuthenticatedUserPassword(password);
+        await completeEmailRegistration(payload);
+        await supabase.auth.signOut();
+        applyUnauthenticatedState('ההרשמה הושלמה וממתינה לאישור מנהל מערכת');
+
+        return {
+          message: 'ההרשמה הושלמה וממתינה לאישור מנהל מערכת',
+          success: true,
+        };
+      } catch (error) {
+        const message = getPresentableErrorMessage(
+          error,
+          'לא ניתן להשלים את ההרשמה'
+        );
+
+        set((state) => ({
+          ...state,
+          errorMessage: message,
+          status: 'needs_registration',
+        }));
+
+        return {
+          message,
+          success: false,
+        };
+      }
+    },
+    completeEmailRegistration: async (payload) => {
+      const session = get().session;
+
+      if (!session) {
+        applyUnauthenticatedState('יש לאמת כתובת אימייל לפני השלמת הרשמה');
+
+        return {
+          message: 'יש לאמת כתובת אימייל לפני השלמת הרשמה',
+          success: false,
+        };
+      }
+
+      set((state) => ({
+        ...state,
+        errorMessage: null,
+        status: 'loading',
+      }));
+
+      try {
+        await completeEmailRegistration(payload);
+        await supabase.auth.signOut();
+        applyUnauthenticatedState('ההרשמה התקבלה וממתינה לאישור מנהל מערכת');
+
+        return {
+          message: 'ההרשמה התקבלה וממתינה לאישור מנהל מערכת',
+          success: true,
+        };
+      } catch (error) {
+        const message = getPresentableErrorMessage(
+          error,
+          'לא ניתן להשלים את בקשת ההרשמה'
+        );
+
+        set((state) => ({
+          ...state,
+          errorMessage: message,
+          status: 'needs_registration',
+        }));
+
+        return {
+          message,
+          success: false,
+        };
+      }
+    },
+    completePhoneRegistration: async (payload) => {
+      const session = get().session;
+
+      if (!session) {
+        applyUnauthenticatedState('יש לאמת מספר טלפון לפני השלמת הרשמה');
+
+        return {
+          message: 'יש לאמת מספר טלפון לפני השלמת הרשמה',
+          success: false,
+        };
+      }
+
+      set((state) => ({
+        ...state,
+        errorMessage: null,
+        status: 'loading',
+      }));
+
+      try {
+        await completePhoneRegistration(payload);
+        await supabase.auth.signOut();
+        applyUnauthenticatedState('ההרשמה התקבלה וממתינה לאישור מנהל מערכת');
+
+        return {
+          message: 'ההרשמה התקבלה וממתינה לאישור מנהל מערכת',
+          success: true,
+        };
+      } catch (error) {
+        const message = getPresentableErrorMessage(
+          error,
+          'לא ניתן להשלים את בקשת ההרשמה'
+        );
+
+        set((state) => ({
+          ...state,
+          errorMessage: message,
+          status: 'needs_registration',
+        }));
+
+        return {
+          message,
+          success: false,
+        };
+      }
     },
     signOut: async () => {
       pendingRegistrationEmail = null;
