@@ -64,6 +64,8 @@ export type Database = {
           created_at: string;
           id: string;
           instructor_id: string | null;
+          is_legacy: boolean;
+          is_training_level: boolean;
           rating: number;
           settlement_id: string;
           training_id: string;
@@ -73,6 +75,8 @@ export type Database = {
           created_at?: string;
           id?: string;
           instructor_id?: string | null;
+          is_legacy?: boolean;
+          is_training_level?: boolean;
           rating: number;
           settlement_id: string;
           training_id: string;
@@ -82,6 +86,8 @@ export type Database = {
           created_at?: string;
           id?: string;
           instructor_id?: string | null;
+          is_legacy?: boolean;
+          is_training_level?: boolean;
           rating?: number;
           settlement_id?: string;
           training_id?: string;

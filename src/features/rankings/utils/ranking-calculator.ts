@@ -26,7 +26,9 @@ export type SettlementTrainingLink = {
 export type SettlementFeedbackLink = Pick<
   Feedback,
   'rating' | 'settlement_id' | 'training_id'
->;
+> & {
+  is_training_level?: boolean;
+};
 
 export type RankingLevel = 'חריג' | 'דורש שיפור' | 'תקין' | 'טוב' | 'מצטיין';
 
@@ -269,8 +271,8 @@ function calculateInstructorFeedbackSummary(params: {
   const eligibleTrainingIds = getEligibleTrainingIdsInHalfYear(params.trainings, params.period);
   const feedbacksInScope = params.feedbacks.filter(
     (feedback) =>
-      feedback.settlement_id === params.settlementId &&
-      eligibleTrainingIds.has(feedback.training_id)
+      eligibleTrainingIds.has(feedback.training_id) &&
+      (feedback.is_training_level || feedback.settlement_id === params.settlementId)
   );
 
   const instructorFeedbackPoints = feedbacksInScope.reduce(

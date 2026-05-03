@@ -29,7 +29,7 @@ type TrainingFeedbackMutationInput = {
   feedbackId?: string;
   instructorId: string | null;
   rating: number;
-  settlementId: string;
+  settlementId?: string;
   trainingId: string;
 };
 

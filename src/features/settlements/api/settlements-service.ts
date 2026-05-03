@@ -165,7 +165,6 @@ export async function getSettlementDetails(
     councils,
     { data: rankings, error: rankingsError },
     { data: trainingLinks, error: trainingLinksError },
-    { data: feedbacks, error: feedbacksError },
     { data: alerts, error: alertsError },
   ] = await Promise.all([
       supabase
@@ -205,28 +204,6 @@ export async function getSettlementDetails(
         )
         .eq('settlement_id', settlementId),
       supabase
-        .from('feedbacks')
-        .select(
-          `
-            id,
-            rating,
-            comment,
-            created_at,
-            instructor:users_profile!feedbacks_instructor_id_fkey (
-              id,
-              full_name
-            ),
-            training:trainings!feedbacks_training_id_fkey (
-              id,
-              title,
-              training_type,
-              training_date
-            )
-          `
-        )
-        .eq('settlement_id', settlementId)
-        .order('created_at', { ascending: false }),
-      supabase
         .from('alerts')
         .select('id, type, title, description, severity, status, created_at')
         .eq('related_settlement_id', settlementId)
@@ -243,10 +220,6 @@ export async function getSettlementDetails(
 
   if (trainingLinksError) {
     throw createDataAccessError(trainingLinksError, 'לא ניתן לטעון את אימוני היישוב');
-  }
-
-  if (feedbacksError) {
-    throw createDataAccessError(feedbacksError, 'לא ניתן לטעון את משובי היישוב');
   }
 
   if (alertsError) {
@@ -304,12 +277,49 @@ export async function getSettlementDetails(
   const resolvedCouncil = settlement.council_id
     ? councilById.get(settlement.council_id) ?? null
     : null;
-  const typedFeedbacks = (feedbacks ?? []) as SettlementFeedbackSummary[];
+  const trainingIds = trainings.map((training) => training.id);
+  const { data: feedbacks, error: feedbacksError } = trainingIds.length
+    ? await supabase
+        .from('feedbacks')
+        .select(
+          `
+            id,
+            rating,
+            comment,
+            created_at,
+            settlement_id,
+            training_id,
+            is_training_level,
+            instructor:users_profile!feedbacks_instructor_id_fkey (
+              id,
+              full_name
+            ),
+            training:trainings!feedbacks_training_id_fkey (
+              id,
+              title,
+              training_type,
+              training_date
+            )
+          `
+        )
+        .in('training_id', trainingIds)
+        .or(`settlement_id.eq.${settlementId},is_training_level.eq.true`)
+        .order('created_at', { ascending: false })
+    : { data: [], error: null };
+
+  if (feedbacksError) {
+    throw createDataAccessError(feedbacksError, 'לא ניתן לטעון את משובי היישוב');
+  }
+
+  const typedFeedbacks = (feedbacks ?? []) as Array<
+    SettlementFeedbackSummary & Pick<Feedback, 'is_training_level' | 'settlement_id' | 'training_id'>
+  >;
   const feedbackLinks = typedFeedbacks
     .filter((feedback) => Boolean(feedback.training?.id))
     .map((feedback) => ({
+      is_training_level: feedback.is_training_level,
       rating: feedback.rating,
-      settlement_id: settlementId,
+      settlement_id: feedback.settlement_id,
       training_id: feedback.training!.id,
     }));
 

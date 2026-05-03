@@ -158,7 +158,7 @@ export async function listComputedSettlementRankings(
         )
       `
     ),
-    supabase.from('feedbacks').select('settlement_id, training_id, rating'),
+    supabase.from('feedbacks').select('settlement_id, training_id, rating, is_training_level'),
   ]);
 
   if (settlementsError) {
@@ -182,7 +182,7 @@ export async function listComputedSettlementRankings(
       calculateSettlementRanking({
         feedbacks: (feedbacks ?? []) as Pick<
           Feedback,
-          'rating' | 'settlement_id' | 'training_id'
+          'is_training_level' | 'rating' | 'settlement_id' | 'training_id'
         >[],
         period,
         settlement: {

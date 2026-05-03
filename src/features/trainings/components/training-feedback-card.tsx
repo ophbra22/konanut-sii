@@ -23,7 +23,6 @@ export function TrainingFeedbackCard({
   onDelete,
   onEdit,
 }: TrainingFeedbackCardProps) {
-  const settlementName = feedback.settlement?.name || 'יישוב לא זמין';
   const instructorName = feedback.instructor?.full_name || 'ללא מדריך';
 
   return (
@@ -37,7 +36,7 @@ export function TrainingFeedbackCard({
         </View>
 
         <Text numberOfLines={1} style={styles.title}>
-          {settlementName}
+          משוב על האימון
         </Text>
       </View>
 

@@ -33,7 +33,15 @@ type TrainingDetailsQueryRow = Training & {
   feedbacks: Array<
     Pick<
       Feedback,
-      'comment' | 'created_at' | 'id' | 'instructor_id' | 'rating' | 'settlement_id' | 'training_id'
+      | 'comment'
+      | 'created_at'
+      | 'id'
+      | 'instructor_id'
+      | 'is_legacy'
+      | 'is_training_level'
+      | 'rating'
+      | 'settlement_id'
+      | 'training_id'
     > & {
       instructor: UserSummary | null;
       settlement: SettlementSummary | null;
@@ -52,7 +60,15 @@ export type TrainingListItem = NormalizedTrainingRecord & {
 
 export type TrainingFeedbackItem = Pick<
   Feedback,
-  'comment' | 'created_at' | 'id' | 'instructor_id' | 'rating' | 'settlement_id' | 'training_id'
+  | 'comment'
+  | 'created_at'
+  | 'id'
+  | 'instructor_id'
+  | 'is_legacy'
+  | 'is_training_level'
+  | 'rating'
+  | 'settlement_id'
+  | 'training_id'
 > & {
   instructor: UserSummary | null;
   settlement: SettlementSummary | null;
@@ -73,7 +89,7 @@ type SaveTrainingFeedbackParams = {
   feedbackId?: string;
   instructorId: string | null;
   rating: number;
-  settlementId: string;
+  settlementId?: string;
   trainingId: string;
 };
 
@@ -130,9 +146,12 @@ function buildTrainingDetails(data: TrainingDetailsQueryRow): TrainingDetails {
   const settlementAttendance = normalizeTrainingSettlementAttendance(
     data.settlement_attendance as Json | null | undefined
   );
-  const feedbacks = [...(data.feedbacks ?? [])].sort((left, right) =>
+  const allFeedbacks = [...(data.feedbacks ?? [])].sort((left, right) =>
     right.created_at.localeCompare(left.created_at)
   );
+  const trainingLevelFeedback =
+    allFeedbacks.find((feedback) => feedback.is_training_level) ?? allFeedbacks[0] ?? null;
+  const feedbacks = trainingLevelFeedback ? [trainingLevelFeedback] : [];
   const feedbackSettlementIds = new Set(
     feedbacks.map((feedback) => feedback.settlement?.id ?? feedback.settlement_id)
   );
@@ -212,6 +231,8 @@ export async function getTrainingDetails(
           training_id,
           settlement_id,
           instructor_id,
+          is_legacy,
+          is_training_level,
           rating,
           comment,
           created_at,
@@ -271,24 +292,32 @@ async function replaceTrainingSettlements(
   }
 }
 
-async function ensureSettlementLinkedToTraining(
-  trainingId: string,
-  settlementId: string
-) {
+async function getFeedbackSettlementId(trainingId: string, preferredSettlementId?: string) {
   const { data, error } = await supabase
     .from('training_settlements')
-    .select('id')
+    .select('settlement_id')
     .eq('training_id', trainingId)
-    .eq('settlement_id', settlementId)
-    .maybeSingle();
+    .order('created_at', { ascending: true });
 
   if (error) {
-    throw createDataAccessError(error, 'לא ניתן לאמת את שיוך היישוב לאימון');
+    throw createDataAccessError(error, 'לא ניתן לאמת את שיוכי היישובים לאימון');
   }
 
-  if (!data) {
-    throw new Error('ניתן להזין משוב רק עבור יישוב שמשויך לאימון הנוכחי');
+  const settlementIds = (data ?? []).map((item) => item.settlement_id);
+
+  if (!settlementIds.length) {
+    throw new Error('ניתן להזין משוב רק עבור אימון שמשויך לפחות ליישוב אחד');
   }
+
+  if (preferredSettlementId) {
+    if (!settlementIds.includes(preferredSettlementId)) {
+      throw new Error('ניתן להזין משוב רק עבור יישוב שמשויך לאימון הנוכחי');
+    }
+
+    return preferredSettlementId;
+  }
+
+  return settlementIds[0];
 }
 
 export async function createTraining(params: {
@@ -335,16 +364,15 @@ export async function updateTraining(params: {
 }
 
 export async function saveTrainingFeedback(params: SaveTrainingFeedbackParams) {
-  await ensureSettlementLinkedToTraining(params.trainingId, params.settlementId);
-
   if (params.feedbackId) {
     const { error } = await supabase
       .from('feedbacks')
       .update({
         comment: normalizeComment(params.comment),
         instructor_id: params.instructorId,
+        is_legacy: false,
+        is_training_level: true,
         rating: params.rating,
-        settlement_id: params.settlementId,
       })
       .eq('id', params.feedbackId);
 
@@ -359,22 +387,28 @@ export async function saveTrainingFeedback(params: SaveTrainingFeedbackParams) {
     .from('feedbacks')
     .select('id')
     .eq('training_id', params.trainingId)
-    .eq('settlement_id', params.settlementId)
+    .eq('is_training_level', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (existingFeedbackError) {
     throw createDataAccessError(existingFeedbackError, 'לא ניתן לבדוק אם קיים משוב קודם');
   }
 
-  if (existingFeedback) {
+  const feedbackToUpdate = existingFeedback ?? await getLatestFeedbackForTraining(params.trainingId);
+
+  if (feedbackToUpdate) {
     const { error } = await supabase
       .from('feedbacks')
       .update({
         comment: normalizeComment(params.comment),
         instructor_id: params.instructorId,
+        is_legacy: false,
+        is_training_level: true,
         rating: params.rating,
       })
-      .eq('id', existingFeedback.id);
+      .eq('id', feedbackToUpdate.id);
 
     if (error) {
       throw createDataAccessError(error, 'לא ניתן לעדכן את המשוב הקיים');
@@ -383,11 +417,15 @@ export async function saveTrainingFeedback(params: SaveTrainingFeedbackParams) {
     return getTrainingDetails(params.trainingId);
   }
 
+  const settlementId = await getFeedbackSettlementId(params.trainingId, params.settlementId);
+
   const { error } = await supabase.from('feedbacks').insert({
     comment: normalizeComment(params.comment),
     instructor_id: params.instructorId,
+    is_legacy: false,
+    is_training_level: true,
     rating: params.rating,
-    settlement_id: params.settlementId,
+    settlement_id: settlementId,
     training_id: params.trainingId,
   });
 
@@ -396,6 +434,22 @@ export async function saveTrainingFeedback(params: SaveTrainingFeedbackParams) {
   }
 
   return getTrainingDetails(params.trainingId);
+}
+
+async function getLatestFeedbackForTraining(trainingId: string) {
+  const { data, error } = await supabase
+    .from('feedbacks')
+    .select('id')
+    .eq('training_id', trainingId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw createDataAccessError(error, 'לא ניתן לבדוק אם קיים משוב קודם');
+  }
+
+  return data;
 }
 
 export async function updateTrainingStatus(

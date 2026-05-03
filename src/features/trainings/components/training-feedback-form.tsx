@@ -1,39 +1,30 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
-import { Controller, useWatch, useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { Text, View } from 'react-native';
 
 import { AppButton } from '@/src/components/ui/app-button';
 import { AppCard } from '@/src/components/ui/app-card';
 import { AppChip } from '@/src/components/ui/app-chip';
 import { AppTextField } from '@/src/components/ui/app-text-field';
-import { SettlementPicker } from '@/src/components/ui/settlement-picker';
-import type { TrainingFeedbackItem } from '@/src/features/trainings/api/trainings-service';
 import {
   trainingFeedbackFormSchema,
   type TrainingFeedbackFormValues,
 } from '@/src/features/trainings/schemas/training-feedback-form-schema';
 import { rtlRow } from '@/src/lib/rtl';
-import type { Settlement } from '@/src/types/database';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
-type SettlementOption = Pick<Settlement, 'area' | 'id' | 'name'>;
-
 type TrainingFeedbackFormProps = {
-  existingFeedbacks: TrainingFeedbackItem[];
   initialValues?: Partial<TrainingFeedbackFormValues>;
   isSubmitting?: boolean;
   isUpdating?: boolean;
-  lockSettlement?: boolean;
   onCancel?: () => void;
   onSubmit: (values: TrainingFeedbackFormValues) => Promise<void> | void;
-  settlementOptions: SettlementOption[];
 };
 
 const defaultValues: TrainingFeedbackFormValues = {
   comment: '',
   rating: 5,
-  settlement_id: '',
 };
 
 function FieldError({ message }: { message?: string }) {
@@ -45,21 +36,17 @@ function FieldError({ message }: { message?: string }) {
 }
 
 export function TrainingFeedbackForm({
-  existingFeedbacks,
   initialValues,
   isSubmitting = false,
   isUpdating = false,
-  lockSettlement = false,
   onCancel,
   onSubmit,
-  settlementOptions,
 }: TrainingFeedbackFormProps) {
   const {
     control,
     formState: { errors },
     handleSubmit,
     reset,
-    setValue,
   } = useForm<TrainingFeedbackFormValues>({
     defaultValues: {
       ...defaultValues,
@@ -75,48 +62,17 @@ export function TrainingFeedbackForm({
     });
   }, [initialValues, reset]);
 
-  const selectedSettlementId = useWatch({
-    control,
-    name: 'settlement_id',
-  });
-
-  const existingFeedbackForSettlement = existingFeedbacks.find(
-    (feedback) => feedback.settlement?.id === selectedSettlementId
-  );
-
   return (
     <AppCard
       description={
         isUpdating
-          ? 'עדכון משוב קיים ליישוב באימון.'
-          : 'הוספת משוב עבור יישוב שמשויך לאימון הנוכחי.'
+          ? 'עדכון משוב על האימון. המשוב משותף לכלל היישובים שהשתתפו.'
+          : 'הוספת משוב על האימון. המשוב יישמר פעם אחת לכלל היישובים שהשתתפו.'
       }
       title={isUpdating ? 'עריכת משוב' : 'הוספת משוב'}
       variant="accent"
     >
       <View style={styles.form}>
-        <View style={styles.field}>
-          <SettlementPicker
-            disabled={lockSettlement}
-            errorMessage={errors.settlement_id?.message}
-            label="יישוב"
-            onChange={(settlementIds) => {
-              setValue('settlement_id', settlementIds[0] ?? '', {
-                shouldDirty: true,
-                shouldValidate: true,
-              });
-            }}
-            placeholder="בחר יישוב"
-            selectedSettlementIds={selectedSettlementId ? [selectedSettlementId] : []}
-            settlements={settlementOptions}
-          />
-          {!isUpdating && existingFeedbackForSettlement ? (
-            <Text style={styles.hint}>
-              כבר קיים משוב עבור היישוב הזה. השמירה תעדכן את המשוב הקיים במקום ליצור כפילות.
-            </Text>
-          ) : null}
-        </View>
-
         <Controller
           control={control}
           name="rating"
@@ -214,12 +170,6 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   form: {
     gap: 12,
-  },
-  hint: {
-    color: theme.colors.warning,
-    fontSize: 12,
-    lineHeight: 17,
-    textAlign: 'right',
   },
   label: {
     color: theme.colors.textPrimary,
