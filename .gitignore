@@ -30,9 +30,16 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env and secret files
 .env
-.env*.local
+.env*
+*.env
+one-time-import/env*
+
+# sensitive one-time import files
+one-time-import/*.csv
+one-time-import/*.xls
+one-time-import/*.xlsx
 
 # typescript
 *.tsbuildinfo
