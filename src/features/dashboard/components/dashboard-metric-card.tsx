@@ -82,16 +82,29 @@ export function DashboardMetricCard({
       <Text
         adjustsFontSizeToFit
         minimumFontScale={0.84}
+        maxFontSizeMultiplier={1.15}
         numberOfLines={1}
         style={[styles.value, valueToneStyles[errorMessage ? 'warning' : tone]]}
       >
         {errorMessage ? 'שגיאה' : value}
       </Text>
-      <Text numberOfLines={1} style={styles.label}>
+      <Text
+        adjustsFontSizeToFit
+        maxFontSizeMultiplier={1.12}
+        minimumFontScale={0.78}
+        numberOfLines={1}
+        style={styles.label}
+      >
         {label}
       </Text>
       {helperText ? (
-        <Text numberOfLines={1} style={styles.helper}>
+        <Text
+          adjustsFontSizeToFit
+          maxFontSizeMultiplier={1.08}
+          minimumFontScale={0.78}
+          numberOfLines={1}
+          style={styles.helper}
+        >
           {helperText}
         </Text>
       ) : null}
@@ -127,14 +140,12 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   card: {
     alignItems: 'flex-end',
     backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    borderRadius: 22,
     direction: 'ltr',
     gap: 4,
     justifyContent: 'center',
-    minHeight: 62,
     overflow: 'hidden',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: 12,
+    padding: 16,
   },
   cardPressed: {
     opacity: 0.92,

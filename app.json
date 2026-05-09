@@ -3,7 +3,7 @@
     "name": "כוננות שיא",
     "slug": "konanut-sii",
     "scheme": "konanut-sii",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -16,7 +16,9 @@
         {
           "calendarPermission": "האפליקציה זקוקה לגישה ליומן כדי להוסיף אימונים ליומן המכשיר."
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

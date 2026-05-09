@@ -20,11 +20,17 @@ import {
   verifyEmailOtp,
   type CompleteEmailRegistrationPayload,
 } from '@/src/features/auth/api/email-auth-service';
-import { getPresentableErrorMessage } from '@/src/lib/error-utils';
+import { getErrorMessage, getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { queryClient } from '@/src/lib/query-client';
 import { queryKeys } from '@/src/lib/query-keys';
 import { supabase } from '@/src/lib/supabase';
 import type { AuthProfile, UserRole } from '@/src/types/database';
+import {
+  clearPendingAuthIntent as clearStoredPendingAuthIntent,
+  loadPendingAuthIntent,
+  savePendingAuthIntent,
+  type PendingAuthIntent,
+} from '@/src/features/auth/lib/pending-auth-intent';
 
 type AuthStatus =
   | 'authenticated'
@@ -46,15 +52,18 @@ type SignUpPayload = Credentials & {
 };
 
 type AuthActionResult = {
+  email?: string | null;
   message?: string;
   reason?:
     | 'inactive_account'
+    | 'already_registered'
     | 'invalid_credentials'
     | 'needs_registration'
     | 'pending_approval'
     | 'rejected'
     | 'unknown';
   success: boolean;
+  targetRoute?: '/dashboard' | '/login' | '/register';
 };
 
 type AuthState = {
@@ -74,15 +83,26 @@ type AuthState = {
   isPasswordRecovery: boolean;
   linkedSettlementIds: string[];
   passwordRecoveryError: string | null;
+  pendingAuthEmail: string | null;
+  pendingAuthIntent: PendingAuthIntent | null;
   profile: AuthProfile | null;
   refreshProfile: () => Promise<void>;
   role: UserRole | null;
-  sendEmailOtp: (email: string) => Promise<AuthActionResult & { email?: string }>;
+  clearPendingAuthIntent: () => Promise<void>;
+  sendEmailOtp: (
+    email: string,
+    options?: { intent?: PendingAuthIntent }
+  ) => Promise<AuthActionResult & { email?: string }>;
   sendPhoneOtp: (phone: string) => Promise<AuthActionResult & { phone?: string }>;
   session: Session | null;
+  setPendingAuthIntent: (
+    intent: PendingAuthIntent,
+    email?: string | null
+  ) => Promise<void>;
   signIn: (credentials: Credentials) => Promise<AuthActionResult>;
   signInWithEmailOtp: (params: {
     email: string;
+    intent?: PendingAuthIntent;
     token: string;
   }) => Promise<AuthActionResult>;
   signInWithPhoneOtp: (params: {
@@ -125,6 +145,32 @@ function getApprovalStatus(profile: AuthProfile) {
 }
 
 export const useAuthStore = create<AuthState>((set, get) => {
+  const setPendingAuthIntentState = async (
+    intent: PendingAuthIntent,
+    email?: string | null
+  ) => {
+    const normalizedEmail = email?.trim().toLowerCase() || null;
+
+    await savePendingAuthIntent({
+      email: normalizedEmail,
+      intent,
+    });
+
+    set({
+      pendingAuthEmail: normalizedEmail,
+      pendingAuthIntent: intent,
+    });
+  };
+
+  const clearPendingAuthIntentState = async () => {
+    await clearStoredPendingAuthIntent();
+
+    set({
+      pendingAuthEmail: null,
+      pendingAuthIntent: null,
+    });
+  };
+
   const applyUnauthenticatedState = (errorMessage: string | null = null) => {
     queryClient.clear();
 
@@ -134,6 +180,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
       isPasswordRecovery: false,
       linkedSettlementIds: [],
       passwordRecoveryError: null,
+      pendingAuthEmail: get().pendingAuthEmail,
+      pendingAuthIntent: get().pendingAuthIntent,
       profile: null,
       role: null,
       session: null,
@@ -324,6 +372,15 @@ export const useAuthStore = create<AuthState>((set, get) => {
       set((state) => ({ ...state, status: 'loading' }));
 
       initializePromise = (async () => {
+        const persistedIntent = await loadPendingAuthIntent();
+
+        if (persistedIntent) {
+          set({
+            pendingAuthEmail: persistedIntent.email,
+            pendingAuthIntent: persistedIntent.intent,
+          });
+        }
+
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
@@ -338,6 +395,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
           authSubscription = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'PASSWORD_RECOVERY') {
               get().beginPasswordRecovery();
+            }
+
+            if (event === 'SIGNED_IN' && get().pendingAuthIntent === 'registration') {
+              return;
             }
 
             void syncSession(session, {
@@ -363,6 +424,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
     isPasswordRecovery: false,
     linkedSettlementIds: [],
     passwordRecoveryError: null,
+    pendingAuthEmail: null,
+    pendingAuthIntent: null,
     profile: null,
     refreshProfile: async () => {
       const session = get().session;
@@ -381,14 +444,20 @@ export const useAuthStore = create<AuthState>((set, get) => {
       }
     },
     role: null,
-    sendEmailOtp: async (email) => {
+    clearPendingAuthIntent: clearPendingAuthIntentState,
+    sendEmailOtp: async (email, options = {}) => {
       set((state) => ({
         ...state,
         errorMessage: null,
       }));
 
       try {
-        const normalizedEmail = await sendEmailOtp(email);
+        const intent = options.intent ?? 'login';
+        const normalizedEmail = await sendEmailOtp(email, {
+          shouldCreateUser: intent === 'registration',
+        });
+
+        await setPendingAuthIntentState(intent, normalizedEmail);
 
         return {
           email: normalizedEmail,
@@ -430,8 +499,10 @@ export const useAuthStore = create<AuthState>((set, get) => {
       }
     },
     session: null,
+    setPendingAuthIntent: setPendingAuthIntentState,
     signIn: async ({ email, password }) => {
       pendingRegistrationEmail = null;
+      await clearPendingAuthIntentState();
 
       set((state) => ({
         ...state,
@@ -463,7 +534,8 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
       if (error) {
         const message = translateAuthError(error);
-        const reason = error.message.includes('Invalid login credentials')
+        const rawMessage = getErrorMessage(error, '');
+        const reason = rawMessage.includes('Invalid login credentials')
           ? 'invalid_credentials'
           : 'unknown';
 
@@ -503,8 +575,17 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
       return { success: true };
     },
-    signInWithEmailOtp: async ({ email, token }) => {
-      pendingRegistrationEmail = null;
+    signInWithEmailOtp: async ({ email, intent, token }) => {
+      const persistedIntent = await loadPendingAuthIntent();
+      const effectiveIntent =
+        intent ?? get().pendingAuthIntent ?? persistedIntent?.intent ?? 'login';
+      const normalizedEmail =
+        email.trim().toLowerCase() ||
+        get().pendingAuthEmail ||
+        persistedIntent?.email ||
+        null;
+
+      pendingRegistrationEmail = effectiveIntent === 'registration' ? normalizedEmail : null;
 
       set((state) => ({
         ...state,
@@ -516,9 +597,87 @@ export const useAuthStore = create<AuthState>((set, get) => {
 
       try {
         const session = await verifyEmailOtp({ email, token });
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+        const verifiedUser = user ?? session?.user ?? null;
+
+        if (userError || !verifiedUser) {
+          throw new Error('לא ניתן לאתר את המשתמש המאומת. נסה להתחבר שוב.');
+        }
+
+        if (effectiveIntent === 'registration') {
+          if (!session) {
+            throw new Error('לא ניתן להשלים את אימות המייל כעת');
+          }
+
+          const profile = await fetchUserProfile(verifiedUser.id);
+
+          if (!profile || isProfileRegistrationIncomplete(profile)) {
+            const targetRoute = '/register' as const;
+
+            await syncSession(session);
+            await clearPendingAuthIntentState();
+
+            return {
+              email: verifiedUser.email ?? normalizedEmail,
+              reason: 'needs_registration',
+              success: true,
+              targetRoute,
+            };
+          }
+
+          const approvalStatus = getApprovalStatus(profile);
+
+          await supabase.auth.signOut();
+          await clearPendingAuthIntentState();
+
+          if (approvalStatus === 'rejected') {
+            const message = 'בקשת ההרשמה שלך לא אושרה. ניתן ליצור קשר עם מנהל המערכת.';
+            applyUnauthenticatedState(message);
+
+            return {
+              email: verifiedUser.email ?? normalizedEmail,
+              message,
+              reason: 'rejected',
+              success: false,
+              targetRoute: '/login',
+            };
+          }
+
+          if (approvalStatus === 'pending_approval' || !profile.is_active) {
+            const message = 'בקשת ההרשמה שלך ממתינה לאישור מנהל מערכת.';
+            applyUnauthenticatedState(message);
+
+            return {
+              email: verifiedUser.email ?? normalizedEmail,
+              message,
+              reason: 'pending_approval',
+              success: false,
+              targetRoute: '/login',
+            };
+          }
+
+          const message =
+            'כתובת המייל כבר רשומה במערכת. ניתן להתחבר באמצעות קוד למייל או סיסמה.';
+          applyUnauthenticatedState(message);
+
+          return {
+            email: verifiedUser.email ?? normalizedEmail,
+            message,
+            reason: 'already_registered',
+            success: false,
+            targetRoute: '/login',
+          };
+        }
+
         await syncSession(session);
       } catch (error) {
-        const message = getPresentableErrorMessage(error, 'הקוד שגוי או פג תוקף');
+        const message = getPresentableErrorMessage(
+          error,
+          'הקוד שהוזן שגוי או פג תוקף. נסה שוב.'
+        );
         await supabase.auth.signOut();
         applyUnauthenticatedState(message);
 
@@ -532,9 +691,14 @@ export const useAuthStore = create<AuthState>((set, get) => {
       const state = get();
 
       if (state.status === 'needs_registration') {
+        const targetRoute = '/register' as const;
+
+        await clearPendingAuthIntentState();
         return {
+          email: state.user?.email ?? normalizedEmail,
           reason: 'needs_registration',
           success: true,
+          targetRoute,
         };
       }
 
@@ -552,7 +716,12 @@ export const useAuthStore = create<AuthState>((set, get) => {
         };
       }
 
-      return { success: true };
+      await clearPendingAuthIntentState();
+      return {
+        email: state.user?.email ?? normalizedEmail,
+        success: true,
+        targetRoute: '/dashboard',
+      };
     },
     signInWithPhoneOtp: async ({ phone, token }) => {
       pendingRegistrationEmail = null;
@@ -813,6 +982,7 @@ export const useAuthStore = create<AuthState>((set, get) => {
     },
     signOut: async () => {
       pendingRegistrationEmail = null;
+      await clearPendingAuthIntentState();
 
       const { error } = await supabase.auth.signOut();
 

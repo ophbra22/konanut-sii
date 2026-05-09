@@ -5,21 +5,15 @@ import {
   getYearDateRange,
   type HalfYearPeriod,
 } from '@/src/lib/date-utils';
-import type {
-  Feedback,
-  Settlement,
-  Training,
-  TrainingSettlementAttendance,
-  TrainingType,
-} from '@/src/types/database';
+import type { Feedback, Settlement, Training, TrainingType } from '@/src/types/database';
+
+export type AnnualRankingPeriod = `${number}-YEAR`;
+export type RankingPeriod = HalfYearPeriod | AnnualRankingPeriod;
 
 export type SettlementTrainingLink = {
   settlement_id: string;
   training:
-    | (Pick<
-        Training,
-        'id' | 'settlement_attendance' | 'status' | 'training_date' | 'training_type' | 'title'
-      >)
+    | Pick<Training, 'id' | 'status' | 'training_date' | 'training_type' | 'title'>
     | null;
 };
 
@@ -30,7 +24,15 @@ export type SettlementFeedbackLink = Pick<
   is_training_level?: boolean;
 };
 
-export type RankingLevel = 'חריג' | 'דורש שיפור' | 'תקין' | 'טוב' | 'מצטיין';
+export type RankingLevel = 'פער' | 'במעקב' | 'כשיר' | 'כשיר מאוד';
+
+export type RankingTrainingEvidence = {
+  date: string;
+  feedbackRating: number | null;
+  id: string;
+  title: string;
+  type: TrainingType;
+};
 
 export type ComputedSettlementRanking = {
   area: string;
@@ -39,14 +41,24 @@ export type ComputedSettlementRanking = {
   councilId: string | null;
   councilName: string | null;
   defenseCompleted: boolean;
+  defenseScore: number;
   feedbackCount: number;
   feedbackScore: number;
+  feedbackScale: 5;
+  feedbackTrainings: RankingTrainingEvidence[];
   finalScore: number;
-  halfYearPeriod: HalfYearPeriod;
+  halfYearPeriod: RankingPeriod;
   instructorFeedbackPoints: number;
+  lastDefenseTrainingDate: string | null;
+  lastRangeTrainingDate: string | null;
   medianRangeParticipationPercent: number | null;
   rankingLevel: RankingLevel;
+  rangeScore: number;
+  rawScore: number;
   regionalCouncil: string | null;
+  scoreCap: number | null;
+  selectedDefenseTraining: RankingTrainingEvidence | null;
+  selectedRangeTraining: RankingTrainingEvidence | null;
   settlementDefenseParticipationPercent: number | null;
   settlementId: string;
   settlementName: string;
@@ -63,71 +75,66 @@ type SettlementRankingSettlement = Pick<
 
 type TrainingCategory = 'median_range' | 'other' | 'settlement_defense';
 
+const FEEDBACK_SCALE = 5;
+
 export function clampScore(score: number, min = 0, max = 100) {
   return Math.min(Math.max(score, min), max);
 }
 
-export function calculateSettlementBaseScore(params: {
-  medianRangeParticipationPercent: number | null;
-  settlementDefenseParticipationPercent: number | null;
-}) {
-  const passedMedianRange =
-    params.medianRangeParticipationPercent !== null &&
-    params.medianRangeParticipationPercent >= 70;
-  const passedSettlementDefense =
-    params.settlementDefenseParticipationPercent !== null &&
-    params.settlementDefenseParticipationPercent >= 70;
-
-  if (passedMedianRange && passedSettlementDefense) {
-    return 70;
-  }
-
-  if (passedMedianRange || passedSettlementDefense) {
-    return 35;
-  }
-
-  return 0;
+export function getAnnualRankingPeriod(referenceDate: string | Date = new Date()) {
+  return `${new Date(referenceDate).getFullYear()}-YEAR` as AnnualRankingPeriod;
 }
 
-export function calculateSettlementFinalScore(params: {
-  instructorFeedbackPoints: number;
-  medianRangeParticipationPercent: number | null;
-  settlementDefenseParticipationPercent: number | null;
-}) {
-  const baseScore = calculateSettlementBaseScore({
-    medianRangeParticipationPercent: params.medianRangeParticipationPercent,
-    settlementDefenseParticipationPercent: params.settlementDefenseParticipationPercent,
-  });
-
-  if (baseScore === 0) {
-    return 0;
-  }
-
-  if (baseScore < 70) {
-    return baseScore;
-  }
-
-  return clampScore(baseScore + Math.max(params.instructorFeedbackPoints, 0));
+export function isAnnualRankingPeriod(period: RankingPeriod): period is AnnualRankingPeriod {
+  return period.endsWith('-YEAR');
 }
 
-export function getRankingLevel(finalScore: number): RankingLevel {
-  if (finalScore >= 90) {
-    return 'מצטיין';
+export function getRankingPeriodYear(period: RankingPeriod) {
+  return Number(period.split('-')[0]);
+}
+
+export function getRankingPeriodDateRange(period: RankingPeriod) {
+  if (isAnnualRankingPeriod(period)) {
+    return getYearDateRange(`${getRankingPeriodYear(period)}-01-01`);
   }
 
-  if (finalScore >= 75) {
-    return 'טוב';
+  return getPeriodDateRange(period);
+}
+
+export function getRankingPeriodLabel(period: RankingPeriod) {
+  const year = getRankingPeriodYear(period);
+
+  if (isAnnualRankingPeriod(period)) {
+    return `שנתי ${year}`;
   }
 
-  if (finalScore >= 60) {
-    return 'תקין';
-  }
+  return period.endsWith('H1') ? `חציון א׳ ${year}` : `חציון ב׳ ${year}`;
+}
 
-  if (finalScore >= 40) {
-    return 'דורש שיפור';
-  }
+function getYearPeriodDateRange(period: RankingPeriod) {
+  return getYearDateRange(`${getRankingPeriodYear(period)}-01-01`);
+}
 
-  return 'חריג';
+function isDateInRange(date: string, params: { end: string; start: string }) {
+  return date >= params.start && date <= params.end;
+}
+
+function toStringRange(period: RankingPeriod) {
+  const { start, end } = getRankingPeriodDateRange(period);
+
+  return {
+    end: end.format('YYYY-MM-DD'),
+    start: start.format('YYYY-MM-DD'),
+  };
+}
+
+function toStringYearRange(period: RankingPeriod) {
+  const { start, end } = getYearPeriodDateRange(period);
+
+  return {
+    end: end.format('YYYY-MM-DD'),
+    start: start.format('YYYY-MM-DD'),
+  };
 }
 
 function getOperationalTrainingCategory(trainingType: TrainingType): TrainingCategory {
@@ -142,196 +149,303 @@ function getOperationalTrainingCategory(trainingType: TrainingType): TrainingCat
   return 'other';
 }
 
-function getYearStartFromPeriod(period: HalfYearPeriod) {
-  const [year] = period.split('-') as [string, 'H1' | 'H2'];
-  return `${year}-01-01`;
-}
+function getFeedbackWeight(trainingType: TrainingType) {
+  const category = getOperationalTrainingCategory(trainingType);
 
-function isTrainingInHalfYear(trainingDate: string, period: HalfYearPeriod) {
-  const { start, end } = getPeriodDateRange(period);
-
-  return trainingDate >= start.format('YYYY-MM-DD') && trainingDate <= end.format('YYYY-MM-DD');
-}
-
-function isTrainingInPeriodYear(trainingDate: string, period: HalfYearPeriod) {
-  const { start, end } = getYearDateRange(getYearStartFromPeriod(period));
-
-  return trainingDate >= start.format('YYYY-MM-DD') && trainingDate <= end.format('YYYY-MM-DD');
-}
-
-function getSettlementAttendancePercentage(
-  training: Pick<
-    Training,
-    'settlement_attendance' | 'status' | 'training_date' | 'training_type'
-  >,
-  settlementId: string
-) {
-  if (training.status !== 'הושלם') {
-    return null;
+  if (category === 'median_range' || category === 'settlement_defense') {
+    return 1.2;
   }
 
-  const attendance = Array.isArray(training.settlement_attendance)
-    ? (training.settlement_attendance as unknown as TrainingSettlementAttendance[])
-    : [];
-
-  return (
-    attendance.find((item) => item.settlement_id === settlementId)?.participation_rate ?? null
-  );
+  return 0.8;
 }
 
-function getParticipationPercentages(params: {
-  period: HalfYearPeriod;
+function isCompletedTraining(
+  training: SettlementTrainingLink['training']
+): training is NonNullable<SettlementTrainingLink['training']> {
+  return Boolean(training && training.status === 'הושלם');
+}
+
+function getTrainingEvidence(params: {
+  feedbackRating: number | null;
+  training: NonNullable<SettlementTrainingLink['training']>;
+}): RankingTrainingEvidence {
+  return {
+    date: params.training.training_date,
+    feedbackRating: params.feedbackRating,
+    id: params.training.id,
+    title: params.training.title,
+    type: params.training.training_type,
+  };
+}
+
+function getFeedbacksByTraining(params: {
+  feedbacks: SettlementFeedbackLink[];
   settlementId: string;
-  trainings: SettlementTrainingLink[];
 }) {
-  let medianRangeParticipationPercent: number | null = null;
-  let settlementDefenseParticipationPercent: number | null = null;
-  let shootingCompleted = false;
-  let defenseCompleted = false;
+  const feedbacksByTraining = new Map<string, SettlementFeedbackLink[]>();
 
-  params.trainings.forEach((link) => {
-    const training = link.training;
-
-    if (!training || training.status !== 'הושלם') {
+  params.feedbacks.forEach((feedback) => {
+    if (!feedback.is_training_level && feedback.settlement_id !== params.settlementId) {
       return;
     }
 
-    const category = getOperationalTrainingCategory(training.training_type);
-
-    if (category === 'median_range' && isTrainingInHalfYear(training.training_date, params.period)) {
-      shootingCompleted = true;
-
-      const participationRate = getSettlementAttendancePercentage(training, params.settlementId);
-      if (participationRate === null) {
-        return;
-      }
-
-      medianRangeParticipationPercent = Math.max(
-        medianRangeParticipationPercent ?? 0,
-        participationRate
-      );
-    }
-
-    if (
-      category === 'settlement_defense' &&
-      isTrainingInPeriodYear(training.training_date, params.period)
-    ) {
-      defenseCompleted = true;
-
-      const participationRate = getSettlementAttendancePercentage(training, params.settlementId);
-      if (participationRate === null) {
-        return;
-      }
-
-      settlementDefenseParticipationPercent = Math.max(
-        settlementDefenseParticipationPercent ?? 0,
-        participationRate
-      );
-    }
+    const current = feedbacksByTraining.get(feedback.training_id) ?? [];
+    current.push(feedback);
+    feedbacksByTraining.set(feedback.training_id, current);
   });
 
-  return {
-    defenseCompleted,
-    medianRangeParticipationPercent,
-    shootingCompleted,
-    settlementDefenseParticipationPercent,
-  };
+  return feedbacksByTraining;
 }
 
-function getEligibleTrainingIdsInHalfYear(
-  trainings: SettlementTrainingLink[],
-  period: HalfYearPeriod
+function getAverageTrainingFeedback(
+  trainingId: string,
+  feedbacksByTraining: Map<string, SettlementFeedbackLink[]>
 ) {
-  return new Set(
-    trainings
-      .map((item) => item.training)
-      .filter((training): training is NonNullable<typeof training> => Boolean(training))
-      .filter(
-        (training) => training.status === 'הושלם' && isTrainingInHalfYear(training.training_date, period)
-      )
-      .map((training) => training.id)
+  const feedbacks = feedbacksByTraining.get(trainingId) ?? [];
+
+  if (!feedbacks.length) {
+    return null;
+  }
+
+  return feedbacks.reduce((sum, feedback) => sum + feedback.rating, 0) / feedbacks.length;
+}
+
+function getLatestTraining(
+  trainings: NonNullable<SettlementTrainingLink['training']>[]
+) {
+  return [...trainings].sort((left, right) => {
+    if (right.training_date !== left.training_date) {
+      return right.training_date.localeCompare(left.training_date);
+    }
+
+    return right.title.localeCompare(left.title, 'he');
+  })[0] ?? null;
+}
+
+function getRequiredTrainingSummary(params: {
+  feedbacksByTraining: Map<string, SettlementFeedbackLink[]>;
+  period: RankingPeriod;
+  trainings: SettlementTrainingLink[];
+}) {
+  const selectedRange = toStringRange(params.period);
+  const selectedYear = toStringYearRange(params.period);
+  const completedTrainings = params.trainings
+    .map((link) => link.training)
+    .filter(isCompletedTraining);
+
+  const rangeTrainings = completedTrainings.filter(
+    (training) =>
+      getOperationalTrainingCategory(training.training_type) === 'median_range' &&
+      isDateInRange(training.training_date, selectedRange)
   );
+  const defenseTrainings = completedTrainings.filter(
+    (training) =>
+      getOperationalTrainingCategory(training.training_type) === 'settlement_defense' &&
+      isDateInRange(training.training_date, selectedYear)
+  );
+
+  const selectedRangeTraining = getLatestTraining(rangeTrainings);
+  const selectedDefenseTraining = getLatestTraining(defenseTrainings);
+
+  return {
+    defenseCompleted: Boolean(selectedDefenseTraining),
+    lastDefenseTrainingDate: selectedDefenseTraining?.training_date ?? null,
+    lastRangeTrainingDate: selectedRangeTraining?.training_date ?? null,
+    selectedDefenseTraining: selectedDefenseTraining
+      ? getTrainingEvidence({
+          feedbackRating: getAverageTrainingFeedback(
+            selectedDefenseTraining.id,
+            params.feedbacksByTraining
+          ),
+          training: selectedDefenseTraining,
+        })
+      : null,
+    selectedRangeTraining: selectedRangeTraining
+      ? getTrainingEvidence({
+          feedbackRating: getAverageTrainingFeedback(
+            selectedRangeTraining.id,
+            params.feedbacksByTraining
+          ),
+          training: selectedRangeTraining,
+        })
+      : null,
+    shootingCompleted: Boolean(selectedRangeTraining),
+  };
 }
 
 function calculateInstructorFeedbackSummary(params: {
-  baseScore: number;
-  feedbacks: SettlementFeedbackLink[];
-  period: HalfYearPeriod;
-  settlementId: string;
+  feedbacksByTraining: Map<string, SettlementFeedbackLink[]>;
+  period: RankingPeriod;
   trainings: SettlementTrainingLink[];
 }) {
-  if (params.baseScore === 0) {
-    return {
-      averageRating: null,
-      feedbackCount: 0,
-      instructorFeedbackPoints: 0,
-    };
-  }
+  const selectedRange = toStringRange(params.period);
+  const completedTrainingsInScope = params.trainings
+    .map((link) => link.training)
+    .filter(isCompletedTraining)
+    .filter((training) => isDateInRange(training.training_date, selectedRange));
 
-  const eligibleTrainingIds = getEligibleTrainingIdsInHalfYear(params.trainings, params.period);
-  const feedbacksInScope = params.feedbacks.filter(
-    (feedback) =>
-      eligibleTrainingIds.has(feedback.training_id) &&
-      (feedback.is_training_level || feedback.settlement_id === params.settlementId)
-  );
+  const feedbackTrainings: RankingTrainingEvidence[] = [];
+  let weightedRatingSum = 0;
+  let weightSum = 0;
+  let feedbackCount = 0;
 
-  const instructorFeedbackPoints = feedbacksInScope.reduce(
-    (sum, feedback) => sum + Math.max(feedback.rating, 0),
-    0
-  );
-  const averageRating = feedbacksInScope.length
-    ? Number(
-        (
-          feedbacksInScope.reduce((sum, feedback) => sum + feedback.rating, 0) /
-          feedbacksInScope.length
-        ).toFixed(1)
-      )
-    : null;
+  completedTrainingsInScope.forEach((training) => {
+    const feedbackRating = getAverageTrainingFeedback(training.id, params.feedbacksByTraining);
+
+    if (feedbackRating === null) {
+      return;
+    }
+
+    const weight = getFeedbackWeight(training.training_type);
+    weightedRatingSum += feedbackRating * weight;
+    weightSum += weight;
+    feedbackCount += params.feedbacksByTraining.get(training.id)?.length ?? 0;
+    feedbackTrainings.push(getTrainingEvidence({ feedbackRating, training }));
+  });
+
+  const averageRating = weightSum > 0 ? weightedRatingSum / weightSum : null;
+  const feedbackScore =
+    averageRating === null ? 0 : clampScore((averageRating / FEEDBACK_SCALE) * 30, 0, 30);
 
   return {
-    averageRating,
-    feedbackCount: feedbacksInScope.length,
-    instructorFeedbackPoints,
+    averageRating: averageRating === null ? null : Number(averageRating.toFixed(1)),
+    feedbackCount,
+    feedbackScore: Number(feedbackScore.toFixed(1)),
+    feedbackTrainings: feedbackTrainings.sort((left, right) =>
+      right.date.localeCompare(left.date)
+    ),
   };
+}
+
+export function calculateSettlementBaseScore(params: {
+  defenseCompleted: boolean;
+  shootingCompleted: boolean;
+}) {
+  return (params.shootingCompleted ? 40 : 0) + (params.defenseCompleted ? 30 : 0);
+}
+
+export function calculateSettlementFinalScore(params: {
+  defenseCompleted: boolean;
+  feedbackScore: number;
+  shootingCompleted: boolean;
+}) {
+  const rangeScore = params.shootingCompleted ? 40 : 0;
+  const defenseScore = params.defenseCompleted ? 30 : 0;
+  const rawScore = rangeScore + defenseScore + params.feedbackScore;
+  let scoreCap: number | null = null;
+
+  if (!params.shootingCompleted && !params.defenseCompleted) {
+    scoreCap = 40;
+  } else if (!params.shootingCompleted) {
+    scoreCap = 55;
+  } else if (!params.defenseCompleted) {
+    scoreCap = 70;
+  }
+
+  return {
+    defenseScore,
+    finalScore: Math.round(scoreCap === null ? rawScore : Math.min(rawScore, scoreCap)),
+    rangeScore,
+    rawScore: Number(rawScore.toFixed(1)),
+    scoreCap,
+  };
+}
+
+export function getRankingLevel(finalScore: number): RankingLevel {
+  if (finalScore >= 85) {
+    return 'כשיר מאוד';
+  }
+
+  if (finalScore >= 70) {
+    return 'כשיר';
+  }
+
+  if (finalScore >= 55) {
+    return 'במעקב';
+  }
+
+  return 'פער';
+}
+
+export function compareSettlementRankings(
+  left: Pick<
+    ComputedSettlementRanking,
+    'averageRating' | 'defenseCompleted' | 'finalScore' | 'settlementName' | 'shootingCompleted'
+  >,
+  right: Pick<
+    ComputedSettlementRanking,
+    'averageRating' | 'defenseCompleted' | 'finalScore' | 'settlementName' | 'shootingCompleted'
+  >
+) {
+  if (right.finalScore !== left.finalScore) {
+    return right.finalScore - left.finalScore;
+  }
+
+  if (right.shootingCompleted !== left.shootingCompleted) {
+    return Number(right.shootingCompleted) - Number(left.shootingCompleted);
+  }
+
+  if (right.defenseCompleted !== left.defenseCompleted) {
+    return Number(right.defenseCompleted) - Number(left.defenseCompleted);
+  }
+
+  const leftAverage = left.averageRating ?? 0;
+  const rightAverage = right.averageRating ?? 0;
+
+  if (rightAverage !== leftAverage) {
+    return rightAverage - leftAverage;
+  }
+
+  return left.settlementName.localeCompare(right.settlementName, 'he');
 }
 
 export function calculateSettlementRanking(params: {
   feedbacks: SettlementFeedbackLink[];
-  period: HalfYearPeriod;
+  period: RankingPeriod;
   settlement: SettlementRankingSettlement;
   trainings: SettlementTrainingLink[];
 }): ComputedSettlementRanking {
+  const settlementTrainings = params.trainings.filter(
+    (link) => link.settlement_id === params.settlement.id
+  );
+  const feedbacksByTraining = getFeedbacksByTraining({
+    feedbacks: params.feedbacks,
+    settlementId: params.settlement.id,
+  });
   const {
     defenseCompleted,
-    medianRangeParticipationPercent,
+    lastDefenseTrainingDate,
+    lastRangeTrainingDate,
+    selectedDefenseTraining,
+    selectedRangeTraining,
     shootingCompleted,
-    settlementDefenseParticipationPercent,
-  } = getParticipationPercentages({
+  } = getRequiredTrainingSummary({
+    feedbacksByTraining,
     period: params.period,
-    settlementId: params.settlement.id,
-    trainings: params.trainings.filter((link) => link.settlement_id === params.settlement.id),
-  });
-
-  const baseScore = calculateSettlementBaseScore({
-    medianRangeParticipationPercent,
-    settlementDefenseParticipationPercent,
+    trainings: settlementTrainings,
   });
   const {
     averageRating,
     feedbackCount,
-    instructorFeedbackPoints,
+    feedbackScore,
+    feedbackTrainings,
   } = calculateInstructorFeedbackSummary({
-    baseScore,
-    feedbacks: params.feedbacks,
+    feedbacksByTraining,
     period: params.period,
-    settlementId: params.settlement.id,
-    trainings: params.trainings.filter((link) => link.settlement_id === params.settlement.id),
+    trainings: settlementTrainings,
   });
-  const finalScore = calculateSettlementFinalScore({
-    instructorFeedbackPoints,
-    medianRangeParticipationPercent,
-    settlementDefenseParticipationPercent,
+  const {
+    defenseScore,
+    finalScore,
+    rangeScore,
+    rawScore,
+    scoreCap,
+  } = calculateSettlementFinalScore({
+    defenseCompleted,
+    feedbackScore,
+    shootingCompleted,
   });
+  const baseScore = calculateSettlementBaseScore({ defenseCompleted, shootingCompleted });
 
   return {
     area: params.settlement.area,
@@ -340,15 +454,25 @@ export function calculateSettlementRanking(params: {
     councilId: params.settlement.council_id,
     councilName: params.settlement.councilName ?? params.settlement.regional_council ?? null,
     defenseCompleted,
+    defenseScore,
     feedbackCount,
-    feedbackScore: instructorFeedbackPoints,
+    feedbackScale: FEEDBACK_SCALE,
+    feedbackScore,
+    feedbackTrainings,
     finalScore,
     halfYearPeriod: params.period,
-    instructorFeedbackPoints,
-    medianRangeParticipationPercent,
+    instructorFeedbackPoints: feedbackScore,
+    lastDefenseTrainingDate,
+    lastRangeTrainingDate,
+    medianRangeParticipationPercent: null,
     rankingLevel: getRankingLevel(finalScore),
+    rangeScore,
+    rawScore,
     regionalCouncil: params.settlement.councilName ?? params.settlement.regional_council ?? null,
-    settlementDefenseParticipationPercent,
+    scoreCap,
+    selectedDefenseTraining,
+    selectedRangeTraining,
+    settlementDefenseParticipationPercent: null,
     settlementId: params.settlement.id,
     settlementName: params.settlement.name,
     shootingCompleted,

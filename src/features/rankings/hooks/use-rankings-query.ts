@@ -7,10 +7,10 @@ import {
 } from '@/src/features/rankings/api/rankings-service';
 import {
   getCurrentRankingPeriod,
+  type RankingPeriod,
 } from '@/src/features/rankings/utils/ranking-calculator';
-import type { HalfYearPeriod } from '@/src/lib/date-utils';
 
-export function useRankingsQuery(period: HalfYearPeriod = getCurrentRankingPeriod()) {
+export function useRankingsQuery(period: RankingPeriod = getCurrentRankingPeriod()) {
   return useQuery({
     queryFn: () => listSettlementRankings(period),
     queryKey: queryKeys.rankings.period(period),

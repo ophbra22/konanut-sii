@@ -15,6 +15,9 @@ export const queryKeys = {
   dashboard: {
     overview: ['dashboard', 'overview'] as const,
   },
+  notifications: {
+    home: ['notifications', 'home'] as const,
+  },
   professionalContent: {
     all: ['professional-content'] as const,
     detail: (contentId: string) => ['professional-content', contentId] as const,

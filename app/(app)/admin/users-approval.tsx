@@ -22,6 +22,7 @@ import {
   useRejectPendingUserMutation,
 } from '@/src/features/auth/hooks/use-user-approval-mutations';
 import { useSettlementsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { PLAGA_VALUES } from '@/src/lib/plaga';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { createThemedStyles, type AppTheme } from '@/src/theme';
@@ -128,7 +129,10 @@ export default function UsersApprovalScreen() {
         {pendingUsersQuery.error ? (
           <StateCard
             actionLabel="נסו שוב"
-            description={pendingUsersQuery.error.message}
+            description={getPresentableErrorMessage(
+              pendingUsersQuery.error,
+              'לא ניתן לטעון את רשימת המשתמשים'
+            )}
             onAction={() => {
               void pendingUsersQuery.refetch();
             }}
@@ -140,7 +144,10 @@ export default function UsersApprovalScreen() {
         {settlementsQuery.error ? (
           <StateCard
             actionLabel="נסו שוב"
-            description={settlementsQuery.error.message}
+            description={getPresentableErrorMessage(
+              settlementsQuery.error,
+              'לא ניתן לטעון את רשימת היישובים'
+            )}
             onAction={() => {
               void settlementsQuery.refetch();
             }}

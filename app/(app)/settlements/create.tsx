@@ -10,6 +10,7 @@ import { useCouncilsQuery } from '@/src/features/councils/hooks/use-councils-que
 import { useCreateSettlementMutation } from '@/src/features/settlements/hooks/use-settlement-mutations';
 import { isSuperAdmin } from '@/src/features/auth/lib/permissions';
 import { toSettlementInsertInput } from '@/src/features/settlements/lib/settlement-form-utils';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 
 export default function CreateSettlementScreen() {
@@ -49,7 +50,7 @@ export default function CreateSettlementScreen() {
 
       {mutation.error ? (
         <StateCard
-          description={mutation.error.message}
+          description={getPresentableErrorMessage(mutation.error, 'לא ניתן ליצור את היישוב')}
           title="לא ניתן ליצור את היישוב"
           variant="warning"
         />
@@ -57,7 +58,10 @@ export default function CreateSettlementScreen() {
 
       {councilsQuery.error ? (
         <StateCard
-          description={councilsQuery.error.message}
+          description={getPresentableErrorMessage(
+            councilsQuery.error,
+            'לא ניתן לטעון את המועצות'
+          )}
           title="לא ניתן לטעון את המועצות"
           variant="warning"
         />

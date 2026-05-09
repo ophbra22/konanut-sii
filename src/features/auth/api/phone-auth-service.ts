@@ -27,31 +27,6 @@ export type CompletePhoneRegistrationPayload = {
 const ISRAELI_MOBILE_PHONE_REGEX = /^\+9725\d{8}$/;
 export const SYSTEM_ADMIN_PHONE = '+972545246426';
 
-function logPhoneValidation(rawPhone: string, normalizedPhone: string, isValid: boolean) {
-  if (process.env.NODE_ENV === 'production') {
-    return;
-  }
-
-  console.info('[SMS Login] phone validation', {
-    rawPhone,
-    normalizedPhone,
-    isValid,
-  });
-}
-
-function logSmsAuthDebug(message: string, payload?: unknown) {
-  if (process.env.NODE_ENV === 'production') {
-    return;
-  }
-
-  if (payload === undefined) {
-    console.log(message);
-    return;
-  }
-
-  console.log(message, payload);
-}
-
 export function normalizeIsraeliPhoneNumber(value: string) {
   const compact = value
     .trim()
@@ -74,8 +49,6 @@ export function normalizeIsraeliPhoneNumber(value: string) {
   }
 
   const isValid = ISRAELI_MOBILE_PHONE_REGEX.test(normalized);
-
-  logPhoneValidation(value, normalized, isValid);
 
   if (isValid) {
     return normalized;
@@ -124,24 +97,14 @@ export async function sendPhoneOtp(phone: string) {
   const normalizedPhone = normalizeIsraeliPhoneNumber(phone);
 
   try {
-    logSmsAuthDebug('SUPABASE_URL', process.env.EXPO_PUBLIC_SUPABASE_URL);
-    logSmsAuthDebug('[SMS Login] Sending OTP', {
-      normalizedPhone,
-      validationResult: ISRAELI_MOBILE_PHONE_REGEX.test(normalizedPhone),
-    });
-
-    const { data, error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithOtp({
       phone: normalizedPhone,
     });
 
     if (error) {
-      logSmsAuthDebug('[SMS Login] Supabase error', error);
       throw error;
     }
-
-    logSmsAuthDebug('[SMS Login] OTP sent', data);
   } catch (error) {
-    logSmsAuthDebug('[SMS Login] Network/Auth error', error);
     throw new Error(translatePhoneAuthError(error, 'לא ניתן לשלוח בקשת אימות כעת'));
   }
 

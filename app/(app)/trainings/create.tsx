@@ -17,6 +17,7 @@ import { useSettlementsQuery } from '@/src/features/settlements/hooks/use-settle
 import { TrainingForm } from '@/src/features/trainings/components/training-form';
 import { useCreateTrainingMutation } from '@/src/features/trainings/hooks/use-training-mutations';
 import { toTrainingInsertInput } from '@/src/features/trainings/lib/training-form-utils';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 
 export default function CreateTrainingScreen() {
@@ -91,8 +92,18 @@ export default function CreateTrainingScreen() {
         <StateCard
           actionLabel="חזרה לרשימה"
           description={
-            settlementsQuery.error?.message ??
-            profilesQuery.error?.message ??
+            (settlementsQuery.error
+              ? getPresentableErrorMessage(
+                  settlementsQuery.error,
+                  'לא ניתן לטעון את רשימת היישובים'
+                )
+              : null) ??
+            (profilesQuery.error
+              ? getPresentableErrorMessage(
+                  profilesQuery.error,
+                  'לא ניתן לטעון את רשימת המדריכים'
+                )
+              : null) ??
             (!profile ? 'לא הצלחנו לזהות את פרופיל המדריך המחובר.' : null) ??
             'אירעה שגיאה בטעינת הנתונים.'
           }
@@ -120,7 +131,7 @@ export default function CreateTrainingScreen() {
 
       {mutation.error ? (
         <StateCard
-          description={mutation.error.message}
+          description={getPresentableErrorMessage(mutation.error, 'לא ניתן ליצור את האימון')}
           title="לא ניתן ליצור את האימון"
           variant="warning"
         />

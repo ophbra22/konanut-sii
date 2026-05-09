@@ -18,6 +18,7 @@ import { SectionBlock } from '@/src/components/ui/section-block';
 import { canManageSettlements } from '@/src/features/auth/lib/permissions';
 import { useCreateCouncilMutation, useDeleteCouncilMutation } from '@/src/features/councils/hooks/use-council-mutations';
 import { useCouncilsQuery } from '@/src/features/councils/hooks/use-councils-query';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { PLAGA_VALUES, type PlagaName } from '@/src/lib/plaga';
 import { rtlRow } from '@/src/lib/rtl';
 import { useAuthStore } from '@/src/stores/auth-store';
@@ -128,7 +129,10 @@ export default function CouncilsManagementScreen() {
         {councilsQuery.error ? (
           <StateCard
             actionLabel="נסו שוב"
-            description={councilsQuery.error.message}
+            description={getPresentableErrorMessage(
+              councilsQuery.error,
+              'לא ניתן לטעון את רשימת המועצות'
+            )}
             onAction={() => {
               void councilsQuery.refetch();
             }}

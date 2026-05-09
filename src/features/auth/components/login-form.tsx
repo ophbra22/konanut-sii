@@ -17,6 +17,7 @@ import {
   isValidEmailOtpToken,
   sanitizeOtpInput,
 } from '@/src/features/auth/lib/auth-constants';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { rtlRowReverse } from '@/src/lib/rtl';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
@@ -65,7 +66,10 @@ export function LoginForm() {
   const router = useRouter();
   const authError = useAuthStore((state) => state.errorMessage);
   const clearError = useAuthStore((state) => state.clearError);
+  const pendingAuthEmail = useAuthStore((state) => state.pendingAuthEmail);
+  const pendingAuthIntent = useAuthStore((state) => state.pendingAuthIntent);
   const sendEmailOtp = useAuthStore((state) => state.sendEmailOtp);
+  const setPendingAuthIntent = useAuthStore((state) => state.setPendingAuthIntent);
   const signIn = useAuthStore((state) => state.signIn);
   const signInWithEmailOtp = useAuthStore((state) => state.signInWithEmailOtp);
   const status = useAuthStore((state) => state.status);
@@ -109,6 +113,17 @@ export function LoginForm() {
 
     setPassword('');
   }, [clearError, loginMethod]);
+
+  useEffect(() => {
+    if (pendingAuthIntent !== 'login' || !pendingAuthEmail || verifiedEmail) {
+      return;
+    }
+
+    setLoginMethod('otp');
+    setEmail((current) => current || pendingAuthEmail);
+    setVerifiedEmail(pendingAuthEmail);
+    setSuccessMessage(`שלחנו קוד חד-פעמי לכתובת ${pendingAuthEmail}`);
+  }, [pendingAuthEmail, pendingAuthIntent, verifiedEmail]);
 
   const isBusy =
     isSendingCode ||
@@ -171,14 +186,14 @@ export function LoginForm() {
     try {
       emailForOtp = normalizeEmailAddress(email);
     } catch (error) {
-      setFieldError(error instanceof Error ? error.message : 'כתובת אימייל לא תקינה');
+      setFieldError(getPresentableErrorMessage(error, 'כתובת אימייל לא תקינה'));
       return;
     }
 
     setIsSendingCode(true);
 
     try {
-      const result = await sendEmailOtp(emailForOtp);
+      const result = await sendEmailOtp(emailForOtp, { intent: 'login' });
 
       if (!result.success) {
         setFieldError(result.message ?? 'לא ניתן לשלוח קוד אימות כעת');
@@ -209,6 +224,7 @@ export function LoginForm() {
     try {
       const result = await signInWithEmailOtp({
         email: verifiedEmail ?? email,
+        intent: 'login',
         token: code,
       });
 
@@ -218,7 +234,7 @@ export function LoginForm() {
       }
 
       if (result.reason === 'needs_registration') {
-        router.replace('/register' as never);
+        router.replace((result.targetRoute ?? '/register') as never);
         return;
       }
 
@@ -234,6 +250,7 @@ export function LoginForm() {
         accessibilityRole="button"
         onPress={() => {
           clearError();
+          void setPendingAuthIntent('registration', null);
           router.push('/register' as never);
         }}
         style={({ pressed }) => [styles.linkRow, pressed ? styles.linkPressed : null]}
@@ -366,6 +383,15 @@ export function LoginForm() {
         ) : (
           <>
             {isOtpSent ? (
+              <View style={styles.codeNotice}>
+                <Text style={styles.codeNoticeLabel}>הקוד נשלח לכתובת</Text>
+                <Text numberOfLines={1} style={styles.codeNoticeEmail}>
+                  {verifiedEmail}
+                </Text>
+              </View>
+            ) : null}
+
+            {isOtpSent ? (
               <Pressable
                 accessibilityRole="button"
                 onPress={() => {
@@ -387,11 +413,11 @@ export function LoginForm() {
 
             {isOtpSent ? (
               <AppTextField
-              appearance="auth"
-              autoComplete="one-time-code"
-              icon={<KeyRound />}
-              keyboardType="number-pad"
-              label="קוד חד-פעמי"
+                appearance="auth"
+                autoComplete="one-time-code"
+                icon={<KeyRound />}
+                keyboardType="number-pad"
+                label="קוד חד-פעמי"
                 maxLength={EMAIL_OTP_MAX_LENGTH}
                 onChangeText={(text) => {
                   clearError();
@@ -448,7 +474,7 @@ export function LoginForm() {
                   <AuthSubmitButton
                     compact
                     disabled={!canVerifyCode}
-                    label="אמת והיכנס"
+                    label="אמת והתחבר"
                     loading={isVerifyingCode}
                     loadingLabel="מאמת..."
                     onPress={() => {
@@ -468,6 +494,27 @@ export function LoginForm() {
 const styles = createThemedStyles((theme: AppTheme) => ({
   actions: {
     gap: 10,
+  },
+  codeNotice: {
+    backgroundColor: theme.colors.infoSurface,
+    borderColor: theme.colors.infoBorder,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    gap: 4,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+  },
+  codeNoticeEmail: {
+    ...theme.typography.body,
+    color: theme.colors.textPrimary,
+    fontWeight: '800',
+    textAlign: 'right',
+    writingDirection: 'ltr',
+  },
+  codeNoticeLabel: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+    textAlign: 'right',
   },
   errorBanner: {
     backgroundColor: theme.colors.dangerSurface,

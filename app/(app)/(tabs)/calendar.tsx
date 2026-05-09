@@ -26,6 +26,7 @@ import {
   formatCalendarSelectedDateLabel,
 } from '@/src/features/calendar/lib/calendar-utils';
 import { canCreateTrainings } from '@/src/features/auth/lib/permissions';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { rtlRow, rtlRowReverse } from '@/src/lib/rtl';
 import { trainingStatuses } from '@/src/features/trainings/constants';
 import { useAuthStore } from '@/src/stores/auth-store';
@@ -110,6 +111,9 @@ export default function CalendarScreen() {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const monthKey = monthCursor.format('YYYY-MM');
   const { data, error, isLoading, refetch } = useCalendarOverviewQuery(monthKey);
+  const calendarErrorMessage = error
+    ? getPresentableErrorMessage(error, 'לא ניתן לטעון את נתוני היומן')
+    : undefined;
 
   const trainings = useMemo(
     () =>
@@ -234,7 +238,7 @@ export default function CalendarScreen() {
         {error ? (
           <StateCard
             actionLabel="רענון"
-            description={error.message}
+            description={calendarErrorMessage ?? 'לא ניתן לטעון את נתוני היומן'}
             onAction={() => {
               void refetch();
             }}

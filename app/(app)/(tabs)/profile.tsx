@@ -29,6 +29,7 @@ import {
   isPlagaScopedRole,
   isSettlementScopedRole,
 } from '@/src/features/auth/lib/permissions';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { rtlRow, rtlRowReverse } from '@/src/lib/rtl';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { createThemedStyles, theme, useThemeController, type AppTheme } from '@/src/theme';
@@ -159,9 +160,7 @@ export default function ProfileScreen() {
               .catch((error: unknown) => {
                 Alert.alert(
                   'לא ניתן למחוק את החשבון',
-                  error instanceof Error
-                    ? error.message
-                    : 'לא ניתן למחוק את החשבון כרגע'
+                  getPresentableErrorMessage(error, 'לא ניתן למחוק את החשבון כרגע')
                 );
               });
           },

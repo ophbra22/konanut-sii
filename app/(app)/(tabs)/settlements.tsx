@@ -30,6 +30,7 @@ import {
   getCurrentYear,
   getHalfYearLabel,
 } from '@/src/lib/date-utils';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { rtlRow } from '@/src/lib/rtl';
 import { matchesSearchQuery } from '@/src/lib/search-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
@@ -56,6 +57,9 @@ export default function SettlementsScreen() {
   const lastAppliedShortcutKeyRef = useRef<string | null>(initialRequestKey ?? null);
   const { data, error, isLoading, refetch } = useSettlementsQuery();
   const settlements = data ?? [];
+  const settlementsErrorMessage = error
+    ? getPresentableErrorMessage(error, 'לא ניתן לטעון את רשימת היישובים')
+    : undefined;
   const currentHalfYear = getCurrentHalfYearPeriod();
   const currentYear = getCurrentYear();
   const activeFilterLabel =
@@ -208,7 +212,7 @@ export default function SettlementsScreen() {
             {error ? (
               <StateCard
                 actionLabel="נסו שוב"
-                description={error.message}
+                description={settlementsErrorMessage ?? 'לא ניתן לטעון את רשימת היישובים'}
                 onAction={() => {
                   void refetch();
                 }}

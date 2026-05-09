@@ -37,6 +37,7 @@ import {
   getTrainingOperationalScore,
   summaryColors,
 } from '@/src/features/trainings/lib/training-summary-helpers';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { useFeedbackStore } from '@/src/stores/feedback-store';
 
@@ -82,7 +83,11 @@ export default function TrainingDetailsScreen() {
         />
         <StateCard
           actionLabel="חזרה לרשימת האימונים"
-          description={error?.message ?? 'האימון המבוקש אינו זמין לחשבון המחובר.'}
+          description={
+            error
+              ? getPresentableErrorMessage(error, 'לא ניתן לטעון את פרטי האימון')
+              : 'האימון המבוקש אינו זמין לחשבון המחובר.'
+          }
           onAction={() => {
             router.replace('/trainings');
           }}
@@ -126,20 +131,27 @@ export default function TrainingDetailsScreen() {
     } catch (error) {
       if (error instanceof DeviceCalendarError) {
         if (error.code === 'permission_denied') {
-          Alert.alert('נדרשת גישה ליומן', error.message);
+          Alert.alert(
+            'נדרשת גישה ליומן',
+            getPresentableErrorMessage(error, 'יש לאפשר גישה ליומן כדי להוסיף את האימון')
+          );
           return;
         }
 
         if (error.code === 'permission_blocked') {
-          Alert.alert('הגישה ליומן חסומה', error.message, [
-            { style: 'cancel', text: 'ביטול' },
-            {
-              onPress: () => {
-                void Linking.openSettings();
+          Alert.alert(
+            'הגישה ליומן חסומה',
+            getPresentableErrorMessage(error, 'אפשר להפעיל גישה ליומן דרך הגדרות המכשיר'),
+            [
+              { style: 'cancel', text: 'ביטול' },
+              {
+                onPress: () => {
+                  void Linking.openSettings();
+                },
+                text: 'פתיחת הגדרות',
               },
-              text: 'פתיחת הגדרות',
-            },
-          ]);
+            ]
+          );
           return;
         }
       }
@@ -259,7 +271,10 @@ export default function TrainingDetailsScreen() {
 
       {feedbackMutation.error ? (
         <StateCard
-          description={feedbackMutation.error.message}
+          description={getPresentableErrorMessage(
+            feedbackMutation.error,
+            'לא ניתן לשמור את המשוב'
+          )}
           title="לא ניתן לשמור את המשוב"
           variant="warning"
         />
@@ -267,7 +282,10 @@ export default function TrainingDetailsScreen() {
 
       {deleteFeedbackMutation.error ? (
         <StateCard
-          description={deleteFeedbackMutation.error.message}
+          description={getPresentableErrorMessage(
+            deleteFeedbackMutation.error,
+            'לא ניתן למחוק את המשוב'
+          )}
           title="לא ניתן למחוק את המשוב"
           variant="warning"
         />

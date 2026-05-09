@@ -152,9 +152,10 @@ function getAuthErrorMessage(message: string) {
 
 export function translateAuthError(error: unknown) {
   const fallback = 'לא ניתן להשלים את פעולת האימות כרגע';
+  const message = getErrorMessage(error, fallback);
 
-  if (error instanceof Error) {
-    return getAuthErrorMessage(error.message || fallback);
+  if (message) {
+    return getAuthErrorMessage(message);
   }
 
   return fallback;

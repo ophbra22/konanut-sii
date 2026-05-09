@@ -21,6 +21,7 @@ import {
   type ProfessionalContentFilter,
 } from '@/src/features/professional-content/constants';
 import { useProfessionalContentQuery } from '@/src/features/professional-content/hooks/use-professional-content-query';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { rtlRow } from '@/src/lib/rtl';
 import { matchesSearchQuery } from '@/src/lib/search-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
@@ -44,6 +45,9 @@ export default function ProfessionalContentScreen() {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const { data, error, isLoading, refetch } = useProfessionalContentQuery(canManage);
   const contentItems = data ?? [];
+  const contentErrorMessage = error
+    ? getPresentableErrorMessage(error, 'לא ניתן לטעון את התוכן המקצועי')
+    : undefined;
   const hasActiveFilter = activeFilter !== 'all';
   const activeFilterLabel =
     professionalContentFilterOptions.find((option) => option.key === activeFilter)?.label ??
@@ -157,7 +161,7 @@ export default function ProfessionalContentScreen() {
             {error ? (
               <StateCard
                 actionLabel="נסו שוב"
-                description={error.message}
+                description={contentErrorMessage ?? 'לא ניתן לטעון את התוכן המקצועי'}
                 onAction={() => {
                   void refetch();
                 }}

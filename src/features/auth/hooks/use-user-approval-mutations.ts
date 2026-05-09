@@ -6,6 +6,7 @@ import {
   rejectPendingUser,
   updateManagedUserAccess,
 } from '@/src/features/auth/api/user-approval-service';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { queryClient } from '@/src/lib/query-client';
 import { queryKeys } from '@/src/lib/query-keys';
 import { useAuthStore } from '@/src/stores/auth-store';
@@ -111,7 +112,7 @@ export function useDeleteManagedUserMutation() {
     },
     onError: (error) => {
       showToast(
-        error instanceof Error ? error.message : 'לא ניתן למחוק את המשתמש כרגע',
+        getPresentableErrorMessage(error, 'לא ניתן למחוק את המשתמש כרגע'),
         'error'
       );
     },

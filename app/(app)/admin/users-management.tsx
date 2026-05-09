@@ -21,6 +21,7 @@ import {
   useUpdateManagedUserAccessMutation,
 } from '@/src/features/auth/hooks/use-user-approval-mutations';
 import { useSettlementsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { PLAGA_VALUES } from '@/src/lib/plaga';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
@@ -140,7 +141,10 @@ export default function UsersManagementScreen() {
         {managedUsersQuery.error ? (
           <StateCard
             actionLabel="נסו שוב"
-            description={managedUsersQuery.error.message}
+            description={getPresentableErrorMessage(
+              managedUsersQuery.error,
+              'לא ניתן לטעון את רשימת המשתמשים'
+            )}
             onAction={() => {
               void managedUsersQuery.refetch();
             }}
@@ -152,7 +156,10 @@ export default function UsersManagementScreen() {
         {settlementsQuery.error ? (
           <StateCard
             actionLabel="נסו שוב"
-            description={settlementsQuery.error.message}
+            description={getPresentableErrorMessage(
+              settlementsQuery.error,
+              'לא ניתן לטעון את רשימת היישובים'
+            )}
             onAction={() => {
               void settlementsQuery.refetch();
             }}

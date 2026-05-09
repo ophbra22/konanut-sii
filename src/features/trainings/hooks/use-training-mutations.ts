@@ -10,6 +10,7 @@ import {
 } from '@/src/features/trainings/api/trainings-service';
 import { queryClient } from '@/src/lib/query-client';
 import { queryKeys } from '@/src/lib/query-keys';
+import { notifyNewFeedbackForTraining } from '@/src/services/notificationsService';
 import { useFeedbackStore } from '@/src/stores/feedback-store';
 import type { TablesInsert, TablesUpdate, Training } from '@/src/types/database';
 
@@ -126,9 +127,14 @@ export function useSaveTrainingFeedbackMutation() {
       });
       void queryClient.invalidateQueries({ queryKey: queryKeys.trainings.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.overview });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.notifications.home });
       void queryClient.invalidateQueries({ queryKey: queryKeys.rankings.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.settlements.all });
       void queryClient.invalidateQueries({ queryKey: queryKeys.calendar.all });
+      void notifyNewFeedbackForTraining({
+        excludeUserId: variables.instructorId,
+        trainingId: variables.trainingId,
+      }).catch(() => undefined);
       showToast('המשוב נשמר בהצלחה', 'success');
     },
   });

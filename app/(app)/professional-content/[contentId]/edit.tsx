@@ -18,6 +18,7 @@ import {
   getProfessionalContentFormValues,
   toProfessionalContentUpdateInput,
 } from '@/src/features/professional-content/lib/professional-content-form-utils';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 
 export default function EditProfessionalContentScreen() {
@@ -66,7 +67,11 @@ export default function EditProfessionalContentScreen() {
         />
         <StateCard
           actionLabel="חזרה לספרייה"
-          description={error?.message ?? 'לא נמצא פריט תוכן לעריכה.'}
+          description={
+            error
+              ? getPresentableErrorMessage(error, 'לא ניתן לטעון את פריט התוכן')
+              : 'לא נמצא פריט תוכן לעריכה.'
+          }
           onAction={() => {
             router.replace('/(app)/(tabs)/professional-content');
           }}
@@ -87,7 +92,10 @@ export default function EditProfessionalContentScreen() {
 
       {updateMutation.error ? (
         <StateCard
-          description={updateMutation.error.message}
+          description={getPresentableErrorMessage(
+            updateMutation.error,
+            'לא ניתן לשמור את השינויים'
+          )}
           title="לא ניתן לשמור את השינויים"
           variant="warning"
         />
@@ -95,7 +103,10 @@ export default function EditProfessionalContentScreen() {
 
       {deleteMutation.error ? (
         <StateCard
-          description={deleteMutation.error.message}
+          description={getPresentableErrorMessage(
+            deleteMutation.error,
+            'לא ניתן למחוק את פריט התוכן'
+          )}
           title="לא ניתן למחוק את פריט התוכן"
           variant="warning"
         />

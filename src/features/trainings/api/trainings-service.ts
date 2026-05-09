@@ -124,6 +124,21 @@ const trainingsListSelect = `
   )
 `;
 
+const trainingSelect = `
+  id,
+  end_time,
+  title,
+  training_type,
+  location,
+  instructor_id,
+  training_date,
+  training_time,
+  status,
+  notes,
+  settlement_attendance,
+  created_at
+`;
+
 function mapSettlements(
   trainingSettlements: Array<{
     settlement: SettlementSummary | null;
@@ -460,7 +475,7 @@ export async function updateTrainingStatus(
     .from('trainings')
     .update({ status })
     .eq('id', trainingId)
-    .select('*')
+    .select(trainingSelect)
     .single();
 
   if (error) {

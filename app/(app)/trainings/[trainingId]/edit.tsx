@@ -19,6 +19,7 @@ import {
   getTrainingFormValues,
   toTrainingUpdateInput,
 } from '@/src/features/trainings/lib/training-form-utils';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 
 export default function EditTrainingScreen() {
@@ -76,9 +77,21 @@ export default function EditTrainingScreen() {
         <StateCard
           actionLabel="חזרה לרשימת האימונים"
           description={
-            detailsQuery.error?.message ??
-            settlementsQuery.error?.message ??
-            profilesQuery.error?.message ??
+            (detailsQuery.error
+              ? getPresentableErrorMessage(detailsQuery.error, 'לא ניתן לטעון את פרטי האימון')
+              : null) ??
+            (settlementsQuery.error
+              ? getPresentableErrorMessage(
+                  settlementsQuery.error,
+                  'לא ניתן לטעון את רשימת היישובים'
+                )
+              : null) ??
+            (profilesQuery.error
+              ? getPresentableErrorMessage(
+                  profilesQuery.error,
+                  'לא ניתן לטעון את רשימת המדריכים'
+                )
+              : null) ??
             'לא נמצא אימון לעריכה.'
           }
           onAction={() => {
@@ -103,7 +116,10 @@ export default function EditTrainingScreen() {
 
       {mutation.error ? (
         <StateCard
-          description={mutation.error.message}
+          description={getPresentableErrorMessage(
+            mutation.error,
+            'לא ניתן לשמור את השינויים'
+          )}
           title="לא ניתן לשמור את השינויים"
           variant="warning"
         />

@@ -246,11 +246,9 @@ using (
   and public.has_settlement_access(settlement_id)
 );
 
-revoke all on function public.list_global_settlement_rankings(text) from public;
-revoke all on function public.list_global_settlement_rankings(text) from anon;
-revoke all on function public.list_global_settlement_rankings(text) from authenticated;
+drop function if exists public.list_global_settlement_rankings(text);
 
-create or replace function public.list_global_settlement_rankings(period_key text)
+create function public.list_global_settlement_rankings(period_key text)
 returns table (
   settlement_id uuid,
   settlement_name text,
@@ -373,14 +371,63 @@ grant execute on function public.has_plaga_access(text) to authenticated;
 grant execute on function public.has_regional_council_access(text) to authenticated;
 grant execute on function public.has_settlement_access(uuid) to authenticated;
 grant execute on function public.has_training_access(uuid) to authenticated;
-grant execute on function public.can_insert_training(uuid) to authenticated;
-grant execute on function public.can_insert_feedback(uuid) to authenticated;
-grant execute on function public.can_insert_training_settlement(uuid) to authenticated;
 grant execute on function public.list_global_settlement_rankings(text) to authenticated;
-grant execute on function public.complete_email_registration(text, text, uuid, uuid, text) to authenticated;
-grant execute on function public.list_email_registration_options() to authenticated;
-grant execute on function public.complete_phone_registration(text, text, uuid, uuid, text) to authenticated;
-grant execute on function public.list_phone_registration_options() to authenticated;
-grant execute on function public.delete_current_user_account() to authenticated;
-grant execute on function public.admin_delete_user_account(uuid) to authenticated;
 grant execute on function public.delete_regional_council(uuid) to authenticated;
+
+do $$
+declare
+  optional_signature text;
+  optional_signatures text[] := array[
+    'public.can_insert_training(uuid)',
+    'public.can_insert_feedback(uuid)',
+    'public.can_insert_training_settlement(uuid)',
+    'public.complete_email_registration(text,text,uuid,uuid,text)',
+    'public.list_email_registration_options()',
+    'public.complete_phone_registration(text,text,uuid,uuid,text)',
+    'public.list_phone_registration_options()',
+    'public.delete_current_user_account()',
+    'public.admin_delete_user_account(uuid)'
+  ];
+begin
+  foreach optional_signature in array optional_signatures loop
+    if to_regprocedure(optional_signature) is not null then
+      execute format('grant execute on function %s to authenticated', optional_signature);
+      raise notice 'Granted execute on % to authenticated', optional_signature;
+    else
+      raise notice 'Skipped execute grant for missing function %', optional_signature;
+    end if;
+  end loop;
+end
+$$;
+
+-- Grants applied unconditionally because these functions are created or replaced
+-- in this migration:
+--   public.is_active_user()
+--   public.has_any_role(text[])
+--   public.is_super_admin()
+--   public.is_instructor()
+--   public.is_mashkabat()
+--   public.current_assigned_plaga()
+--   public.has_plaga_access(text)
+--   public.has_regional_council_access(text)
+--   public.has_settlement_access(uuid)
+--   public.has_training_access(uuid)
+--   public.list_global_settlement_rankings(text)
+--   public.delete_regional_council(uuid)
+--
+-- Optional grants are guarded with to_regprocedure() so this migration can run
+-- on projects that do not include every historical auth/account RPC. In the
+-- failing Supabase project, public.complete_phone_registration(text,text,uuid,uuid,text)
+-- was not present, so it was removed from unconditional grants and is skipped
+-- unless that exact function signature exists.
+--
+-- Optional signatures granted only when present:
+--   public.can_insert_training(uuid)
+--   public.can_insert_feedback(uuid)
+--   public.can_insert_training_settlement(uuid)
+--   public.complete_email_registration(text,text,uuid,uuid,text)
+--   public.list_email_registration_options()
+--   public.complete_phone_registration(text,text,uuid,uuid,text)
+--   public.list_phone_registration_options()
+--   public.delete_current_user_account()
+--   public.admin_delete_user_account(uuid)

@@ -35,6 +35,7 @@ import { getRankingTone } from '@/src/features/rankings/lib/ranking-presenters';
 import { useDeleteSettlementMutation } from '@/src/features/settlements/hooks/use-settlement-mutations';
 import { useSettlementDetailsQuery } from '@/src/features/settlements/hooks/use-settlements-query';
 import { formatDisplayDate, formatDisplayTimeRange } from '@/src/lib/date-utils';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { rtlRow } from '@/src/lib/rtl';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
@@ -206,7 +207,11 @@ export default function SettlementDetailsScreen() {
       <AppScreen>
         <StateCard
           actionLabel="חזרה לרשימת היישובים"
-          description={error?.message ?? 'היישוב המבוקש אינו זמין לחשבון המחובר.'}
+          description={
+            error
+              ? getPresentableErrorMessage(error, 'לא ניתן לטעון את פרטי היישוב')
+              : 'היישוב המבוקש אינו זמין לחשבון המחובר.'
+          }
           onAction={() => {
             router.replace('/settlements');
           }}
@@ -557,7 +562,10 @@ export default function SettlementDetailsScreen() {
 
           {deleteMutation.error ? (
             <StateCard
-              description={deleteMutation.error.message}
+              description={getPresentableErrorMessage(
+                deleteMutation.error,
+                'לא ניתן למחוק את היישוב'
+              )}
               title="לא ניתן למחוק את היישוב"
               variant="warning"
             />

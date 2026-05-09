@@ -32,19 +32,6 @@ export type CompleteEmailRegistrationPayload = {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const SYSTEM_ADMIN_EMAIL = 'ophbra22@gmail.com';
 
-function logEmailOtpDebug(message: string, payload?: unknown) {
-  if (process.env.NODE_ENV === 'production') {
-    return;
-  }
-
-  if (payload === undefined) {
-    console.log(message);
-    return;
-  }
-
-  console.log(message, payload);
-}
-
 export function normalizeEmailAddress(value: string) {
   const normalizedEmail = value.trim().toLowerCase();
 
@@ -82,6 +69,14 @@ export function translateEmailOtpError(error: unknown, fallback: string) {
 
   if (message.includes('User already registered')) {
     return 'כבר קיים חשבון עם כתובת האימייל הזו';
+  }
+
+  if (
+    message.includes('Signups not allowed') ||
+    message.includes('signup is disabled') ||
+    message.includes('Unable to sign in')
+  ) {
+    return 'לא נמצא חשבון פעיל עם כתובת האימייל הזו. אם אין לך חשבון, יש להגיש בקשת הרשמה.';
   }
 
   if (message.includes('Password should be at least')) {
@@ -136,30 +131,25 @@ function translatePasswordSetupError(error: unknown, fallback: string) {
   return fallback;
 }
 
-export async function sendEmailOtp(email: string) {
+export async function sendEmailOtp(
+  email: string,
+  options: { shouldCreateUser?: boolean } = {}
+) {
   const normalizedEmail = normalizeEmailAddress(email);
+  const shouldCreateUser = options.shouldCreateUser ?? true;
 
   try {
-    logEmailOtpDebug('[Email Login] Sending OTP', {
-      email: normalizedEmail,
-      validationResult: EMAIL_REGEX.test(normalizedEmail),
-    });
-
-    const { data, error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithOtp({
       email: normalizedEmail,
       options: {
-        shouldCreateUser: true,
+        shouldCreateUser,
       },
     });
 
     if (error) {
-      logEmailOtpDebug('[Email Login] Supabase error', error);
       throw error;
     }
-
-    logEmailOtpDebug('[Email Login] OTP sent', data);
   } catch (error) {
-    logEmailOtpDebug('[Email Login] Network/Auth error', error);
     throw new Error(translateEmailOtpError(error, 'לא ניתן לשלוח בקשת אימות כעת'));
   }
 
@@ -173,11 +163,6 @@ export async function verifyEmailOtp(params: {
   const normalizedEmail = normalizeEmailAddress(params.email);
   const token = params.token.trim();
 
-  logEmailOtpDebug('[Email Login] Verifying OTP', {
-    codeLength: token.length,
-    email: normalizedEmail,
-  });
-
   if (!isValidEmailOtpToken(token)) {
     throw new Error('הקוד שגוי או פג תוקף');
   }
@@ -189,14 +174,8 @@ export async function verifyEmailOtp(params: {
   });
 
   if (error) {
-    logEmailOtpDebug('[Email Login] Verify OTP error', error);
     throw new Error(translateEmailOtpError(error, 'הקוד שגוי או פג תוקף'));
   }
-
-  logEmailOtpDebug('[Email Login] Verify OTP result', {
-    hasSession: Boolean(data.session),
-    userId: data.user?.id ?? data.session?.user.id ?? null,
-  });
 
   return data.session ?? null;
 }

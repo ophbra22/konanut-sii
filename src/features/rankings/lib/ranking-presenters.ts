@@ -4,14 +4,12 @@ type BadgeTone = 'accent' | 'danger' | 'neutral' | 'teal' | 'warning';
 
 export function getRankingTone(level: RankingLevel): BadgeTone {
   switch (level) {
-    case 'מצטיין':
+    case 'כשיר מאוד':
       return 'accent';
-    case 'טוב':
+    case 'כשיר':
       return 'teal';
-    case 'תקין':
+    case 'במעקב':
       return 'warning';
-    case 'דורש שיפור':
-      return 'danger';
     default:
       return 'danger';
   }

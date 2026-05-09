@@ -58,6 +58,149 @@ export type Database = {
           },
         ];
       };
+      notification_deliveries: {
+        Row: {
+          error_message: string | null;
+          id: string;
+          notification_id: string | null;
+          push_token: string;
+          sent_at: string;
+          status: string;
+          training_id: string | null;
+          type: string;
+          user_id: string;
+        };
+        Insert: {
+          error_message?: string | null;
+          id?: string;
+          notification_id?: string | null;
+          push_token: string;
+          sent_at?: string;
+          status?: string;
+          training_id?: string | null;
+          type: string;
+          user_id: string;
+        };
+        Update: {
+          error_message?: string | null;
+          id?: string;
+          notification_id?: string | null;
+          push_token?: string;
+          sent_at?: string;
+          status?: string;
+          training_id?: string | null;
+          type?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'notification_deliveries_notification_id_fkey';
+            columns: ['notification_id'];
+            referencedRelation: 'notifications';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'notification_deliveries_training_id_fkey';
+            columns: ['training_id'];
+            referencedRelation: 'trainings';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      notifications: {
+        Row: {
+          action_params: Json | null;
+          action_screen: string | null;
+          body: string;
+          council_id: string | null;
+          created_at: string;
+          expires_at: string | null;
+          id: string;
+          read_at: string | null;
+          role_scope: string | null;
+          settlement_id: string | null;
+          severity: 'danger' | 'info' | 'success' | 'warning';
+          status: 'dismissed' | 'read' | 'unread';
+          title: string;
+          training_id: string | null;
+          type:
+            | 'general'
+            | 'missing_defense_training'
+            | 'missing_half_year_range'
+            | 'missing_report'
+            | 'new_feedback'
+            | 'upcoming_training';
+          user_id: string | null;
+        };
+        Insert: {
+          action_params?: Json | null;
+          action_screen?: string | null;
+          body: string;
+          council_id?: string | null;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          read_at?: string | null;
+          role_scope?: string | null;
+          settlement_id?: string | null;
+          severity?: 'danger' | 'info' | 'success' | 'warning';
+          status?: 'dismissed' | 'read' | 'unread';
+          title: string;
+          training_id?: string | null;
+          type:
+            | 'general'
+            | 'missing_defense_training'
+            | 'missing_half_year_range'
+            | 'missing_report'
+            | 'new_feedback'
+            | 'upcoming_training';
+          user_id?: string | null;
+        };
+        Update: {
+          action_params?: Json | null;
+          action_screen?: string | null;
+          body?: string;
+          council_id?: string | null;
+          created_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          read_at?: string | null;
+          role_scope?: string | null;
+          settlement_id?: string | null;
+          severity?: 'danger' | 'info' | 'success' | 'warning';
+          status?: 'dismissed' | 'read' | 'unread';
+          title?: string;
+          training_id?: string | null;
+          type?:
+            | 'general'
+            | 'missing_defense_training'
+            | 'missing_half_year_range'
+            | 'missing_report'
+            | 'new_feedback'
+            | 'upcoming_training';
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'notifications_settlement_id_fkey';
+            columns: ['settlement_id'];
+            referencedRelation: 'settlements';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'notifications_council_id_fkey';
+            columns: ['council_id'];
+            referencedRelation: 'regional_councils';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'notifications_training_id_fkey';
+            columns: ['training_id'];
+            referencedRelation: 'trainings';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       feedbacks: {
         Row: {
           comment: string | null;
@@ -452,6 +595,39 @@ export type Database = {
           },
         ];
       };
+      user_push_tokens: {
+        Row: {
+          created_at: string;
+          device_name: string | null;
+          expo_push_token: string;
+          id: string;
+          is_active: boolean;
+          platform: string | null;
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          device_name?: string | null;
+          expo_push_token: string;
+          id?: string;
+          is_active?: boolean;
+          platform?: string | null;
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          created_at?: string;
+          device_name?: string | null;
+          expo_push_token?: string;
+          id?: string;
+          is_active?: boolean;
+          platform?: string | null;
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       users_profile: {
         Row: {
           approval_status: 'pending_approval' | 'approved' | 'rejected';
@@ -596,6 +772,12 @@ export type Database = {
         };
         Returns: boolean;
       };
+      can_access_notification: {
+        Args: {
+          target_notification_id: string;
+        };
+        Returns: boolean;
+      };
       current_profile_role: {
         Args: Record<PropertyKey, never>;
         Returns: string | null;
@@ -608,6 +790,18 @@ export type Database = {
       };
       delete_current_user_account: {
         Args: Record<PropertyKey, never>;
+        Returns: boolean;
+      };
+      dismiss_notification: {
+        Args: {
+          target_notification_id: string;
+        };
+        Returns: boolean;
+      };
+      mark_notification_as_read: {
+        Args: {
+          target_notification_id: string;
+        };
         Returns: boolean;
       };
       admin_delete_user_account: {
@@ -738,6 +932,8 @@ export type TablesUpdate<
 
 export type Alert = Tables<'alerts'>;
 export type Feedback = Tables<'feedbacks'>;
+export type Notification = Tables<'notifications'>;
+export type NotificationDelivery = Tables<'notification_deliveries'>;
 export type ProfessionalContent = Tables<'professional_content'>;
 export type RegionalCouncil = Tables<'regional_councils'>;
 export type Council = RegionalCouncil;
@@ -746,6 +942,7 @@ export type SettlementRanking = Tables<'settlement_rankings'>;
 export type Training = Tables<'trainings'>;
 export type TrainingSettlement = Tables<'training_settlements'>;
 export type UserProfile = Tables<'users_profile'>;
+export type UserPushToken = Tables<'user_push_tokens'>;
 export type UserRegionalCouncil = Tables<'user_regional_councils'>;
 export type UserSettlement = Tables<'user_settlements'>;
 

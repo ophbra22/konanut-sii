@@ -12,6 +12,10 @@ import {
   isPasswordRecoveryLink,
 } from '@/src/features/auth/api/password-reset-service';
 import { queryClient } from '@/src/lib/query-client';
+import {
+  addNotificationResponseListener,
+  registerForPushNotificationsAsync,
+} from '@/src/services/pushNotificationsService';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { AppThemeProvider } from '@/src/theme';
 
@@ -165,6 +169,34 @@ function AuthBootstrap({ children }: PropsWithChildren) {
   return children;
 }
 
+function PushBootstrap() {
+  const status = useAuthStore((state) => state.status);
+  const userId = useAuthStore((state) => state.user?.id ?? null);
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !userId) {
+      return;
+    }
+
+    void registerForPushNotificationsAsync().catch(() => {
+      // Push is best-effort. The app must keep working without permission,
+      // on simulator, or before the Supabase push-token migration is applied.
+    });
+  }, [status, userId]);
+
+  useEffect(() => {
+    const subscription = addNotificationResponseListener((target) => {
+      router.push(target as never);
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  return null;
+}
+
 export function AppProviders({ children }: PropsWithChildren) {
   return (
     <GestureHandlerRootView style={{ direction: 'ltr', flex: 1 }}>
@@ -173,6 +205,7 @@ export function AppProviders({ children }: PropsWithChildren) {
           <QueryClientProvider client={queryClient}>
             <AuthBootstrap>
               {children}
+              <PushBootstrap />
               <AppToast />
             </AuthBootstrap>
           </QueryClientProvider>

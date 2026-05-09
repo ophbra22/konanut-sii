@@ -17,6 +17,7 @@ import { canCreateTrainings } from '@/src/features/auth/lib/permissions';
 import type { TrainingListItem } from '@/src/features/trainings/api/trainings-service';
 import { TrainingListCard } from '@/src/features/trainings/components/training-list-card';
 import { useTrainingsQuery } from '@/src/features/trainings/hooks/use-trainings-query';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { rtlRow } from '@/src/lib/rtl';
 import { matchesSearchQuery } from '@/src/lib/search-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
@@ -59,6 +60,9 @@ export default function TrainingsScreen() {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const { data, error, isLoading, refetch } = useTrainingsQuery();
   const trainings = data ?? [];
+  const trainingsErrorMessage = error
+    ? getPresentableErrorMessage(error, 'לא ניתן לטעון את רשימת האימונים')
+    : undefined;
   const activeStatusFilterLabel =
     statusFilterOptions.find((option) => option.key === statusFilter)?.label ?? 'הכל';
   const hasActiveStatusFilter = statusFilter !== 'all';
@@ -138,7 +142,7 @@ export default function TrainingsScreen() {
             {error ? (
               <StateCard
                 actionLabel="נסו שוב"
-                description={error.message}
+                description={trainingsErrorMessage ?? 'לא ניתן לטעון את רשימת האימונים'}
                 onAction={() => {
                   void refetch();
                 }}

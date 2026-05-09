@@ -27,6 +27,7 @@ import {
   requiresRegionalCouncilAssignment,
   requiresSettlementAssignment,
 } from '@/src/features/auth/lib/permissions';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { PLAGA_VALUES } from '@/src/lib/plaga';
 import { rtlRow, rtlRowReverse } from '@/src/lib/rtl';
 import { useAuthStore } from '@/src/stores/auth-store';
@@ -40,7 +41,10 @@ export function RegisterForm() {
   const completeEmailRegistrationWithPassword = useAuthStore(
     (state) => state.completeEmailRegistrationWithPassword
   );
+  const pendingAuthEmail = useAuthStore((state) => state.pendingAuthEmail);
+  const pendingAuthIntent = useAuthStore((state) => state.pendingAuthIntent);
   const sendEmailOtp = useAuthStore((state) => state.sendEmailOtp);
+  const setPendingAuthIntent = useAuthStore((state) => state.setPendingAuthIntent);
   const signInWithEmailOtp = useAuthStore((state) => state.signInWithEmailOtp);
   const sessionEmail = useAuthStore((state) => state.user?.email ?? state.session?.user.email ?? null);
   const status = useAuthStore((state) => state.status);
@@ -50,6 +54,7 @@ export function RegisterForm() {
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [fullName, setFullName] = useState('');
   const [isCompletingRegistration, setIsCompletingRegistration] = useState(false);
+  const [isRegistrationVerified, setIsRegistrationVerified] = useState(false);
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isVerifyingCode, setIsVerifyingCode] = useState(false);
@@ -68,7 +73,8 @@ export function RegisterForm() {
 
   useEffect(() => {
     clearError();
-  }, [clearError]);
+    void setPendingAuthIntent('registration', pendingAuthEmail);
+  }, [clearError, pendingAuthEmail, setPendingAuthIntent]);
 
   useEffect(() => {
     if (countdown <= 0) {
@@ -85,7 +91,7 @@ export function RegisterForm() {
   }, [countdown]);
 
   useEffect(() => {
-    if (status !== 'needs_registration') {
+    if (status !== 'needs_registration' && !isRegistrationVerified) {
       return;
     }
 
@@ -94,7 +100,7 @@ export function RegisterForm() {
       .catch(() => {
         setOptions({ councils: [], settlements: [] });
       });
-  }, [status]);
+  }, [isRegistrationVerified, status]);
 
   useEffect(() => {
     if (status !== 'needs_registration' || !sessionEmail) {
@@ -105,9 +111,24 @@ export function RegisterForm() {
     setVerifiedEmail((current) => current || sessionEmail);
   }, [sessionEmail, status]);
 
+  useEffect(() => {
+    if (
+      status === 'needs_registration' ||
+      pendingAuthIntent !== 'registration' ||
+      !pendingAuthEmail ||
+      verifiedEmail
+    ) {
+      return;
+    }
+
+    setEmail((current) => current || pendingAuthEmail);
+    setVerifiedEmail(pendingAuthEmail);
+    setSuccessMessage(`שלחנו קוד חד-פעמי לכתובת ${pendingAuthEmail}`);
+  }, [pendingAuthEmail, pendingAuthIntent, status, verifiedEmail]);
+
   const isBusy = isSendingCode || isVerifyingCode || isCompletingRegistration || status === 'loading';
   const displayedError = fieldError ?? authError;
-  const isRegistrationStage = status === 'needs_registration';
+  const isRegistrationStage = status === 'needs_registration' || isRegistrationVerified;
   const normalizedEmail = useMemo(() => {
     try {
       return normalizeEmailAddress(email);
@@ -137,14 +158,14 @@ export function RegisterForm() {
     try {
       emailForOtp = normalizeEmailAddress(email);
     } catch (error) {
-      setFieldError(error instanceof Error ? error.message : 'כתובת אימייל לא תקינה');
+      setFieldError(getPresentableErrorMessage(error, 'כתובת אימייל לא תקינה'));
       return;
     }
 
     setIsSendingCode(true);
 
     try {
-      const result = await sendEmailOtp(emailForOtp);
+      const result = await sendEmailOtp(emailForOtp, { intent: 'registration' });
 
       if (!result.success) {
         setFieldError(result.message ?? 'לא ניתן לשלוח קוד אימות כעת');
@@ -175,21 +196,32 @@ export function RegisterForm() {
     try {
       const result = await signInWithEmailOtp({
         email: verifiedEmail ?? email,
+        intent: 'registration',
         token: code,
       });
 
       if (!result.success) {
-        setFieldError(result.message ?? 'הקוד שגוי או פג תוקף');
+        setFieldError(result.message ?? 'הקוד שהוזן שגוי או פג תוקף. נסה שוב.');
         return;
       }
 
       if (result.reason !== 'needs_registration') {
-        setSuccessMessage('החשבון כבר פעיל. מעביר למסך הראשי...');
-        router.replace('/dashboard' as never);
+        setFieldError(
+          result.message ??
+            'כתובת המייל כבר רשומה במערכת. ניתן להתחבר באמצעות קוד למייל או סיסמה.'
+        );
+        if (result.targetRoute) {
+          router.replace(result.targetRoute as never);
+        }
         return;
       }
 
+      const targetRoute = result.targetRoute ?? '/register';
+
+      setIsRegistrationVerified(true);
+      setVerifiedEmail(result.email ?? verifiedEmail ?? email);
       setSuccessMessage('האימייל אומת בהצלחה. עכשיו מגדירים סיסמה ומשלימים את הבקשה');
+      router.replace(targetRoute as never);
     } finally {
       setIsVerifyingCode(false);
     }
@@ -259,6 +291,7 @@ export function RegisterForm() {
         accessibilityRole="button"
         onPress={() => {
           clearError();
+          void setPendingAuthIntent('login', null);
           router.replace('/login' as never);
         }}
         style={({ pressed }) => [styles.linkRow, pressed ? styles.linkPressed : null]}
@@ -307,8 +340,8 @@ export function RegisterForm() {
       <AuthScreenShell
         badgeCaption="שלב 1 מתוך 2"
         badgeLabel="אימות מייל"
-        cardDescription="קודם מאמתים את כתובת האימייל עם קוד חד-פעמי, ורק אחר כך מגדירים סיסמה ומשלימים את פרטי הבקשה."
-        cardTitle="הרשמה עם אימייל"
+        cardDescription="שלחנו קוד חד-פעמי לכתובת המייל שלך. לאחר האימות תועבר למילוי פרטי הרשמה."
+        cardTitle="אימות מייל להרשמה"
         compact
         footer={footer}
         hero={
@@ -355,6 +388,15 @@ export function RegisterForm() {
             value={email}
             writingDirection="ltr"
           />
+
+          {verifiedEmail ? (
+            <View style={styles.codeNotice}>
+              <Text style={styles.codeNoticeLabel}>הקוד נשלח לכתובת</Text>
+              <Text numberOfLines={1} style={styles.codeNoticeEmail}>
+                {verifiedEmail}
+              </Text>
+            </View>
+          ) : null}
 
           {verifiedEmail ? (
             <Pressable
@@ -439,7 +481,7 @@ export function RegisterForm() {
                 <AuthSubmitButton
                   compact
                   disabled={!isCodeComplete || isBusy}
-                  label="אמת והמשך"
+                  label="אמת והמשך להרשמה"
                   loading={isVerifyingCode}
                   loadingLabel="מאמת..."
                   onPress={() => {
@@ -484,11 +526,31 @@ export function RegisterForm() {
         ) : null}
 
         <View style={styles.emailSummary}>
-          <Text style={styles.emailSummaryLabel}>אימייל מאומת</Text>
+          <Text style={styles.emailSummaryLabel}>אימייל אומת בהצלחה</Text>
           <Text numberOfLines={1} style={styles.emailSummaryValue}>
             {verifiedEmail ?? sessionEmail ?? email}
           </Text>
         </View>
+
+        <Text style={styles.formSectionTitle}>פרטים אישיים</Text>
+
+        <AppTextField
+          appearance="auth"
+          autoCapitalize="words"
+          autoComplete="name"
+          errorMessage={undefined}
+          icon={<UserRound />}
+          label="שם מלא *"
+          onChangeText={(text) => {
+            clearError();
+            setFieldError(null);
+            setFullName(text);
+          }}
+          placeholder="הזינו שם מלא"
+          returnKeyType="next"
+          textContentType="name"
+          value={fullName}
+        />
 
         <AppTextField
           appearance="auth"
@@ -497,7 +559,7 @@ export function RegisterForm() {
           autoCorrect={false}
           errorMessage={undefined}
           icon={<Lock />}
-          label="סיסמה"
+          label="סיסמה *"
           onChangeText={(text) => {
             clearError();
             setFieldError(null);
@@ -519,7 +581,7 @@ export function RegisterForm() {
           autoCorrect={false}
           errorMessage={undefined}
           icon={<Lock />}
-          label="אימות סיסמה"
+          label="אימות סיסמה *"
           onChangeText={(text) => {
             clearError();
             setFieldError(null);
@@ -534,26 +596,10 @@ export function RegisterForm() {
           writingDirection="ltr"
         />
 
-        <AppTextField
-          appearance="auth"
-          autoCapitalize="words"
-          autoComplete="name"
-          errorMessage={undefined}
-          icon={<UserRound />}
-          label="שם מלא"
-          onChangeText={(text) => {
-            clearError();
-            setFieldError(null);
-            setFullName(text);
-          }}
-          placeholder="הזינו שם מלא"
-          returnKeyType="next"
-          textContentType="name"
-          value={fullName}
-        />
+        <Text style={styles.formSectionTitle}>תפקיד והרשאות</Text>
 
         <View style={styles.selectionField}>
-          <Text style={styles.selectionLabel}>תפקיד מבוקש</Text>
+          <Text style={styles.selectionLabel}>תפקיד מבוקש *</Text>
           <View style={styles.selectionChips}>
             {registrationRoleOptions.map((option) => {
               const isSelected = requestedRole === option.value;
@@ -646,7 +692,7 @@ export function RegisterForm() {
 
         <AuthSubmitButton
           disabled={isCompletingRegistration}
-          label="השלמת הרשמה"
+          label="שלח בקשת הרשמה"
           loading={isCompletingRegistration}
           loadingLabel="שומר פרטים..."
           onPress={() => {
@@ -661,6 +707,27 @@ export function RegisterForm() {
 const styles = createThemedStyles((theme: AppTheme) => ({
   actions: {
     gap: theme.spacing.sm,
+  },
+  codeNotice: {
+    backgroundColor: theme.colors.infoSurface,
+    borderColor: theme.colors.infoBorder,
+    borderRadius: theme.radius.lg,
+    borderWidth: 1,
+    gap: 4,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+  },
+  codeNoticeEmail: {
+    ...theme.typography.body,
+    color: theme.colors.textPrimary,
+    fontWeight: '800',
+    textAlign: 'right',
+    writingDirection: 'ltr',
+  },
+  codeNoticeLabel: {
+    ...theme.typography.caption,
+    color: theme.colors.textSecondary,
+    textAlign: 'right',
   },
   errorBanner: {
     backgroundColor: theme.colors.dangerSurface,
@@ -702,6 +769,13 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   },
   form: {
     gap: theme.spacing.md,
+  },
+  formSectionTitle: {
+    ...theme.typography.caption,
+    color: theme.colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '900',
+    textAlign: 'right',
   },
   linkPressed: {
     opacity: 0.82,

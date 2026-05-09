@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { createClient } from '@supabase/supabase-js';
 
 import type { Database } from '@/src/types/database';
@@ -34,12 +34,44 @@ function assertValidSupabaseUrl(value: string) {
 
 assertValidSupabaseUrl(supabaseUrl);
 
+const secureAuthStorage = {
+  async getItem(key: string) {
+    try {
+      if (!(await SecureStore.isAvailableAsync())) {
+        return null;
+      }
+
+      return SecureStore.getItemAsync(key);
+    } catch {
+      return null;
+    }
+  },
+  async removeItem(key: string) {
+    try {
+      if (await SecureStore.isAvailableAsync()) {
+        await SecureStore.deleteItemAsync(key);
+      }
+    } catch {
+      // Keep auth cleanup non-blocking if the platform secure store is unavailable.
+    }
+  },
+  async setItem(key: string, value: string) {
+    try {
+      if (await SecureStore.isAvailableAsync()) {
+        await SecureStore.setItemAsync(key, value);
+      }
+    } catch {
+      // Supabase can continue the in-memory session even if persistence is unavailable.
+    }
+  },
+};
+
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     detectSessionInUrl: false,
     persistSession: true,
-    storage: AsyncStorage,
+    storage: secureAuthStorage,
   },
   global: {
     headers: {

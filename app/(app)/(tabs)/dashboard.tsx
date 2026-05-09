@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import dayjs from 'dayjs';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StateCard } from '@/src/components/feedback/state-card';
 import { AppBadge } from '@/src/components/ui/app-badge';
@@ -11,86 +12,86 @@ import { SectionBlock } from '@/src/components/ui/section-block';
 import { getRoleLabel } from '@/src/features/auth/lib/permissions';
 import { DashboardMetricCard } from '@/src/features/dashboard/components/dashboard-metric-card';
 import { NextTrainingHeroCard } from '@/src/features/dashboard/components/next-training-hero-card';
-import {
-  type DashboardAlertItem,
-  type DashboardOverview,
-} from '@/src/features/dashboard/api/dashboard-service';
+import { type DashboardOverview } from '@/src/features/dashboard/api/dashboard-service';
 import { useDashboardQuery } from '@/src/features/dashboard/hooks/use-dashboard-query';
+import { useHomeNotificationsQuery } from '@/src/features/notifications/hooks/use-home-notifications-query';
 import { type ComplianceFilterKey } from '@/src/features/settlements/lib/compliance-filters';
 import {
   formatDisplayDate,
   getHalfYearLabel,
 } from '@/src/lib/date-utils';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
+import {
+  markNotificationAsRead,
+  type HomeNotification,
+  type NotificationSeverity,
+} from '@/src/services/notificationsService';
 import { useAuthStore } from '@/src/stores/auth-store';
 import { createThemedStyles, theme, type AppTheme } from '@/src/theme';
 
-function getAlertColor(severity: 'high' | 'low' | 'medium') {
+const HORIZONTAL_PADDING = 24;
+const METRIC_CARD_GAP = 12;
+const METRIC_CARD_HEIGHT = 108;
+
+function getAlertColor(severity: NotificationSeverity) {
   switch (severity) {
-    case 'high':
+    case 'danger':
       return theme.colors.danger;
-    case 'medium':
+    case 'warning':
       return theme.colors.warning;
+    case 'success':
+      return theme.colors.success;
     default:
-      return theme.colors.accentStrong;
+      return theme.colors.info;
   }
 }
 
-function getAlertStatusLabel(status: 'open' | 'resolved') {
-  return status === 'resolved' ? 'טופל' : 'ללא טיפול';
-}
+function getBadgeTone(severity: NotificationSeverity) {
+  if (severity === 'danger' || severity === 'warning') {
+    return 'warning' as const;
+  }
 
-function DashboardAlertStatusPill({
-  status,
-}: {
-  status: DashboardAlertItem['status'];
-}) {
-  const isResolved = status === 'resolved';
+  if (severity === 'success') {
+    return 'success' as const;
+  }
 
-  return (
-    <View
-      style={[
-        styles.alertStatusPill,
-        isResolved ? styles.alertStatusPillResolved : styles.alertStatusPillOpen,
-      ]}
-    >
-      <Text
-        style={[
-          styles.alertStatusText,
-          isResolved ? styles.alertStatusTextResolved : styles.alertStatusTextOpen,
-        ]}
-      >
-        {getAlertStatusLabel(status)}
-      </Text>
-    </View>
-  );
+  return 'info' as const;
 }
 
 function DashboardAlertPreviewItem({
   alertItem,
   isLast,
+  onPress,
 }: {
-  alertItem: DashboardAlertItem;
+  alertItem: HomeNotification;
   isLast: boolean;
+  onPress: () => void;
 }) {
   return (
-    <View style={[styles.alertRow, !isLast ? styles.alertRowBorder : null]}>
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.alertRow,
+        !isLast ? styles.alertRowBorder : null,
+        pressed ? styles.alertRowPressed : null,
+      ]}
+    >
       <View style={[styles.alertDot, { backgroundColor: getAlertColor(alertItem.severity) }]} />
 
       <View style={styles.alertContent}>
         <View style={styles.alertTitleRow}>
           <Text numberOfLines={1} style={styles.alertTitle}>
-            {alertItem.related_settlement_name
-              ? `${alertItem.title} – ${alertItem.related_settlement_name}`
-              : alertItem.title}
+            {alertItem.title}
           </Text>
-          <DashboardAlertStatusPill status={alertItem.status} />
+          <AppBadge label={alertItem.badgeLabel} size="sm" tone={getBadgeTone(alertItem.severity)} />
         </View>
 
         <Text numberOfLines={2} style={styles.alertSubtitle}>
-          {formatDisplayDate(alertItem.created_at)} • {alertItem.type}
+          {alertItem.body}
         </Text>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -126,20 +127,56 @@ function getGreetingLabel() {
 
 export default function DashboardScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const role = useAuthStore((state) => state.role);
   const profile = useAuthStore((state) => state.profile);
   const { data, error, isLoading, refetch } = useDashboardQuery();
+  const {
+    data: notifications,
+    error: notificationsError,
+    isLoading: isNotificationsLoading,
+    refetch: refetchNotifications,
+  } = useHomeNotificationsQuery();
   const nextTraining = data?.upcomingTrainings[0] ?? null;
-  const alerts = data?.alertsSummary.slice(0, 3) ?? [];
+  const alerts = notifications ?? [];
+  const dashboardErrorMessage = error
+    ? getPresentableErrorMessage(error, 'לא ניתן לטעון את נתוני הדשבורד')
+    : undefined;
+  const notificationsErrorMessage = notificationsError
+    ? getPresentableErrorMessage(notificationsError, 'לא ניתן לטעון את ההתראות')
+    : undefined;
   const greetingName =
     profile?.full_name?.trim() || profile?.email?.trim() || getRoleLabel(role);
   const heroGreeting = `${getGreetingLabel()}, ${greetingName}`;
   const todayLabel = formatDisplayDate(dayjs().format('YYYY-MM-DD'));
+  const safeContentWidth = width - insets.left - insets.right;
+  const metricCardWidth = Math.max(
+    0,
+    Math.floor((safeContentWidth - HORIZONTAL_PADDING * 2 - METRIC_CARD_GAP) / 2)
+  );
 
   const navigateToComplianceFilter = (filter: ComplianceFilterKey) => {
     router.push(
       `/settlements?complianceFilter=${filter}&filterRequestAt=${Date.now()}` as never
     );
+  };
+
+  const handleNotificationPress = (notification: HomeNotification) => {
+    void markNotificationAsRead(notification.id)
+      .catch(() => undefined)
+      .finally(() => {
+        void refetchNotifications();
+      });
+
+    if (notification.training_id) {
+      router.push(`/trainings/${notification.training_id}` as never);
+      return;
+    }
+
+    if (notification.settlement_id) {
+      router.push(`/settlements/${notification.settlement_id}` as never);
+    }
   };
 
   return (
@@ -160,25 +197,25 @@ export default function DashboardScreen() {
       <AppRevealView delay={40}>
         <View style={styles.metricsGrid}>
           <DashboardMetricCard
-            errorMessage={error?.message}
+            errorMessage={dashboardErrorMessage}
             isEmpty={!isLoading && !error && (data?.weeklyTrainingsCount ?? 0) === 0}
             isLoading={isLoading}
             label="אימונים השבוע"
-            style={styles.metricCard}
+            style={[styles.metricCard, { width: metricCardWidth }]}
             tone="accent"
             value={String(data?.weeklyTrainingsCount ?? 0)}
           />
           <DashboardMetricCard
-            errorMessage={error?.message}
+            errorMessage={dashboardErrorMessage}
             isEmpty={!isLoading && !error && (data?.monthlyTrainingsCount ?? 0) === 0}
             isLoading={isLoading}
             label="אימונים החודש"
-            style={styles.metricCard}
+            style={[styles.metricCard, { width: metricCardWidth }]}
             tone="accent"
             value={String(data?.monthlyTrainingsCount ?? 0)}
           />
           <DashboardMetricCard
-            errorMessage={error?.message}
+            errorMessage={dashboardErrorMessage}
             emptyLabel="ללא חוסרים"
             isEmpty={!isLoading && !error && (data?.missingShootingSettlementsCount ?? 0) === 0}
             isLoading={isLoading}
@@ -190,13 +227,13 @@ export default function DashboardScreen() {
                   }
                 : undefined
             }
-            style={styles.metricCard}
+            style={[styles.metricCard, { width: metricCardWidth }]}
             tone="warning"
             value={String(data?.missingShootingSettlementsCount ?? 0)}
           />
           <DashboardMetricCard
             emptyLabel="ללא חוסרים"
-            errorMessage={error?.message}
+            errorMessage={dashboardErrorMessage}
             isEmpty={!isLoading && !error && (data?.missingDefenseSettlementsCount ?? 0) === 0}
             isLoading={isLoading}
             label="חסרי הגנת יישוב"
@@ -207,7 +244,7 @@ export default function DashboardScreen() {
                   }
                 : undefined
             }
-            style={styles.metricCard}
+            style={[styles.metricCard, { width: metricCardWidth }]}
             tone="warning"
             value={String(data?.missingDefenseSettlementsCount ?? 0)}
           />
@@ -227,7 +264,7 @@ export default function DashboardScreen() {
         ) : error ? (
           <StateCard
             actionLabel="נסו שוב"
-            description={error.message}
+            description={dashboardErrorMessage ?? 'לא ניתן לטעון את נתוני הדשבורד'}
             onAction={() => {
               void refetch();
             }}
@@ -249,7 +286,7 @@ export default function DashboardScreen() {
         {error ? (
           <StateCard
             actionLabel="נסו שוב"
-            description={error.message}
+            description={dashboardErrorMessage ?? 'לא ניתן לטעון את נתוני הדשבורד'}
             onAction={() => {
               void refetch();
             }}
@@ -269,16 +306,16 @@ export default function DashboardScreen() {
 
       <AppRevealView delay={120}>
         <SectionBlock title="התראות">
-          {isLoading ? (
+          {isNotificationsLoading ? (
             <View style={styles.alertsList}>
               <Text style={styles.alertsPlaceholder}>טוען את ההתראות האחרונות...</Text>
             </View>
-          ) : error ? (
+          ) : notificationsError ? (
             <StateCard
               actionLabel="נסו שוב"
-              description={error.message}
+              description={notificationsErrorMessage ?? 'לא ניתן לטעון את ההתראות'}
               onAction={() => {
-                void refetch();
+                void refetchNotifications();
               }}
               title="לא ניתן לטעון התראות"
               variant="warning"
@@ -290,13 +327,16 @@ export default function DashboardScreen() {
                   key={alertItem.id}
                   alertItem={alertItem}
                   isLast={index === alerts.length - 1}
+                  onPress={() => {
+                    handleNotificationPress(alertItem);
+                  }}
                 />
               ))}
             </View>
           ) : (
             <View style={styles.alertsList}>
-              <Text style={styles.emptyTitle}>אין התראות חדשות</Text>
-              <Text style={styles.emptyDescription}>לא זוהו חריגים להצגה כרגע.</Text>
+              <Text style={styles.emptyTitle}>אין התראות פתוחות</Text>
+              <Text style={styles.emptyDescription}>כל המשימות והאימונים מעודכנים.</Text>
             </View>
           )}
         </SectionBlock>
@@ -328,6 +368,9 @@ const styles = createThemedStyles((theme: AppTheme) => ({
   alertRowBorder: {
     borderBottomColor: theme.colors.separatorStrong,
     borderBottomWidth: 1,
+  },
+  alertRowPressed: {
+    opacity: 0.72,
   },
   alertStatusPill: {
     borderRadius: 999,
@@ -491,19 +534,20 @@ const styles = createThemedStyles((theme: AppTheme) => ({
     writingDirection: 'rtl',
   },
   metricCard: {
+    height: METRIC_CARD_HEIGHT,
     minWidth: 0,
-    width: '48.4%',
   },
   metricsGrid: {
     direction: 'ltr',
     flexDirection: 'row-reverse',
     flexWrap: 'wrap',
-    gap: 12,
     justifyContent: 'space-between',
+    rowGap: METRIC_CARD_GAP,
   },
   screenContent: {
     gap: theme.spacing.xl,
     paddingBottom: theme.spacing.sm,
+    paddingHorizontal: HORIZONTAL_PADDING,
   },
   systemCard: {
     alignItems: 'stretch',

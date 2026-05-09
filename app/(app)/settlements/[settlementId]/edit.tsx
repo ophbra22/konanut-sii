@@ -15,6 +15,7 @@ import {
   getSettlementFormValues,
   toSettlementUpdateInput,
 } from '@/src/features/settlements/lib/settlement-form-utils';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 
 export default function EditSettlementScreen() {
@@ -60,7 +61,11 @@ export default function EditSettlementScreen() {
         />
         <StateCard
           actionLabel="חזרה לרשימת היישובים"
-          description={error?.message ?? 'לא נמצא יישוב לעריכה.'}
+          description={
+            error
+              ? getPresentableErrorMessage(error, 'לא ניתן לטעון את פרטי היישוב')
+              : 'לא נמצא יישוב לעריכה.'
+          }
           onAction={() => {
             router.replace('/(app)/(tabs)/settlements');
           }}
@@ -81,7 +86,10 @@ export default function EditSettlementScreen() {
 
       {mutation.error ? (
         <StateCard
-          description={mutation.error.message}
+          description={getPresentableErrorMessage(
+            mutation.error,
+            'לא ניתן לשמור את השינויים'
+          )}
           title="לא ניתן לשמור את השינויים"
           variant="warning"
         />
@@ -89,7 +97,10 @@ export default function EditSettlementScreen() {
 
       {councilsQuery.error ? (
         <StateCard
-          description={councilsQuery.error.message}
+          description={getPresentableErrorMessage(
+            councilsQuery.error,
+            'לא ניתן לטעון את המועצות'
+          )}
           title="לא ניתן לטעון את המועצות"
           variant="warning"
         />

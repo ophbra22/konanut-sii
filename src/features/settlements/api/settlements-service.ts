@@ -76,6 +76,36 @@ type SettlementQueryRow = Settlement & {
   council: CouncilSummary | null;
 };
 
+const settlementSelect = `
+  id,
+  name,
+  area,
+  regional_council,
+  council_id,
+  coordinator_name,
+  coordinator_phone,
+  is_active,
+  total_squad_members,
+  created_at
+`;
+
+const settlementRankingSelect = `
+  id,
+  settlement_id,
+  half_year_period,
+  shooting_completed,
+  defense_completed,
+  median_range_participation_percent,
+  settlement_defense_participation_percent,
+  base_score,
+  training_score,
+  instructor_feedback_points,
+  feedback_score,
+  final_score,
+  ranking_level,
+  calculated_at
+`;
+
 function shouldIgnoreRegionalCouncilSyncError(error: unknown) {
   const message = getErrorMessage(error, '');
 
@@ -125,7 +155,7 @@ export async function listSettlements(): Promise<SettlementListItem[]> {
   ] = await Promise.all([
     supabase
       .from('settlements')
-      .select('*')
+      .select(settlementSelect)
       .order('is_active', { ascending: false })
       .order('name', { ascending: true }),
     listCouncils(),
@@ -169,13 +199,13 @@ export async function getSettlementDetails(
   ] = await Promise.all([
       supabase
         .from('settlements')
-        .select('*')
+        .select(settlementSelect)
         .eq('id', settlementId)
         .maybeSingle(),
       listCouncils(),
       supabase
         .from('settlement_rankings')
-        .select('*')
+        .select(settlementRankingSelect)
         .eq('settlement_id', settlementId)
         .order('calculated_at', { ascending: false }),
       supabase
@@ -334,7 +364,6 @@ export async function getSettlementDetails(
       settlement_id: settlementId,
       training: {
         id: training.id,
-        settlement_attendance: training.settlement_attendance,
         status: training.status,
         title: training.title,
         training_date: training.training_date,
@@ -361,7 +390,7 @@ export async function createSettlement(
   const { data, error } = await supabase
     .from('settlements')
     .insert(values)
-    .select('*')
+    .select(settlementSelect)
     .single();
 
   if (error) {
@@ -381,7 +410,7 @@ export async function updateSettlement(
     .from('settlements')
     .update(values)
     .eq('id', settlementId)
-    .select('*')
+    .select(settlementSelect)
     .single();
 
   if (error) {

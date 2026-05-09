@@ -9,6 +9,7 @@ import { canManageProfessionalContent } from '@/src/features/auth/lib/permission
 import { ProfessionalContentForm } from '@/src/features/professional-content/components/professional-content-form';
 import { useCreateProfessionalContentMutation } from '@/src/features/professional-content/hooks/use-professional-content-mutations';
 import { toProfessionalContentInsertInput } from '@/src/features/professional-content/lib/professional-content-form-utils';
+import { getPresentableErrorMessage } from '@/src/lib/error-utils';
 import { useAuthStore } from '@/src/stores/auth-store';
 
 export default function CreateProfessionalContentScreen() {
@@ -47,7 +48,10 @@ export default function CreateProfessionalContentScreen() {
 
       {mutation.error ? (
         <StateCard
-          description={mutation.error.message}
+          description={getPresentableErrorMessage(
+            mutation.error,
+            'לא ניתן ליצור את פריט התוכן'
+          )}
           title="לא ניתן ליצור את פריט התוכן"
           variant="warning"
         />
